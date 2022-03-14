@@ -147,6 +147,8 @@ void read_gauss_code (generic_code_data& code_data, string input_string);
 void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT = false);
 void read_code_data (generic_code_data& code_data, string input_string);
 void write_code_data(ostream& s, generic_code_data& code_data);
+void read_planar_diagram (generic_code_data& code_data, string input_string);
+void write_planar_diagram(ostream& s, generic_code_data& code_data);
 string convert_gauss_code(string OU_gauss_code);
 void renumber_peer_code(generic_code_data& code_data, vector<int> shift);
 int remove_peer_code_component(generic_code_data& code_data, int component, vector<int>& component_flags);
