@@ -44,7 +44,8 @@ extern ifstream     input;
 #include <gauss-orientation.h>
 #include <reidemeister.h>
 
-bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data);
+//bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal = true);
+bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal=true, vector<int>* gauss_crossing_perm=0, bool evaluate_gauss_crossing_perm=false);
 
 /* virtual_Reidemeister_I_present detects virtual Reidemeister I monogons and also virtual Reidemeister I 
    detours that, in the case of knotoids, may also encounter the shortcut.
@@ -5091,12 +5092,20 @@ void clear_component_flag(int component, vector<int>& component_flags)
 */
 Reidemeister_III_return Reidemeister_III_present (generic_code_data code_data)
 {
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "Reidemeister_III_present: presented with code data ";
+	write_code_data(debug,code_data);	
+	debug << endl;
+}
+
 	Reidemeister_III_return _return;
 	
 	gauss_orientation_data gdata(code_data);
 	
 	
-	list<tuple<int,int,int> > Reidemeister_III_list;
+	list<vector<int> > Reidemeister_III_list;
 	
 	int num_terms = gdata.num_terms;
 	int num_components = gdata.num_components;
@@ -5115,7 +5124,7 @@ Reidemeister_III_return Reidemeister_III_present (generic_code_data code_data)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "Reidemeister_III_present: term = " << term << " successor = " << successor << endl;
 		
-		if (gauss_data[term] > 0 && gauss_data[successor] > 0)
+		if (term != successor && gauss_data[term] > 0 && gauss_data[successor] > 0)
 		{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "Reidemeister_III_present:   consecutive over crossings found at terms " << term << " and " << successor << endl;
@@ -5246,17 +5255,22 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "Reidemeister_III_present:     crossing_sign[crossing_a] = " << crossing_sign[crossing_a-1] << " m3 = " << m3 
 	      << " crossing_sign[crossing_c] = " << crossing_sign[crossing_c-1] << " m2 = " << m2 << " crossing_sign[crossing_b] = " << crossing_sign[crossing_b-1] << endl;
 }
-							tuple<int,int,int> R3_indices;
+							vector<int> R3_indices(6);
 							switch(k)
 							{
-								case 0: R3_indices = tuple<int,int,int>(crossing_a_index,left_a_index,left_b_index);break;
-								case 1: R3_indices = tuple<int,int,int>(crossing_a_index,under_a_index,left_b_index);break;
-								case 2: R3_indices = tuple<int,int,int>(crossing_b_index,left_b_index,left_a_index);break;
-								case 3: R3_indices = tuple<int,int,int>(crossing_b_index,left_b_index,under_a_index);break;
+								case 0: R3_indices = {crossing_a_index,left_a_index,left_b_index, crossing_a, crossing_b, crossing_c};break;
+								case 1: R3_indices = {crossing_a_index,under_a_index,left_b_index, crossing_a, crossing_b, crossing_c};break;
+								case 2: R3_indices = {crossing_b_index,left_b_index,left_a_index, crossing_a, crossing_b, crossing_c};break;
+								case 3: R3_indices = {crossing_b_index,left_b_index,under_a_index, crossing_a, crossing_b, crossing_c};break;
 							}
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "Reidemeister_III_present:     Reidemeister III indices " << get<0>(R3_indices) << ' ' << get<1>(R3_indices) << ' ' << get<2>(R3_indices) << endl;
+{
+	debug << "Reidemeister_III_present:     Reidemeister III indices ";
+	for (int i=0; i< 6; i++)
+		debug << R3_indices[i] << ' ';
+	debug << endl;
+}
 
 							Reidemeister_III_list.push_back(R3_indices);
 							
@@ -5286,18 +5300,22 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "Reidemeister_III_present:     crossing_sign[crossing_a] = " << crossing_sign[crossing_a-1] << " m3 = " << m3 
 	      << " crossing_sign[crossing_c] = " << crossing_sign[crossing_c-1] << " m2 = " << m2 << " crossing_sign[crossing_b] = " << crossing_sign[crossing_b-1] << endl;
 }
-							tuple<int,int,int> R3_indices;
+							vector<int> R3_indices(6);
 							switch(k)
 							{
-								case 0: R3_indices = tuple<int,int,int>(crossing_a_index,left_a_index,under_b_index);break;
-								case 1: R3_indices = tuple<int,int,int>(crossing_a_index,under_a_index,under_b_index);break;
-								case 2: R3_indices = tuple<int,int,int>(crossing_b_index,under_b_index,left_a_index);break;
-								case 3: R3_indices = tuple<int,int,int>(crossing_b_index,under_b_index,under_a_index);break;
+								case 0: R3_indices = {crossing_a_index,left_a_index,under_b_index, crossing_a, crossing_b, crossing_c};break;
+								case 1: R3_indices = {crossing_a_index,under_a_index,under_b_index, crossing_a, crossing_b, crossing_c};break;
+								case 2: R3_indices = {crossing_b_index,under_b_index,left_a_index, crossing_a, crossing_b, crossing_c};break;
+								case 3: R3_indices = {crossing_b_index,under_b_index,under_a_index, crossing_a, crossing_b, crossing_c};break;
 							}
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "Reidemeister_III_present:     Reidemeister III indices " << get<0>(R3_indices) << ' ' << get<1>(R3_indices) << ' ' << get<2>(R3_indices) << endl;
-
+{
+	debug << "Reidemeister_III_present:     Reidemeister III indices ";
+	for (int i=0; i< 6; i++)
+		debug << R3_indices[i] << ' ';
+	debug << endl;
+}
 							Reidemeister_III_list.push_back(R3_indices);
 							
 							_return.Reidemeister_III_found = true;
@@ -5318,18 +5336,21 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 	if (_return.Reidemeister_III_found)
 	{
-if (debug_control::DEBUG >= debug_control::DETAIL)
+if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "Reidemeister_III_present: found " << Reidemeister_III_list.size() << " Reidemeister III configurations" << endl;
-		matrix<int> R3_configuration(Reidemeister_III_list.size(),3);
+		matrix<int> R3_configuration(Reidemeister_III_list.size(),6);
 		
-		list<tuple<int,int,int> >::iterator lptr = Reidemeister_III_list.begin();
+		list<vector<int> >::iterator lptr = Reidemeister_III_list.begin();
 		int index=0;
 		
 		while (lptr !=	Reidemeister_III_list.end())
 		{
-			R3_configuration[index][0] = get<0>(*lptr);
-			R3_configuration[index][1] = get<1>(*lptr);
-			R3_configuration[index][2] = get<2>(*lptr);
+			R3_configuration[index][0] = (*lptr)[0];
+			R3_configuration[index][1] = (*lptr)[1];
+			R3_configuration[index][2] = (*lptr)[2];
+			R3_configuration[index][3] = (*lptr)[3];
+			R3_configuration[index][4] = (*lptr)[4];
+			R3_configuration[index][5] = (*lptr)[5];
 			index++;
 			lptr++;
 		}
