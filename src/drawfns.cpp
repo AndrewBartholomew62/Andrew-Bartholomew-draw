@@ -54,7 +54,7 @@ extern bool STATE_SMOOTHED;
 extern int check_inner_hull_vertex;
 extern double average_triangulation_edge_length;
 extern float average_triangulation_length_factor;
-extern bool MAGNIFY_SMALL_CIRCLES;
+//extern bool MAGNIFY_SMALL_CIRCLES;
 extern float magnification_factor;
 extern double pi;
 extern double two_pi;
@@ -84,6 +84,7 @@ void add_virtual_crossing(int location, vector<int>& fringe, vector<int>& num_vi
 void assign_gauss_arc_direction(int arc_1, int arc_2, matrix<int>& gauss_code_table, int crossing, vector<int>& gauss_arc_direction);
 string direction_to_string(int edge, vector<int>& gauss_arc_direction);
 void remove_fringe_edge(int edge, vector<int>& current_fringe);
+
 
 /* invstr creates the inverse of src and returns it to the call.
    The string src must be composed of si, -si, and ti components only.
@@ -593,6 +594,26 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	double M01;
 	double M11; */
 
+	/* If we are translating any of the vertices, make the required adjustments */
+	if (mp_control.translations.size() != 0)
+	{
+		int x_percentage_unit = (maxx - minx)/100;
+		int y_percentage_unit = (maxy - miny)/100;
+		
+		for (unsigned int i=0; i< mp_control.translations.size(); i++)
+		{
+			unsigned int vertex = get<0>(mp_control.translations[i]);
+			int x_num = get<1>(mp_control.translations[i]);
+			int y_num = get<2>(mp_control.translations[i]);
+			
+			if (vertex < vcoords.numrows())
+			{
+				vcoords[vertex][0] += x_num*x_percentage_unit;
+				vcoords[vertex][1] += y_num*y_percentage_unit;
+			}
+		}
+	}
+
 	if (mp_control.rotate)
 	{
 		if (mp_control.implicit_rotation_centre)
@@ -747,26 +768,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	os << "d=" << mp_control.disc_size << "u;" << endl;
 	os << "path p[];" << endl;
 	os << "pickup pencircle scaled " << mp_control.pen_size*0.5 << "pt;" << endl;
-
-	/* If we are translating any of the vertices, make the required adjustments */
-	if (mp_control.translations.size() != 0)
-	{
-		int x_percentage_unit = (maxx - minx)/100;
-		int y_percentage_unit = (maxy - miny)/100;
-		
-		for (unsigned int i=0; i< mp_control.translations.size(); i++)
-		{
-			unsigned int vertex = get<0>(mp_control.translations[i]);
-			int x_num = get<1>(mp_control.translations[i]);
-			int y_num = get<2>(mp_control.translations[i]);
-			
-			if (vertex < vcoords.numrows())
-			{
-				vcoords[vertex][0] += x_num*x_percentage_unit;
-				vcoords[vertex][1] += y_num*y_percentage_unit;
-			}
-		}
-	}
+	
 	/* vertex coordinates are numbered z<vertex> */
 	for (int i=0; i< num_vertices; i++)
 		os << "z" << i << "=(" << setw(output_field_width) << vcoords[i][0] << "u," << setw(output_field_width) << vcoords[i][1] << "u);" << endl;
@@ -808,29 +810,17 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		os << "pickup pencircle scaled 0.5bp;" << endl;		
 	}
 
-	if (mp_control.draw_immersion_bounds)
+	if (mp_control.draw_grid)
 	{
-		int bl = 2*num_vertices+4;
-		int br = bl+1;
-		int tr = br+1;
-		int tl = tr+1;
+		double x_step = mp_control.grid_size*(maxx - minx)/100;
+		double y_step = mp_control.grid_size*(maxy - miny)/100;
+		double right_x = minx+(100/mp_control.grid_size)*x_step;
+		double top_y = miny+(100/mp_control.grid_size)*y_step;
 		
-		/* set up variables for the frame corners (minx,miny), (maxx,miny), (maxx,maxy), (minx,maxy) */
-		os << "z" << bl << "=(" << setw(output_field_width) << minx << "u," << setw(output_field_width) << miny << "u);" << endl;	
-		os << "z" << br << "=(" << setw(output_field_width) << maxx << "u," << setw(output_field_width) << miny << "u);" << endl;	
-		os << "z" << tr << "=(" << setw(output_field_width) << maxx << "u," << setw(output_field_width) << maxy << "u);" << endl;	
-		os << "z" << tl << "=(" << setw(output_field_width) << minx << "u," << setw(output_field_width) << maxy << "u);" << endl;	
-
-		os << "pickup pencircle scaled 1bp;" << endl;
-		os << "draw z" << bl << "--0.1[z" << bl <<",z" << br << "] dashed withdots;" << endl;
-		os << "draw z" << bl << "--0.1[z" << bl <<",z" << tl << "] dashed withdots;" << endl;
-		os << "draw z" << br << "--0.1[z" << br <<",z" << bl << "] dashed withdots;" << endl;
-		os << "draw z" << br << "--0.1[z" << br <<",z" << tr << "] dashed withdots;" << endl;
-		os << "draw z" << tr << "--0.1[z" << tr <<",z" << br << "] dashed withdots;" << endl;
-		os << "draw z" << tr << "--0.1[z" << tr <<",z" << tl << "] dashed withdots;" << endl;
-		os << "draw z" << tl << "--0.1[z" << tl <<",z" << tr << "] dashed withdots;" << endl;
-		os << "draw z" << tl << "--0.1[z" << tl <<",z" << bl << "] dashed withdots;" << endl;
-		os << "pickup pencircle scaled 0.5bp;" << endl;		
+		os << "for i=0 upto " << 100/mp_control.grid_size << ":" << endl;
+		os << "  draw (" << setw(output_field_width) << minx << "*u,(" << setw(output_field_width) << miny << "+i*" << setw(output_field_width) << y_step << ")*u)--(" << setw(output_field_width) << right_x << "*u,(" << setw(output_field_width) << miny << "+i*" << setw(output_field_width) << y_step << ")*u) dashed evenly;" << endl;
+		os << "  draw ((" << setw(output_field_width) << minx << "+i*" << setw(output_field_width) << x_step << ")*u," << setw(output_field_width) << miny << "*u)--((" << setw(output_field_width) << minx << "+i*" << setw(output_field_width) << x_step << ")*u," << setw(output_field_width) << top_y << "*u) dashed evenly;" << endl;
+		os << "endfor;" << endl;
 	}
 	
 	os << endl;
@@ -1310,7 +1300,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					double mod_delta = sqrt(delta_x*delta_x + delta_y*delta_y);
 
 
-					if (MAGNIFY_SMALL_CIRCLES && mod_delta < average_triangulation_length_factor * average_triangulation_edge_length)
+					if (mp_control.magnify_small_circles && mod_delta < average_triangulation_length_factor * average_triangulation_edge_length)
 						os << "draw z" << vertex << "--z" << neighbour << " withcolor red;" << endl;
 					else if (mp_control.highlight_small_edges && mod_delta < triangulation_plot_threshold)
 						os << "draw z" << vertex << "--z" << neighbour << " withcolor red;" << endl;
@@ -1608,6 +1598,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			else if (code_table[LABEL][i] != generic_code_data::FLAT)
 			{
 				bool A_crossing;
+				bool seifert_smoothed;
 				
 				if (STATE_SMOOTHED && _state != 0 && !(ignore_shortcut && shortcut_crossing[i]))
 				{
@@ -1622,10 +1613,19 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					   )
 					{
 						/* positive crossing */
-						if (state[state_place] == 1)
+						if (state[state_place] == 1 || state[state_place] == 2)
+						{
 							A_crossing = true;
-						else
+							seifert_smoothed = true;
+						}
+						else if (state[state_place] == -1 || state[state_place] == 3)
+						{
 							A_crossing = false;
+							seifert_smoothed = false;
+						}
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   positive crossing " << i << " state_place = " << state_place << " A_crossing = " << A_crossing << " seifert_smoothed = " << seifert_smoothed << endl;
 						
 					}
 					else if (   (code_table[TYPE][i] == generic_code_data::TYPE1 && code_table[LABEL][i] == generic_code_data::POSITIVE)
@@ -1633,10 +1633,19 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 							)
 					{
 						/* negative crossing */
-						if (state[state_place] == 1)
+						if (state[state_place] == 1 || state[state_place] == 3)
+						{
 							A_crossing = false;
-						else
+							seifert_smoothed = true;
+						}
+						else if (state[state_place] == -1 || state[state_place] == 2)
+						{
 							A_crossing = true;
+							seifert_smoothed = false;
+						}
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   negative crossing " << i << " state_place = " << state_place << " A_crossing = " << A_crossing << " seifert_smoothed = " << seifert_smoothed << endl;
 					}
 					
 					os << "label (btex "; 
@@ -1671,7 +1680,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					os << "z" << 2*num_vertices+4*i+2 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point << "," << et_point+1 << ") of p" << et_path << ";" << endl;
 					os << "z" << 2*num_vertices+4*i+3 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point << "," << ot_point+1 << ") of p" << ot_path << ";" << endl;
 					
-					if (state[state_place] == 1) // Seifert smoothed
+//					if (state[state_place] == 1) // Seifert smoothed
+					if (seifert_smoothed) // Seifert smoothed
 					{
 						os << "draw z" << 2*num_vertices+4*i << "--z" << 2*num_vertices+4*i+3 << ";" << endl;
 						os << "draw z" << 2*num_vertices+4*i+1 << "--z" << 2*num_vertices+4*i+2 << ";" << endl;
@@ -1754,8 +1764,13 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	
 	if (mp_control.draw_labels)
 	{
+		int edge_label = 0;
+		
 		for (int i=0; i< num_edges; i++)
 		{
+			if (mp_control.gauss_labels && (code_table[LABEL][term_crossing[i]] == generic_code_data::VIRTUAL || (ignore_shortcut && shortcut_crossing[term_crossing[i]]))) 
+				continue;
+				
 			os << "label(btex $";
 
 			if (mp_control.scriptscript_labels)
@@ -1763,7 +1778,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			else if (mp_control.script_labels)
 				os << "\\textfont0=\\sevenrm ";
 
-			os << (mp_control.label_edges_from_one? i+1: i) << "$ etex, z" << vertex_sequence[2*i] << ");" << endl;
+			os << (mp_control.label_edges_from_one? edge_label+1: edge_label) << "$ etex, z" << vertex_sequence[2*i] << ");" << endl;
+			edge_label++;
 		}
 	}
 
@@ -1788,10 +1804,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			os << "draw (" << minx << "u,0)--(" << maxx << "u,0);" << endl;
 		}
 			
-		os << "fill fullcircle scaled 0.5d shifted (0," << miny << "u);" << endl;
-		os << "fill fullcircle scaled 0.5d shifted (0," << maxy << "u);" << endl;
-		os << "fill fullcircle scaled 0.5d shifted (" << minx << "u,0);" << endl;
-		os << "fill fullcircle scaled 0.5d shifted (" << maxx << "u,0);" << endl;
+		os << "fill fullcircle scaled 3pt shifted (0," << miny << "u);" << endl;
+		os << "fill fullcircle scaled 3pt shifted (0," << maxy << "u);" << endl;
+		os << "fill fullcircle scaled 3pt shifted (" << minx << "u,0);" << endl;
+		os << "fill fullcircle scaled 3pt shifted (" << maxx << "u,0);" << endl;
 
 		os << "label.bot(btex (0," << int(miny) << "u) etex,(0," << miny << "u));" << endl;
 		os << "label.top(btex (0," << int(maxy) << "u) etex,(0," << maxy << "u));" << endl;
@@ -1915,6 +1931,7 @@ void print (metapost_control& mp_control, ostream& os, string prefix)
 	os << prefix << "script_labels = " << (mp_control.script_labels? "true": "false") << endl;
 	os << prefix << "scriptscript_labels = " << (mp_control.scriptscript_labels? "true": "false") << endl;
 	os << prefix << "show_vertex_axes = " << (mp_control.show_vertex_axes? "true": "false") << endl;
+	os << prefix << "state = " << mp_control.state << endl;
 	os << prefix << "circle_packing = " << (mp_control.circle_packing? "true": "false") << endl;
 	os << prefix << "draw_shrink_effect = " << (mp_control.draw_shrink_effect? "true": "false") << endl;
 	os << prefix << "highlight_small_edges = " << (mp_control.highlight_small_edges? "true": "false") << endl;

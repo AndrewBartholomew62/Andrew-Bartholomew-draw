@@ -52,6 +52,13 @@ void read_immersion_code (generic_code_data& code_data, string input_string)
 	code_data.type = generic_code_data::immersion_code;
 	code_data.head = -1;
 
+	if (input_string.find("K:") != string::npos)
+		code_data.immersion = generic_code_data::character::KNOTOID;
+	else if (input_string.find("L:") != string::npos)
+		code_data.immersion = generic_code_data::character::LONG_KNOT;
+	else
+		code_data.immersion = generic_code_data::character::CLOSED;
+
 	char* inbuf = c_string(input_string);
 	int num_crossings = 0;
 	char* cptr = strchr(inbuf,'/');
@@ -252,6 +259,11 @@ void write_immersion_code(ostream& s, generic_code_data& code_data)
 {
 	matrix<int>& code_table = code_data.code_table;
 	int num_crossings = code_data.num_crossings;
+
+	if (code_data.immersion == generic_code_data::character::KNOTOID)
+		s << "K:";
+	else if (code_data.immersion == generic_code_data::character::LONG_KNOT)
+		s << "L:";
 	
 	vector<int> flag(num_crossings); // used to track which crossings have been written
 	for (int i=0; i<num_crossings; i++)
@@ -803,10 +815,18 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	    exit(0);
 	}
 	
+	bool knotoid_or_long_indicator = false;
+	
 	if (input_string.find("K:") != string::npos)
+	{
 		code_data.immersion = generic_code_data::character::KNOTOID;
+		knotoid_or_long_indicator = true;
+	}
 	else if (input_string.find("L:") != string::npos)
+	{
 		code_data.immersion = generic_code_data::character::LONG_KNOT;
+		knotoid_or_long_indicator = true;
+	}
 	else
 		code_data.immersion = generic_code_data::character::CLOSED;
 	
@@ -843,6 +863,14 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 		code_table[OPEER][i] = -1;
 		
 	cptr = inbuf;
+	
+	if (knotoid_or_long_indicator)
+	{
+		while (*cptr != ':')
+			cptr++;
+		cptr++; // step over the ':'
+	}
+
 	int edge = 0;
 	vector<int> gauss_code_crossing(num_edges);
 	vector<int> term_crossing(num_edges);
@@ -1100,6 +1128,9 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 */
 void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 {	
+	int debug_save = debug_control::DEBUG;
+	debug_control::DEBUG = debug_control::OFF;
+	
 	matrix<int>& code_table = code_data.code_table;
 	int num_crossings = code_data.num_crossings;
 	int num_components = code_data.first_edge_on_component.size();
@@ -1116,6 +1147,11 @@ void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 		   the edges recorded in first_edge_on_component to determine when we reach the end of a
 		   component.
         */	  
+
+		if (code_data.immersion == generic_code_data::character::KNOTOID)
+			s << "K:";
+		else if (code_data.immersion == generic_code_data::character::LONG_KNOT)
+			s << "L:";
 
 		bool add_space = false;
 
@@ -1239,6 +1275,8 @@ void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 		int num_edges = 2*num_crossings;
 		vector<int> edge_flag(num_edges); // initialized to zero
 
+		ostringstream oss;
+		
 		/* we need to re-number the crossings if we have virtual crossings in the immersion, 
 		   since these are ignored by the Gauss code.
 		*/
@@ -1251,7 +1289,7 @@ void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 			if (code_table[LABEL][i] == generic_code_data::VIRTUAL)
 				num_classical_crossings--;
 		}
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_gauss_code: num_classical_crossings = " << num_classical_crossings << endl;
 
 		if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1 && shortcut_crossing.size())
@@ -1284,63 +1322,63 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 
 
 		if (code_data.immersion == generic_code_data::character::KNOTOID)
-			s << "K:";
+			oss << "K:";
 		else if (code_data.immersion == generic_code_data::character::LONG_KNOT)
-			s << "L:";
+			oss << "L:";
 		
 		bool add_space = false;
 		
 		do 
 		{
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_gauss_code: component_start = " << start << endl;
 			
 			/*	trace this component */
 			do
 			{	
 
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_gauss_code: edge = " << edge;
 				edge_flag[edge] = 1;
 				int next_crossing = term_crossing[edge];
 
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", next_crossing = " << next_crossing;
 		
 				if (code_table[LABEL][next_crossing] == generic_code_data::VIRTUAL)
 				{
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is virtual" << endl;
 				}
 				else if (pure_knotoid_code_data && shortcut_crossing[next_crossing])
 				{
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is a shortcut crossing" << endl;
 				}
 				else if ((edge%2 != 0 && code_table[LABEL][next_crossing] == generic_code_data::POSITIVE) ||
 				    (edge%2 == 0 && code_table[LABEL][next_crossing] == generic_code_data::NEGATIVE))
 				{
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", going under" << endl;
 	
 					if (!OU_FORMAT && add_space)
-						s << ' ';
+						oss << ' ';
 									
 					if (OU_FORMAT)
-						s << 'U'; // we're going under the crossing						
+						oss << 'U'; // we're going under the crossing						
 					else
-						s << '-'; // we're going under the crossing					
+						oss << '-'; // we're going under the crossing					
 				}
 				else
 				{
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", going over" << endl;
 
 					if (OU_FORMAT)
-						s << 'O'; // we're going over the crossing						
+						oss << 'O'; // we're going over the crossing						
 
 					if (!OU_FORMAT && add_space)
-						s << ' ';					
+						oss << ' ';					
 				}
 				
 				if (code_table[LABEL][next_crossing] != generic_code_data::VIRTUAL && !(pure_knotoid_code_data && shortcut_crossing[next_crossing]))
@@ -1351,9 +1389,9 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 						{
 							if (classical_crossing[i] == next_crossing)
 							{
-								s << i+1; // Gauss crossings are numbered from 1 not zero
+								oss << i+1; // Gauss crossings are numbered from 1 not zero
 
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_gauss_code:   second visit to Gauss crossing " << i+1<< endl;
 							}
 						}
@@ -1365,9 +1403,9 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 						crossing_visited[next_crossing] = 1;
 						num_classical_crossings_visited++;
 						
-						s << num_classical_crossings_visited;
+						oss << num_classical_crossings_visited;
 
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_gauss_code:   first visit, becomes Gauss crossing " << num_classical_crossings_visited << endl;
 					}
 
@@ -1376,13 +1414,13 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 						if ( (code_table[LABEL][next_crossing] == generic_code_data::POSITIVE && code_table[TYPE][next_crossing] == generic_code_data::TYPE2) ||
 						     (code_table[LABEL][next_crossing] == generic_code_data::NEGATIVE && code_table[TYPE][next_crossing] == generic_code_data::TYPE1)
 						   )
-							s << "+";
+							oss << "+";
 						else if ( (code_table[LABEL][next_crossing] == generic_code_data::POSITIVE && code_table[TYPE][next_crossing] == generic_code_data::TYPE1) ||
 						          (code_table[LABEL][next_crossing] == generic_code_data::NEGATIVE && code_table[TYPE][next_crossing] == generic_code_data::TYPE2)
 								)
-							s << "-";
+							oss << "-";
 						else
-							s << "!"; // shouldn't get here
+							oss << "!"; // shouldn't get here
 					}
 
 
@@ -1395,7 +1433,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 					add_space = true;
 					
 //					if (edge != start)
-//						s << ' ';
+//						oss << ' ';
 
 				}
 				else
@@ -1406,7 +1444,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 					else
 						edge = code_table[ODD_ORIGINATING][next_crossing];
 
-if (debug_control::DEBUG >= debug_control::BASIC)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_gauss_code:   doing nothing" << endl;
 				}				
 			} while (edge != start);
@@ -1425,14 +1463,14 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 			}
 			
 			if (!complete)
-				s << ',';
+				oss << ',';
 				
 		} while (!complete);
 
 
 		if (!OU_FORMAT)
 		{		
-			s << '/';
+			oss << '/';
 			
 			for (int i=0; i< num_classical_crossings; i++)
 			{
@@ -1442,16 +1480,363 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 				{
 					if ((code_table[TYPE][crossing] == generic_code_data::TYPE1 && code_table[LABEL][crossing] == generic_code_data::NEGATIVE) ||
 					    (code_table[TYPE][crossing] == generic_code_data::TYPE2 && code_table[LABEL][crossing] == generic_code_data::POSITIVE))
-						s << '+';
+						oss << '+';
 					else
-						s << '-';
+						oss << '-';
 				}
 				
 				if (i< num_classical_crossings-1)
-					s << ' ';
+					oss << ' ';
 				
 			}
 		}
+		
+		s << oss.str();
+	}
+	debug_control::DEBUG = debug_save;
+}
+
+/* read_planar_diagram converts the PD data in input_string to a Gauss code and reads the resultant Gauss code into code_data */
+void read_planar_diagram (generic_code_data& code_data, string input_string)
+{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram: provided with input string: " << input_string << endl;
+	
+	int num_crossings = count(input_string.begin(),input_string.end(),'[');
+	
+	matrix<int> PD_data(num_crossings,4);
+
+	istringstream iss(input_string);
+	char c = 0;
+
+	for (int i=0; i< num_crossings; i++)
+	{
+		while (c != '[')
+			iss >> c;
+		
+		for (int j=0; j< 4; j++)
+		{
+			iss >> PD_data[i][j];
+			iss >> c;
+		}
+	}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_planar_diagram: PD_data: " << endl;
+	print (PD_data,debug,3,"read_planar_diagram: ");
+}
+	
+	/* planar diagram crossings are described starting at the ingress under_arc and working anti-clockwise around the crossing.
+	   Thus, columns 0 and 2 of PD_data are the terminating and originating under-arcs respectively and columns 1 and 3 are the
+	   over-arcs but we need to compare the values to determine which is the terminating and which the originating arc.
+	*/
+	vector<bool> edge_flag(2*num_crossings);  //used to record when an edge has been encountered
+	vector<int> code_term(2*num_crossings);  // records the Gauss code terms in the order we determine them
+	vector<int> num_component_edges;
+	vector<int> start_of_component;
+	vector<int> ingress_place(num_crossings);
+			
+	int num_components=0;
+	int term_index=0;
+	bool complete = false;
+	
+	int code_start_term=0;
+	int code_start_component = 0;
+	
+	while (!complete)
+	{
+		complete = true;
+		/* find the next start of a component. look first for an ingress under-arc that has not been considered */
+		int start = 0;
+		int crossing = -1;
+		int place = -1;
+		for (int j=0; j< num_crossings; j++)
+		{
+			if (edge_flag[PD_data[j][0]-1] == false)
+			{
+				start=PD_data[j][0];  // we know this is an ingress edge
+				crossing = j;
+				place = 0;
+				complete = false;
+				break;
+			}
+		}
+		
+		/* If we have a component that passes over every Gauss crossing that it encounters we need to compare the labels
+		   on the two over-arcs to determine the orientation of the component.  If the componant has less than three Gauss
+		   crossings, the planar diagram data doesn not contain sufficient information to determine the orientation unambiguously,
+		   so we are free to choose either over semi-arc as the ingress.  If there are three or more crossings and the two semi-arc
+		   labels are contiguous, then the smaller is the ingress edge and if they are not contiguous it is the greater that is the
+		   ingress edge (and we are at the last crossing on the component).
+		*/
+		if (start == 0)
+		{
+			for (int j=0; j< num_crossings; j++)
+			{
+				if (edge_flag[PD_data[j][1]-1] == false)
+				{
+					int edge_1 = PD_data[j][1];
+					int edge_2 = PD_data[j][3];
+
+					/* the crossing sign will already have been set in this case */
+					if (edge_2 == edge_1+1)
+					{
+						start=edge_1; 
+						place = 1;
+					}
+					else if (edge_1 == edge_2+1)
+					{
+						start=edge_2; 
+						place = 3;
+					}
+					else if (edge_1 < edge_2)
+					{
+						start=edge_2; 
+						place = 3;
+					}
+					else // includes the case where edge_1 == edge_2
+					{
+						start=edge_1; 
+						place = 1;
+					}
+						
+					crossing = j;
+					complete = false;
+					break;
+				}
+			}
+		}
+		
+		if(complete)
+			break;
+		
+		start_of_component.push_back(term_index);
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram: start of next component at edge " << start << endl;
+						
+		int next_edge = start;
+		int component_edge_count = 0;
+		do 
+		{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   next_edge = " << next_edge << ", crossing = " << crossing << ", place = " << place << endl;
+	
+			if (next_edge == 1 && crossing == 0)
+			{
+				code_start_term = term_index;
+				code_start_component = num_components;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   code_start_term = " << code_start_term << ", code_start_component = " << code_start_component << endl;
+			}
+				
+			edge_flag[next_edge-1] = true;
+			component_edge_count++;
+
+			if (place == 1 || place == 3)
+				ingress_place[crossing] = place;
+		
+			code_term[term_index] = crossing+1;
+			if (place%2 == 0)
+				code_term[term_index] *= -1;  // we've arrived on the under_arc
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   code_term = " << code_term[term_index] << endl;
+				
+			next_edge = PD_data[crossing][(place+2)%4];
+			term_index++;
+			
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   succeeding edge = " << next_edge << endl;
+			
+			
+			bool found = false;
+			for (int j=0; j< num_crossings && !found; j++)
+			{
+				for (int k=0; k< 4; k++)
+				{
+					if (PD_data[j][k] == next_edge && !(j==crossing && k==(place+2)%4))
+					{
+						found = true;
+						crossing = j;
+						place = k;
+						break;
+					}
+				}
+			}					
+			
+			if (found)
+			{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   found succeeding edge at crossing " << crossing << ", place " << place << endl;
+			}
+			else
+			{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   Error! failed to find succeeding edge";
+			}
+			
+		} while(next_edge != start);		
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_planar_diagram: code_term: ";
+	for (int j=0; j< 2*num_crossings; j++)
+		debug << code_term[j] << ' ';
+	debug << endl;
+	debug << "read_planar_diagram: component_edge_count = " << component_edge_count << endl;
+}
+		num_component_edges.push_back(component_edge_count);
+		num_components++;
+	}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_planar_diagram: num_component_edges: ";
+	for (int i=0; i< num_components; i++)
+		debug << num_component_edges[i] << ' ';
+	debug << endl;
+	debug << "read_planar_diagram: ingress_place: ";
+	for (int i=0; i< num_crossings; i++)
+		debug << ingress_place[i] << ' ';
+	debug << endl;
+}
+
+	vector<int> crossing_sign(num_crossings);
+	
+	for (int i=0; i< num_crossings; i++)
+	{
+		if (ingress_place[i] == 1)
+			crossing_sign[i] = generic_code_data::NEGATIVE;
+		else 
+			crossing_sign[i] = generic_code_data::POSITIVE;			
+	}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_planar_diagram: crossing_sign: ";
+	for (int i=0; i< num_crossings; i++)
+		debug << crossing_sign[i] << ' ';
+	debug << endl;
+	debug << "read_planar_diagram: write Gauss code" << endl;
+}
+
+	ostringstream oss;
+
+	if (input_string.find("K:") != string::npos)
+		oss << "K:";
+	else if (input_string.find("L:") != string::npos)
+		oss << "L:";
+
+	for (int i=0; i< num_components; i++)
+	{
+		int component = (code_start_component+i)%num_components;
+		int start;
+		
+		if (i==0)
+			start = code_start_term;
+		else
+			start = start_of_component[component];
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:   component = " << component << ", start = " << start << endl;
+			
+		for (int j=0; j< num_component_edges[component]; j++)
+		{
+			int term = (start - start_of_component[component] + j)%num_component_edges[component] + start_of_component[component];
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_planar_diagram:     j = " << j << ", term = " << term << ", code_term[" << term << "] = " << code_term[term] <<  endl;
+
+			oss << code_term[term];
+			if (j <num_component_edges[component] - 1)
+				oss << ' ';
+		}
+		
+		if (i < num_components-1)
+			oss << ',';
+	}	
+
+	oss << '/';
+	for (int i=0; i< num_crossings; i++)
+	{
+		if (crossing_sign[i] == generic_code_data::POSITIVE)
+			oss << "+ ";
+		else
+			oss << "- ";
+	}
+
+	read_gauss_code(code_data,oss.str());
+}
+
+void write_planar_diagram(ostream& s, generic_code_data& code_data)
+{	
+	if (code_data.type != generic_code_data::code_type::gauss_code)
+	{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_planar_diagram: Error! presented with generic code data that is not a Gauss code." << endl;
+	
+		cout << "Error! presented with generic code data that is not a Gauss code." << endl;
+		exit(0);
+	}
+	else
+	{
+		int num_crossings = code_data.num_crossings;
+		
+		matrix<int> PD_data(num_crossings,4); // planar diagram data
+	
+		matrix<int>& gauss_code_table = code_data.code_table;
+		
+		for (int i=0; i< num_crossings; i++)
+		{
+			if (gauss_code_table[LABEL][i] == generic_code_data::POSITIVE)
+			{
+				PD_data[i][0] = gauss_code_table[ODD_TERMINATING][i];
+	
+				if (gauss_code_table[TYPE][i] == generic_code_data::TYPE1)
+				{
+					PD_data[i][1] = gauss_code_table[EVEN_TERMINATING][i];
+					PD_data[i][2] = gauss_code_table[EVEN_ORIGINATING][i];
+					PD_data[i][3] = gauss_code_table[ODD_ORIGINATING][i];
+				}
+				else
+				{
+					PD_data[i][1] = gauss_code_table[ODD_ORIGINATING][i];
+					PD_data[i][2] = gauss_code_table[EVEN_ORIGINATING][i];
+					PD_data[i][3] = gauss_code_table[EVEN_TERMINATING][i];
+				}			
+			}
+			else // generic_code_data::NEGAITIVE or generic_code_data::FLAT
+			{
+				PD_data[i][0] = gauss_code_table[EVEN_TERMINATING][i];
+	
+				if (gauss_code_table[TYPE][i] == generic_code_data::TYPE1)
+				{
+					PD_data[i][1] = gauss_code_table[EVEN_ORIGINATING][i];
+					PD_data[i][2] = gauss_code_table[ODD_ORIGINATING][i];
+					PD_data[i][3] = gauss_code_table[ODD_TERMINATING][i];
+				}
+				else
+				{
+					PD_data[i][1] = gauss_code_table[ODD_TERMINATING][i];
+					PD_data[i][2] = gauss_code_table[ODD_ORIGINATING][i];
+					PD_data[i][3] = gauss_code_table[EVEN_ORIGINATING][i];
+				}			
+			}
+		}
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "write_planar_diagram: PD_data:" << endl;
+	print (PD_data,debug,3,"write_planar_diagram: ");
+}		
+		for (int i=0; i< num_crossings; i++)
+		{
+			s << "X[" << PD_data[i][0]+1 << ',' << PD_data[i][1]+1 << ',' << PD_data[i][2]+1 << ',' << PD_data[i][3]+1 << ']';
+			if (i< num_crossings-1)
+				s << ' ';
+		}		
 	}
 }
 
@@ -1467,7 +1852,9 @@ void write_code_data(ostream& s, generic_code_data& code_data)
 
 void read_code_data (generic_code_data& code_data, string input_string)
 {
-	if (input_string.find('[') != string::npos)
+	if (input_string.find('X') != string::npos)
+		read_planar_diagram(code_data, input_string);
+	else if (input_string.find('[') != string::npos)
 		read_peer_code(code_data, input_string);
 	else if (input_string.find('(') != string::npos)
 		read_immersion_code(code_data, input_string);
@@ -1481,6 +1868,12 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	debug << "convert_gauss_code: presented with OU_gauss_code: " << OU_gauss_code << endl;			
 
 	ostringstream oss;
+
+	if (OU_gauss_code.find("K:") != string::npos)
+		oss << "K:";
+	else if (OU_gauss_code.find("L:") != string::npos)
+		oss << "L:";
+
 	
 	/* count the number of crossings */
 	int num_crossings = count(OU_gauss_code.begin(),OU_gauss_code.end(),'O');
@@ -3386,9 +3779,13 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
    code_data parameter supplied to the function.  For each combination of component ordering and starting position, 
    we construct a vector<pair<int,int> > representation of the Gauss code of the form {<new_crossing_number>,<O|U>}
    where the new_crossing number is determined by the order in which we encounter the crossings.  We then append the 
-   crossing signs obtaind by that choice of orientation and starting position and compare the concatenation of the vector
+   crossing signs obtained by that choice of orientation and starting position and compare the concatenation of the vector
    and signs lexicographcally.  That is, we use the lexicographical vector comparison operator to compare the vectors and
    if they are equal, compare the signs manually to select the minimal representation.
+   
+   Every Gauss code has a unique over-preferered representation, thus there is a unique over-preferred description of each 
+   diagram.  However, reflecting a diagram in a disjoint line of the plane results in a diagram that may differ from the 
+   original but has the same Gauss code, so th eover-preferred Gauss code does not determine a unique diagram
 */
 string over_preferred_gauss_code(generic_code_data& code_data, bool unoriented)
 {
@@ -3521,7 +3918,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		debug << component_perm[i] << ' ';
 	debug << endl;
 }	
-			/* component_cycle will record the cyclic rotation of each component, enumarated
+			/* component_cycle will record the cyclic rotation of each component, enumerated
 			   in the order given by g, by recording which term of the component we are going 
 			   to start at.  We will then need to find this instance and evaluate the starting 
 			   offset in g.orientation_matrix
@@ -3838,7 +4235,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 			} while (!complete);
 		} while(next_permutation(component_perm_start,component_perm.end()));
 
-		/* if we're writing an unoriented Gauss code, consider other orientations of the components
+		/* if we're dealing with an unoriented Gauss code, consider other orientations of the components
 		   if the immersion character is generic_code_data::character::CLOSED, we can reverse the 
 		   orientation of all components, if it is not then we cannot reverse the orientation of 
 		   component zero
@@ -3904,7 +4301,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		}		
 		
 	} while (!finished);
-	
+		
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "over_preferred_gauss_code: min_r_flag = ";

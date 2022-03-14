@@ -87,6 +87,9 @@ to vertices joined by an edge of the triangulation.
    Version 12: added the ability to the draw smoothed states for a given knot, link knotoid or multi-knotoid diagram
    Version 13: added lace drawing capability and the ability to draw diagrams with colour
    Version 14: added the ability to draw knots from Gauss codes and added the smallarrowheads option.  December 2021.
+   Version 15: added ability to label Gauss-arcs rather than immersion edges
+   Version 16: added the ability to draw a single smoothed state rather than all of them
+   Version 17: added planar diagram support and optimized the Gauss to peer code conversion.
 **************************************************************************/
 using namespace std;
 
@@ -105,7 +108,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "14.0";
+string 		version  = "17.0";
    
 
 extern ofstream    debug;
@@ -129,7 +132,7 @@ bool APPLY_FORCES_TO_TYPE_12_ONLY = true;  // only applies when not doing Pleste
 bool USE_CENTRE_OF_GRAVITY_PLACEMENT = false;
 bool TRACK_PLACEMENT_ITERATION = false;
 bool USE_KEN_STEPHENSON_CIRCLE_PACKING = true;
-bool MAGNIFY_SMALL_CIRCLES = false;
+//bool mp_control.magnify_small_circles = false;
 bool CHECK_INNER_HULL_CALCULATION = false;
 bool RETRACT_BOUNDARY_VERTICES = false;
 bool PLESTENJAK_FORCE_DIRECTION = true;
@@ -218,7 +221,7 @@ int KS_circle_pack (char const* inputfile, char const* outputfile);
 
 void draw_convex_triangulation (metapost_control& mp_control, const char* filename);
 void draw_lace (metapost_control& mp_control, string input_string);
-bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data);
+bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal=true, vector<int>* gauss_crossing_map=0, bool evaluate_gauss_crossing_perm=false);
 
 
 
@@ -363,8 +366,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			string::size_type pos1 = next_line.find(';');
 			if (pos1 != string::npos)
 				next_line.erase(pos1);
-
-			if (next_line.find('[')!=string::npos && next_line.find('\\')==string::npos && next_line.find('/')==string::npos)
+				
+			if (next_line.find('[')!=string::npos && next_line.find('\\')==string::npos && next_line.find('/')==string::npos && next_line.find('X')==string::npos)
 			{
 				/* this is an options line not a line containing a peer code
 				   make sure there's an end to the option definitions on this line 
@@ -429,14 +432,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
     if (!input_file_provided)
     {
 	
-		if (argc > 1)
+//		if (argc > 1)
 		{
 			cout << "\nThis is A.Bartholomew's draw programme, v" << version << endl;
 		}
 		
 		if (LACES)
 		{
-			cout << "\n\nThe programme will draw the lace determined by a lace code\n";
+			cout << "\nThe programme will draw the lace determined by a lace code\n";
 			
 			cout <<"\nType help at the input prompt to view the help screens, type q to exit.\n";
 	
@@ -444,7 +447,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 		else if (CONVEX_DISC)
 		{
-			cout << "\n\nThe programme will draw the convex, straight line triangulation of a disc\n";
+			cout << "\nThe programme will draw the convex, straight line triangulation of a disc\n";
 			cout << "determined by either a labelled peer code or an abstract triangulation\n";
 			cout << "description contained in a file\n";
 			
@@ -454,7 +457,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 		else
 		{
-			cout << "\n\nThe programme will produce a metapost file for drawing the knot or knotoid";
+			cout << "\nThe programme will produce a metapost file for drawing the knot or knotoid";
 			cout << "specified by a labelled peer code or a labelled immersion code.\n";
 			
 			cout <<"\nType help at the input prompt to view the help screens, type q to exit.\n";
@@ -495,8 +498,10 @@ try {
 		*/
 		bool peer_code_input = false;
 		bool gauss_code_input = false;
+		bool planar_diagram_input = false;
 		
 		generic_code_data code_data;
+		vector<int> gauss_crossing_map;  // used for drawing specific smoothed states of Gauss codes.
 		int num_cycles = 0;
 		int num_left_cycles;
 		int num_crossings;
@@ -504,28 +509,38 @@ try {
 		int infinite_region;
 		matrix<int> cycle(0,0);
 		
-		string::size_type pos = input_string.find('[');
+		string::size_type pos = input_string.find('X');
 		if (pos != string::npos)
-		{		
+		{
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-    debug << "draw::main: identified input_string as a peer code" << endl;
-			peer_code_input = true;		
+    debug << "draw::main: identified input_string as a planar diagram" << endl;
+				planar_diagram_input = true;		
+				gauss_code_input = true;
 		}
 		else
 		{
-			string::size_type pos = input_string.find('('); // indicates input is a lace
-			if (pos == string::npos) //Gauss code
+			string::size_type pos = input_string.find('[');
+			if (pos != string::npos)
+			{		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << "draw::main: identified input_string as a peer code" << endl;
+				peer_code_input = true;		
+			}
+			else
 			{
+				string::size_type pos = input_string.find('('); // indicates input is a lace
+				if (pos == string::npos) //Gauss code
+				{
 if (debug_control::DEBUG >= debug_control::SUMMARY)
     debug << "draw::main: identified input_string as a Gauss code" << endl;				
-				gauss_code_input = true;
-			}
-			else  
-			{
+					gauss_code_input = true;
+				}
+				else  
+				{
 if (debug_control::DEBUG >= debug_control::SUMMARY)
     debug << "draw::main: identified input_string as a lace code" << endl;
+				}				
 			}
-			
 		}
 		
 		if (peer_code_input || gauss_code_input)
@@ -563,8 +578,32 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			else
 			{	
 				generic_code_data gauss_code_data;
-				read_gauss_code(gauss_code_data,input_string);		
-				gauss_to_peer_code(gauss_code_data, code_data);
+				
+				if(planar_diagram_input)
+					read_planar_diagram(gauss_code_data,input_string);		
+				else
+					read_gauss_code(gauss_code_data,input_string);		
+					
+				gauss_crossing_map = vector<int>(gauss_code_data.num_crossings);
+
+				/* If we're given a Gauss code that does not start at crossing 1, then gauss_arc 0 does not terminate at crossing 1.
+				   The following call to gauss_to_peer_code evaluated the gauss_crossing_map, which tells us the order in which we first
+				   encounter the classical immersion crossings as we trace the diagram from gauss_arc zero.
+				   gauss_crossing_map[i] is the immersion crossing corresponding to Gauss crossing i
+				*/
+				gauss_to_peer_code(gauss_code_data, code_data, true, &gauss_crossing_map, true); // optimal=true, evaluate_gauss_crossing_perm = true
+				
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+    debug << "draw::main: gauss_to_peer_code returned peer code: ";
+    write_peer_code(debug,code_data);
+    debug<< endl;
+    debug << "draw::main: gauss_to_peer_code returned gauss_crossing_map: ";
+    for (int i = 0; i < gauss_code_data.num_crossings; i++)
+		debug << gauss_crossing_map[i] << ' ';
+	debug << endl;
+}
+				
 			}
 			
 			if (!connected_code_data(code_data))
@@ -853,7 +892,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			system(command.c_str());
 		
 			/* For the circle packing drawing variants we suport circle magnification */
-			if (MAGNIFY_SMALL_CIRCLES && !USE_FORCE_DIRECTED_PLACEMENT && !USE_CENTRE_OF_GRAVITY_PLACEMENT)
+			if (mp_control.magnify_small_circles && !USE_FORCE_DIRECTED_PLACEMENT && !USE_CENTRE_OF_GRAVITY_PLACEMENT)
 				magnify(code_data);
 	
 			/* Write metapost of the final diagram */
@@ -908,11 +947,12 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 //				bool draw_shortcut = mp_control.draw_shortcut;
 //				mp_control.draw_labels = true;
 //				mp_control.draw_shortcut = true;
-				write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile);	
+				if (mp_control.state.length() == 0)  // drawing all states not just one specific state
+					write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile);	
 //				mp_control.draw_labels = draw_labels;
 //				mp_control.draw_shortcut = draw_shortcut;
 
-				int num_state_crossings = num_crossings;
+				unsigned int num_state_crossings = num_crossings;
 				
 				for (int i=0; i< num_crossings; i++)
 				{
@@ -942,9 +982,134 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 				
 				bool finished=false;
 				vector<int> state(num_state_crossings);
-				for (int i=0; i< num_state_crossings; i++)
-					state[i] = -1;
-				cout << "number of smoothed states = " << pow(2,num_state_crossings) << endl;
+				for (unsigned int i=0; i< num_state_crossings; i++)
+					state[i] = metapost_control::smoothed::NON_SEIFERT_SMOOTHED;
+				
+				/* To draw all smoothings we set the state vector to 1 to indicate a Seifert smoothed crossing and -1 to indicate a non-Seifert-smoothed crossing.
+				   Note that the A and B smoothing is NOT the same as Seifert smoothing; the two are related dependent on the sign of the crossing.  If we are given
+				   an explicit state to draw, we will be given an A or B indication for each Gauss crossing, regardless of the sign of the crossing and regardless of 
+				   the order in which the crossings appeared in the input Gauss code.
+				   
+				   To indicate that we wish to force a crossing to be A smoothed or B smoothed, we use the following state vector assignments
+						
+						1 = Seifert smoothed
+					   -1 = non-Seifert smoothed
+					    2 = A-smoothed
+					    3 = B=smoothed
+				 
+				*/
+				if  (mp_control.state.length() != 0)
+				{
+
+					if (mp_control.state.length() != num_state_crossings)
+					{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "write_metapost: Error! Incorrect number of states provided for ";
+	write_code_data(debug, code_data);
+	debug << "\nwrite_metapost: expected " << num_state_crossings << " states, received state data " << mp_control.state << endl;
+}
+						cout << "Error! Incorrect number of states provided for " << input_string << endl;
+						cout << "Expected " << num_state_crossings << " states, received state data " << mp_control.state << endl;
+						exit(0);
+					}
+					
+					if (peer_code_input)
+					{
+						int place = 0;
+						for (unsigned int i=0; i< mp_control.state.length(); i++)
+						{
+							if (mp_control.state[i] == '*' || mp_control.state[i] == 'S' || mp_control.state[i] == 'O')
+								continue;
+								
+							state[place] = (mp_control.state[i] == 'A'? metapost_control::smoothed::A_SMOOTHED: metapost_control::smoothed::B_SMOOTHED);
+							place++;
+						}
+					}
+					else if (gauss_code_input)
+					{
+						/* The state data is given in the order corresponding to the Gauss crossings but we may not encounter the crossings
+						   sequentially as we trace a diagram dscribed by a Guass code from gauss_arc zero.  The vector gauss_crossing_map
+						   tells us the order in which we encountered the Gauss crossings in the immersion:  gauss_crossing_map[i] being the 
+						   immersion crossing corresponding to Gauss crossing i
+						   
+						   We need to pass write_metapost a state vector in the order we encounter crossings in the immersion, so we create 
+						   a sorted copy of gauss_crossing_map that specifies the order in which we need to pass the state to write_metapost.
+						   
+						   If were are considering parity, we need to take out of the gauss_crossing_map those crossings that are ODD, since
+						   they will not be smoothed and therefore we will have no state designation for them.
+						   
+						*/
+						if (mp_control.show_odd_parity_crossings)
+						{
+							vector<int> gauss_parity_map(num_state_crossings);
+							int place=0;
+							
+							for (unsigned int i=0; i< gauss_crossing_map.size(); i++)
+							{
+								if (code_data.code_table[LABEL][gauss_crossing_map[i]] != generic_code_data::ODD)
+									gauss_parity_map[place++] = gauss_crossing_map[i];
+							}
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+    debug << "draw::main: gauss_parity_map: ";
+    for (unsigned int i = 0; i < num_state_crossings; i++)
+		debug << gauss_parity_map[i] << ' ';
+	debug << endl;
+}					
+							gauss_crossing_map = gauss_parity_map;
+						}					
+						
+						vector<int> sorted_map = gauss_crossing_map;
+						sort(sorted_map.begin(),sorted_map.end());
+					
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+    debug << "draw::main: sorted gauss_to_peer_code: ";
+    for (unsigned int i = 0; i < sorted_map.size(); i++)
+		debug << sorted_map[i] << ' ';
+	debug << endl;
+}					
+						for (unsigned int i=0; i< mp_control.state.length(); i++)
+						{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << "draw::main: mp_control.state[" << i << "] = " << mp_control.state[i] << " gauss_crossing_map[" << i << "] = " << gauss_crossing_map[i];
+    
+							/* find gauss_crossing_map[i] in sorted_map */
+							int place = 0;
+							for (unsigned int j=0; j < sorted_map.size(); j++)
+							{
+								if (sorted_map[j] == gauss_crossing_map[i])
+								{
+									place = j;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << " found at place " << j << " of sorted gauss_crossing_map" << endl;
+									break;
+								}
+							}
+							
+							state[place] = (mp_control.state[i] == 'A'? metapost_control::smoothed::A_SMOOTHED: metapost_control::smoothed::B_SMOOTHED);
+						}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+    debug << "draw::main: drawing single state: ";
+    for (unsigned int i=0; i< num_state_crossings; i++)
+		debug << state[i] << ' ';
+	debug << endl;
+}
+					}
+					else
+					{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << "draw::main: state data provided when input is neither a peer code or a Gauss code" << endl;						
+					}
+				}
+				else
+				{				
+					cout << "number of smoothed states = " << pow(2,num_state_crossings) << endl;
+				}
+				
 				bool draw_labels = mp_control.draw_labels;
 				bool draw_shortcut = mp_control.draw_shortcut;
 				mp_control.draw_labels = false;
@@ -952,26 +1117,34 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 				do
 				{
 
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+    debug << "draw::main: drawing state: ";
+    for (unsigned int i=0; i< num_state_crossings; i++)
+		debug << state[i] << ' ';
+	debug << endl;
+}
+
 					write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile,&state);	
 						
 					/* increment state */
 					int place = num_state_crossings-1;
-					if (num_state_crossings > 0)
+					if (num_state_crossings > 0 && mp_control.state.length() == 0)
 					{
 						do
 						{
-							if (state[place] == -1)
+							if (state[place] == metapost_control::smoothed::NON_SEIFERT_SMOOTHED)
 							{
-								state[place] = 1;
-								for (int i = place+1; i< num_state_crossings; i++)
-									state[i] = -1;
+								state[place] = metapost_control::smoothed::SEIFERT_SMOOTHED;
+								for (unsigned int i = place+1; i< num_state_crossings; i++)
+									state[i] = metapost_control::smoothed::NON_SEIFERT_SMOOTHED;
 								break;
 							}
 							else if (place == 0)
 								finished = true;
 							else
 								place--;
-						}while (!finished);
+						} while (!finished);
 					}
 					else
 					{
@@ -1046,16 +1219,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		*c2++ = *c1++;
     *c2 = '\0';
 
-	if (!strcmp(loc_buf,"bounds"))
-	{
-
-		mp_control.draw_immersion_bounds = true;
-
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_long_option: mp_control.draw_immersion_bounds read from " << source << " mp_control.draw_immersion_bounds = " << mp_control.draw_immersion_bounds << endl;
-
-	}
-	else if (!strcmp(loc_buf,"centre"))
+	if (!strcmp(loc_buf,"centre"))
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1304,6 +1468,19 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: frame-corners read from " << source << endl;
 	}
+	else if (!strcmp(loc_buf,"gauss-labels"))
+	{
+    	mp_control.gauss_labels = true;
+    	mp_control.draw_labels = true;
+    	mp_control.label_edges_from_one = true;
+    	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: gauss_labels read from " << source << endl;
+	debug << "set_programme_long_option: setting draw_labels as a result of draw_labels read from " << source << endl;
+	debug << "set_programme_long_option: setting label_edges_from_one as a result of draw_labels read from " << source << endl;
+}
+	}
 	else if (!strcmp(loc_buf,"gravity"))
 	{ 
 		USE_CENTRE_OF_GRAVITY_PLACEMENT = true;
@@ -1319,6 +1496,20 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set max_placement_iterations = " << max_placement_iterations << endl;
 
 	    }	
+	}
+	else if (!strcmp(loc_buf,"grid"))
+	{
+
+		mp_control.draw_grid = true;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.grid_size,++c1);
+		}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: mp_control.draw_grid read from " << source << ", grid size = " << mp_control.grid_size << endl;
+
 	}
 	else if (!strcmp(loc_buf,"h-units"))
 	{
@@ -1388,7 +1579,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			exit(0);
 		}
 		
-		MAGNIFY_SMALL_CIRCLES = true;
+		mp_control.magnify_small_circles = true;
 		magnification_factor = 1 + magnification_factor/100;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1680,7 +1871,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	{
 		STATE_SMOOTHED = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "option: STATE_SMOOTHED read from " << source << endl;
+	debug << "set programme long_option: option STATE_SMOOTHED read from " << source << endl;
 	}
 	else if (!strcmp(loc_buf,"smoothed-disc-size"))
 	{
@@ -1703,6 +1894,25 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: smoothed_state_disc_size read from " << source << ", smoothed_state_disc_size = " 
 	      << mp_control.smoothed_state_disc_size << endl;
 }	
+	}
+	else if (!strcmp(loc_buf,"state"))
+	{
+		if (*c1 == '=')
+		{
+			STATE_SMOOTHED = true;
+			mp_control.state = ++c1;
+		}
+		else
+		{
+			cout << "\nYou must specify a state if you use the state option, e.g. 'state=AABABA'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: state read from " << source << ", state = " << mp_control.state << endl;
+	debug << "set programme long_option: STATE_SMOOTHED set as a result of receiving state option " << source << endl;
+}
 	}
 	else if (!strcmp(loc_buf,"tension"))
 	{
@@ -1860,7 +2070,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			cout << "  disc-size: set the unit multiplier to determine the crossing disc diameter (default 30)\n";
 			cout << "  draw-lace-frame: draw the entire frame when drawing laces\n";
 			cout << "  knotoid-leg-unbounded: draw knotoids with the leg in the unbounded component of the immersion's complement\n";
-			cout << "  labels: add edge labels to the diagram\n";
+			cout << "  labels: add immersion edge labels to the diagram: by default immersion edge labels are numbered from 0 (see the L option)\n";
 			cout << "  no-crossings: do not draw the crossing features\n";
 			cout << "  no-immersion: do not draw the immersion\n";
 			cout << "  oriented: draw orientation for knots (orientation always shown for knotoids)\n";
@@ -1873,13 +2083,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			cout << "  vertices: label the vertices and draw coordinate axes\n";
 				
 			cout << "\nadditional long options\n";
-			cout << "  bounds: show the immersion bounds to assist with using the translate option\n";
 			cout << "  colour: draw different components with colours rather than just black lines\n";
 			cout << "  colour-map=<filename>: use the colours in <filename> rather than the default colours\n";
 			cout << "  cudgel-space=<float> default 1.0: amount by which the calculated inter-cudgels gap for laces is expanded\n";
 			cout << "  edge-factor=<float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement\n";
 			cout << "  first-gap: always use the first gap as the active gap in edge distribution placement\n";
 			cout << "  frame-corners: show frame corners when tracking placement iteration\n";
+			cout << "  gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1\n";
+			cout << "  grid=<grid-size>: draw a grid to assist with using the translate option, default 10 (percent of diagram width or height)\n";
 			cout << "  h-units: size of horizontal spacing for laces, in multiples of unit\n";
 			cout << "  hyperbolic: drawing diagram in the hyperbolic plane\n";
 			cout << "  left-term-tail-points: when drawing laces include tail points for body disc arcs terminating on the left side of a cudgel\n";
@@ -1900,6 +2111,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			cout << "  shrink-factor=<float> default 0.75: amount by which region shrinking placement retracts trianglulation vertices towards the barycentre\n";
 			cout << "  shrink-area-factor=<float> default 1.618034: region shrinking placement converges if all compact regions that have an area within this\n"; cout << "                                               factor of the average area\n";
 			cout << "  smoothed-disc-size: set the smoothed state disc size multiplier to determine the size of smoothed crossings n*disc-size (default n=6)\n";
+			cout << "  state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram\n";
 			cout << "  transate=<translation-list>: specify a list of vertices together with a translation in the form UxPyQ:VxRyS... where U and V are vertex numbers\n";
 			cout << "                               and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates shifting vertex 10 +8% to the right -3% up\n";
 			cout << "  tension: set the metapost path tension, default value 1.0, i.e. the metapost \"..\" default\n";
@@ -1913,7 +2125,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			cout << "  b: do not use badness optimization\n";
 			cout << "  B: include boundary vertices; may be used with f, g, P, or t.\n";
 			cout << "     Boundary vertices are alway included in force directed placement,\n";
-			cout << "     in which case this option only has an efect if the t option is also used.\n";
+			cout << "     in which case this option only has an effect if the t option is also used.\n";
 			cout << "  E: use edge repulsion rather than Plestenjak force directed placement\n";
 			cout << "  i[=<max-iterations>] default 1000: set maximum circle packing iterations\n";
 			cout << "  H!: additional help screen\n";
@@ -1947,7 +2159,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
         	exit(0);
     	}
 		else
-			debug << "Debug information from draw version " << version << "\n\n";
+			debug << boolalpha << "Debug information from draw version " << version << "\n\n";
 
 if (!debug_setup(cptr))  // could probably be dptr, but the original code used cptr
 {

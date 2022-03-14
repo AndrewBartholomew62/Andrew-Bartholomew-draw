@@ -1,10 +1,21 @@
-/**************************************************************************
+/********************************************************************************************************
+
+The algorithm as implemented by JG and here is not optimal in all cases.  For example, in the diagram
+[7 11 9 13 3 5 1]/- * * - + + + one can perform a Reidemeister III move by moving edge 13 over crossing 0
+thereby creating a Reidemeister I loop at edge zero, producing immersion [-13 11 9 -1 3 5 -7]/- * * + + + + 
+The Gauss code of this diagram is -1 -2 -3 -4 2 -5 3 4 5 1/+ - + + - but gauss_to_peer produces 
+[-15 -9 -11 -1 -13 -5 -3 -7]/- - - + * * * + with one more virtual crossing than necessary.  The reason for the
+additional crosing is that the algorithm has to choose between equal best choices: the next crossing, or (in the above case)
+which anchor edge to use when rearranging the fringe ready for adding a crossing and without looking forward it is 
+impossible to know whether one or other of the immediate choices is better.  The only way to produce an optimal diagram 
+would be to consider all such equal best choices at each step, which is likely to extend the running time unreasonably.
+                                                                         
 void add_virtual_crossing(int location, vector<int>& fringe, vector<int>& num_virtual_crossings_on_gauss_arc, list<gc_pc_xlabels>& virtual_crossings) 
 void assign_gauss_arc_direction(int arc_1, int arc_2, matrix<int>& gauss_code_table, int crossing, vector<int>& gauss_arc_direction)
 string direction_to_string(int edge, vector<int>& gauss_arc_direction)
 void remove_fringe_edge(int edge, vector<int>& current_fringe)
 bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data)
-**************************************************************************/
+********************************************************************************************************/
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
@@ -36,7 +47,7 @@ extern ifstream     input;
 void add_virtual_crossing(int location, vector<int>& fringe, vector<int>& num_virtual_crossings_on_gauss_arc, list<gc_pc_xlabels>& virtual_crossings) 
 {	
     
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "add_virtual_crossing: adding virtual crossing " << virtual_crossings.size()+1 << ": location = " << location << ", gauss edges " << fringe[location] << ',' << fringe[location+1] << endl;
 	
 //if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -154,12 +165,11 @@ Reidemeister I loops
 If the gauss code presented to the function contains a Reidemeister I loop then after the last Gauss crossing has been added, the fringe contains a pair of edges having the same 
 label for each Reidemeister I loop present in the diagram.  Note that these pairs may be nested, if the diagram contains a Reidemeister I loop within another Reidemeister I loop.
    
-   
 */
-bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data)
+bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal, vector<int>* gauss_crossing_map, bool evaluate_gauss_crossing_perm)
 {
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: initial gauss_code_data :" << endl;
 	print_code_data(gauss_code_data,debug,"gauss_to_peer_code: ");	
@@ -245,7 +255,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 	}
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: PD_data:" << endl;
 	print (PD_data,debug,3,"gauss_to_peer_code: ");
@@ -371,7 +381,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			continue;
 		}
 	
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: num_fringe_edges = " << num_fringe_edges << " current fringe: ";
 	for (int f=0; f< num_fringe_edges; f++)
@@ -379,7 +389,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	debug << endl;
 }
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: initial candidate_gauss_arc_direction: " ;
 	for (int a=0; a< num_gauss_arcs; a++)
@@ -795,7 +805,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	
 				    so the direct path from i to k is shorter.
 				   
-				   
 			    */
 			    int fringe_anchor_edge_index;
 			    int min_virtual_count = -1;
@@ -814,13 +823,68 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 						int wrapped = num_fringe_edges - direct; // distance wrapping around the end of the fringe
 						
 						count += (direct < wrapped ? direct : wrapped);  // count the smallest number of edges that would need to be moved
-						matching_fringe_index_wrap_flag[j] = (wrapped < direct); 
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code:     fringe index " << matching_fringe_index[j] << ", edge " << fringe[matching_fringe_index[j]]
 	      << " direct count = " << direct << ", wrapped count = " << wrapped << ", cumuative count = " << count << endl;
 }
+
+						if (wrapped == direct)
+						{
+							/* if the matching fringe edges are already in the correct order, we prefer the direct approach, if not, wrapping
+							   will introduce one fewer virtual crossing since we will not need to re-order the two edges */
+							   
+							int PD_index_i;
+							int PD_index_j;
+							for (int k = 0; k < 4; k++)
+							{
+								if (fringe[matching_fringe_index[i]] == PD_data[best_crossing][k]) 
+									PD_index_i = k;
+								else if (fringe[matching_fringe_index[j]] == PD_data[best_crossing][k]) 
+									PD_index_j = k;								
+							}
+							
+							/* We only consider the cases where the two matching fringe edges are adjacent, since if they are diametrically opposite we have 
+							   the special case, which is handled separately.
+							   
+							   to determine whether we prefer the direct approach:
+							   if matching_fringe_index[i] is less than matching_fringe_index[j] we look for fringe[j] adjacent clockwise from fringe[i]
+							   if matching_fringe_index[i] is greater than matching_fringe_index[j] we look for fringe[j] adjacent anti-clockwise from fringe[i]
+							*/
+							if ((matching_fringe_index[i] < matching_fringe_index[j] && PD_index_i == (PD_index_j+1)%4) ||
+							    (matching_fringe_index[j] < matching_fringe_index[i] && PD_index_j == (PD_index_i+1)%4) )
+							{
+								matching_fringe_index_wrap_flag[j] = false; // prefer the direct route
+								
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "gauss_to_peer_code:     prefer the direct approach: fringe index " << matching_fringe_index[i] << " is " 
+	      << (matching_fringe_index[i] < matching_fringe_index[j]? "smaller":"greater") 
+	      << " than fringe index " << matching_fringe_index[j]  << endl;
+	debug << "gauss_to_peer_code:     fringe[" << fringe[matching_fringe_index[i]] << "] lies at PD index " << PD_index_i 
+	      << ", fringe[" << fringe[matching_fringe_index[j]] << "] lies at PD index " << PD_index_j  << endl;
+}
+
+							}
+							else
+							{
+								matching_fringe_index_wrap_flag[j] = true;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "gauss_to_peer_code:     prefer the wrapped approach: fringe index " << matching_fringe_index[i] << " is " 
+	      << (matching_fringe_index[i] < matching_fringe_index[j]? "smaller":"greater") 
+	      << " than fringe index " << matching_fringe_index[j]  << endl;
+	debug << "gauss_to_peer_code:     fringe edge " << fringe[matching_fringe_index[i]] << " lies at PD index " << PD_index_i 
+	      << ", fringe edge " << fringe[matching_fringe_index[j]] << " lies at PD index " << PD_index_j  << endl;
+}
+							}
+						}
+						else
+						{
+							matching_fringe_index_wrap_flag[j] = (wrapped < direct); 
+						}
 					}
 				
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -1099,7 +1163,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		    if (best_precedence == 2) 
 			{
 				/* the matching edges are contiguous but in the wrong order.  There must be either 2, 3 or 4 matching edges on the crossing, otherwise 
-				   best_precedence would be 0.  If there are fewer than 4 matching edges, there is a unque order of the matching edges in the fringe 
+				   best_precedence would be 0.  If there are fewer than 4 matching edges, there is a unique order of the matching edges in the fringe 
 				   that permits the non-matching edges of the crossing to become part of the new fringe without introducing additional virtual crossings.  
 				   If best_match_count == 4, any order in the fringe would work but we choose the one minimizing the number of virtual crossings required.
 				   
@@ -1602,7 +1666,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				num_fringe_edges = new_num_fringe_edges;
 			}	
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: num_fringe_edges = " << num_fringe_edges << " fringe-check: ";
 	for (int f=0; f< num_fringe_edges; f++)
@@ -1674,6 +1738,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			diametric_virtual_crossings = candidate_diametric_virtual_crossings;
 			num_virtual_crossings_on_gauss_arc = candidate_num_virtual_crossings_on_gauss_arc;
 		}
+		
+		if (!optimal)
+			break;
+			
 	} /* initial_crossing loop ends here */
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -1752,7 +1820,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	first_immersion_edge_on_component[component] = next_immersion_arc;
 	
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code: calculate immersion edge labels" << endl;
 	
 	for (int i=0; i< num_gauss_arcs; i++)
@@ -1762,19 +1830,19 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			component++;
 			first_immersion_edge_on_component[component] = next_immersion_arc;
 			
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:   found start of component " << component << ", first immersion edge =  " << first_immersion_edge_on_component[component] << endl;
 	
 		}
 		
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:   gauss_arc " << i << ", contains " << num_virtual_crossings_on_gauss_arc[i] << " virtual crossings" << endl;
 
 		if (num_virtual_crossings_on_gauss_arc[i] !=0)
 		{		
 			if (gauss_arc_direction[i] == gc_pc_xlabels::direction::DOWNWARDS)
 			{
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     DOWNWARDS arc" << endl;
 	
 				list<gc_pc_xlabels>::iterator lptr = virtual_crossings.begin();
@@ -1783,7 +1851,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 				{
 					if (lptr->gauss.first == i)
 					{
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code:     found arc in first place at virtual crossing " << lptr->gauss.first << ',' << lptr->gauss.second
 	      << ", allocating immersion edge label " << next_immersion_arc << endl;
@@ -1793,7 +1861,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 					else if (lptr->gauss.second == i)
 					{
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code:     found arc in second place at virtual crossing " << lptr->gauss.first << ',' << lptr->gauss.second
 	      << ", allocating immersion edge label " << next_immersion_arc << endl;
@@ -1806,7 +1874,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			}
 			else
 			{
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     UPWARDS or SIDEWAYS arc" << endl;
 	
 				list<gc_pc_xlabels>::reverse_iterator lptr = virtual_crossings.rbegin();
@@ -1815,7 +1883,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 				{
 					if (lptr->gauss.first == i)
 					{						
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code:     found arc in first place at virtual crossing " << lptr->gauss.first << ',' << lptr->gauss.second
 	      << ", allocating immersion edge label " << next_immersion_arc << endl;
@@ -1824,7 +1892,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 					}
 					else if (lptr->gauss.second == i)
 					{
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code:     found arc in second place at virtual crossing " << lptr->gauss.first << ',' << lptr->gauss.second
 	      << ", allocating immersion edge label " << next_immersion_arc << endl;
@@ -1842,7 +1910,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 		{
 			if(gauss_code_table[EVEN_TERMINATING][j] == i)
 			{
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:   found arc as EVEN_TERMINATING at Gauss crossing " << j << ", allocating immersion edge label " << next_immersion_arc << endl;
 	
 				immersion_crossing_peers[j][0] = next_immersion_arc++;
@@ -1850,7 +1918,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			}
 			else if(gauss_code_table[ODD_TERMINATING][j] == i)
 			{
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:   found arc as ODD_TERMINATING at Gauss crossing " << j << ", allocating immersion edge label " << next_immersion_arc << endl;
 	
 				immersion_crossing_peers[j][1] = next_immersion_arc++;
@@ -1879,18 +1947,18 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 		lptr++;
 	}
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: immersion_crossing_peers: " << endl;
 	print(immersion_crossing_peers, debug, 4, "gauss_to_peer_code: ");
 }	
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: virtual_gauss_peers: " << endl;
 	print(virtual_gauss_peers, debug, 4, "gauss_to_peer_code: ");
 }	
 	
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code: next_immersion_arc  = " << next_immersion_arc << " (should be twice the number of immersion crossings)" << endl;
 	
 	/* evaluate the number of immersion edges on each component */
@@ -1901,7 +1969,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 		num_immersion_component_edges[i] = next_first_edge - first_immersion_edge_on_component[i];
 	}
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: num_immersion_component_edges: ";
 	for (int i=0; i< num_components; i++)
@@ -2023,7 +2091,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		} while (!complete);
 	}
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: final immersion_crossing_peers: " << endl;
 	print(immersion_crossing_peers, debug, 4, "gauss_to_peer_code: ");
@@ -2576,17 +2644,24 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	peer_code_data.term_crossing = term_crossing;
 	peer_code_data.orig_crossing = orig_crossing;
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: peer code data produced from gauss code:" << endl;
 	print_code_data(peer_code_data,debug,"gauss_to_peer_code: ");	
 }
 	
-	if (peer_code_data.immersion == generic_code_data::character::KNOTOID)
+	if (peer_code_data.immersion == generic_code_data::character::KNOTOID && num_virtual_crossings_on_gauss_arc[0] != 0)
 	{
-		/* renumber the peer code so that edge zero is the leg of the knotoid.  Since the leg is always on 
-		   leg zero, and we adjust the components other than zero to be consistent with the numbering of component
-		   zero, we know the shift requireed is based on the number of virtual crossings on Gauss arc zero.
+		/* If the Gauss code is that of a KNOTOID and we have added virtual crossings to Gauss arc zero, then we have 
+		   produced the peer code of the virtual closure of the knotoid.  In this case we renumber the peer code so that 
+		   edge zero is the leg of the knotoid and adjust the immersion character to be PURE_KNOTOID.  
+		   
+		   Since the leg is always on component zero, and we adjust the components other than zero to be consistent 
+		   with the numbering of component zero.  The shift for the renumbering required is the number of virtual 
+		   crossings on Gauss arc zero.
+		   
+		   If the Gauss code is that of a KNOTOID but no virtual crossings have been added to Gauss arc zero, then we have
+		   the peer code of a knot-type knotoid and so do not need to adjust the peer code.
 		*/
 		vector<int> shift_vector(num_components);
 		shift_vector[0] = num_virtual_crossings_on_gauss_arc[0];
@@ -2603,39 +2678,90 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		debug << shift_vector[i] << ' ';
 	debug << endl;
 }
-	renumber_peer_code(peer_code_data,shift_vector);
+		renumber_peer_code(peer_code_data,shift_vector);
 
-	/* set the head crossing */
-	int terminating_edge_at_head = peer_code_data.num_component_edges[0] - num_virtual_crossings_on_gauss_arc[0];
-	int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
-	peer_code_data.head = head_naming_edge/2;
-	peer_code_data.immersion = generic_code_data::character::PURE_KNOTOID;
+		/* set the head crossing */
+		int terminating_edge_at_head = peer_code_data.num_component_edges[0] - num_virtual_crossings_on_gauss_arc[0];
+		int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
+		peer_code_data.head = head_naming_edge/2;
+		peer_code_data.immersion = generic_code_data::character::PURE_KNOTOID;
 
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code: terminating_edge_at_head = " << terminating_edge_at_head << ", head_naming_edge = " << head_naming_edge << endl;
 	
-	for (int i = terminating_edge_at_head; i < peer_code_data.num_component_edges[0]; i++)
-	{
-//if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+		for (int i = terminating_edge_at_head; i < peer_code_data.num_component_edges[0]; i++)
+		{
+//if (debug_control::DEBUG >= debug_control::DETAIL)
 //	debug << "gauss_to_peer_code: shortcut edge " << i;
 	
-		if (i%2 == 0)
-		{
+			if (i%2 == 0)
+			{
 			peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
-//if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+//if (debug_control::DEBUG >= debug_control::DETAIL)
 //	debug << " crossing " << i/2;
-	}
-		else
-		{
-			peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
 		}
-	}
+			else
+			{
+				peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
+			}
+		}
 	
-if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: adjusted peer code data for knotoid gauss code:" << endl;
 	print_code_data(peer_code_data,debug,"gauss_to_peer_code: ");	
 }
+		/* update the immersion_crossing_peers for the Gauss crossings so we determine the correct gauss_crossing_map */
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code: update immersion_crossing_peers to accommodate shift vector:" << endl;
+	
+		for (int i=0; i< num_gauss_crossings; i++)
+		{
+			for (int j=0; j < 2; j++)
+			{
+				int old_label = immersion_crossing_peers[i][j];
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:   Gauss crossing " << i << " label " << j << " = " << old_label << endl;
+
+				int component = 0;
+				while (old_label >= peer_code_data.first_edge_on_component[component]+peer_code_data.num_component_edges[component])
+					component++;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:   component " << component << endl;
+					
+				int new_label = (old_label - peer_code_data.first_edge_on_component[component] - shift_vector[component] + peer_code_data.num_component_edges[component])%
+		                peer_code_data.num_component_edges[component] + peer_code_data.first_edge_on_component[component];
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:   new label = " << new_label << endl;
+
+				immersion_crossing_peers[i][j] = new_label;
+			}
+		}	
+				
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "gauss_to_peer_code: updated immersion_crossing_peers: " << endl;
+	print(immersion_crossing_peers, debug, 4, "gauss_to_peer_code: ");
+}	
+	}
+
+	if (evaluate_gauss_crossing_perm)
+	{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code: evaluate gauss_crossing_map:" << endl;
+
+		for (int i=0; i< num_gauss_crossings; i++)
+		{	
+			int even_peer = (immersion_crossing_peers[i][0]%2 == 0 ? immersion_crossing_peers[i][0] : immersion_crossing_peers[i][1]);			
+			(*gauss_crossing_map)[i] = even_peer/2;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:   Gauss crossing " << i << ", even_peer = " << even_peer << endl;
+
+		}		
 	}
 
     return true;	
