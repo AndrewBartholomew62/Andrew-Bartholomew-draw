@@ -8,32 +8,40 @@
 <body>
 
 <h2 align="center"><a name="_top">Draw programme<a></h2>
-<p align="center">Last modified 8th January, 2022</p>
+<p align="center">Last modified 14th March, 2022</p>
 
 <P align="center"><IMG SRC="images/bigelow.jpg" height="400"></P>
 
 <h2>1. Introduction</h2>
 
-<p>The draw programme generates metapost code to draw diagrams from labelled peer codes or Gauss codes.  It is currently able to 
-draw a variety of knots and links: classical, virtual, welded and flat, and (multi-)knotoids, which was the original motivation.</p>
+<p>The draw programme generates metapost code to draw diagrams from labelled peer codes, Gauss codes or planar diagrams.  It is currently able to 
+draw a variety of knots and links: classical, virtual, welded and flat, (multi-)knotoids (the original motivation) and doodles.  The programme can 
+also draw smoothed states for a given diagram, as used by various invariants based on state sums, including those based on Gaussian parity ([2]).</p>
 
-<p>The programme can also draw a set of smoothed states for a given diagram, as used by various invariants based on state sums, or
-the convex triangulation of a disc determined by a peer code.</p>
+<p>In addition to these primary use cases, the programme contains support for drawing laces.  This is the topic of ongoing research and is not 
+discussed further.  Similarly, the programme contains support for a number of experimental drawing techniques but,again, we do not go into 
+details.  These alternative drawing techniques have been developed in an attempt to address the shortcomings of the primary drawing algorithm
+but none have been found to produce better results for the majority of diagrams.
+</p>
 
 <p> This page contains the following sections:</p> 
 <ol START=2>
 <li><p><a href="#Overall-Description">Overall Description</a></p>
     <p style="margin-left: 1cm"><a href="#Programme-control">Controlling programme behaviour</a></p>
+<li><p><a href="#Running-draw">Running the software</a></p>
     <p style="margin-left: 1cm"><a href="#Software">The draw programme software</a></p>
-<li><p><a href="#Drawing-knots">Drawing knots and knotoids</a></p>
+<li><p><a href="#Input-codes">Supported input codes</a></p>
     <p style="margin-left: 1cm"><a href="#Knotoid-codes">Labelled peer codes for knotoids</a></p>
     <p style="margin-left: 1cm"><a href="#Gauss-code-input">Gauss codes for knots, links and knotoids</a></p>
+    <p style="margin-left: 1cm"><a href="#Planar-diagram-input">Planar digram format for knots, links and knotoids</a></p>
 <li><p><a href="#usage">Draw programme command syntax</a></p>
     <p style="margin-left: 1cm"><a href="#Input-file">Input file format</a></p>
 <li><p><a href="#Example-diagrams">Example diagrams</a></p>
 <li><p><a href="#Adding-Colour">Adding Colour</a></p>
 <li><p><a href="#Moving-vertices">Manually Adjusting Diagrams</a></p>
 <li><p><a href="#Smoothed-states">Smoothed states</a></p>
+    <p style="margin-left: 1cm"><a href="#Single-state">Drawing individual smoothed states</a></p>
+    <p style="margin-left: 1cm"><a href="#Parity">Parity and smoothed states</a></p>
 <li><p><a href="#References">References</a></p>
 </ol>
 
@@ -41,7 +49,11 @@ the convex triangulation of a disc determined by a peer code.</p>
 
 <p>The default drawing algorithm is one based on circle packing taken from the drawing routine in Knotscape, by Jim Hoste and Morwen 
 Thistlethwaite, and in particular Ken Stephenson's implementation of Thurston's circle 
-packing algrithm.</p>
+packing algorithm.  Diagrams are constructed from a description of the underlying immersion provided by a 
+<a href="#Labelled-peer-code">labelled peer code</a>.  A labelled peer code includes a description of all classical, virtual or flat crossings
+in the diagram and, in the case of knotoids, a shortcut between the head and leg of the segment component.  All of the other supported input 
+formats are converted internally to labelled peer codes in order to produce the required diagram.   
+</p>
 
 <p>My code provides the environment to read peer codes from an input stream, then 
 applies the algorithms of Knotscape to produce a sequence of coordinates at key 
@@ -100,22 +112,25 @@ creates a tightly knotted part of the diagram.  There are options included for i
 algorithms, such as drawing the triangulation, tracing the progress of force directed placement algorithms etc. that may be ignored by most users. 
 </p>
 
-<h3><a NAME="Programme-control"></a>Controlling programme behaviour</h3>
+<h2><a NAME="Running-draw"></a>3. Running the software</h2>
 
-<p>There are a number of command line options available to adjust things like the overall scale of the diagram (the <kbd>u</kbd> or <kbd>unit</kbd> option), the size of the discs added to create over and under crossings, or to designate virtual crossings (the <kbd>d</kbd> or <kbd>disc-size</kbd> option), or to designate the use of TeX's mathematics "script size" or "scriptscript size" font for semi-arc labels (the <kbd>script-labels</kbd> and <kbd>scriptscript-labels</kbd> options).</p>
-
-<p>If the diagram results in metapost coordinates that are too large, the metapost_coordinate_scale_factor used by the programme may be adjusted using the <kbd>M</kbd> option.  Simple help information is available by starting the programme with the command "<kbd>draw -h</kbd>", a full list of options may be seen by starting the programme with the command "<kbd>draw -H!</kbd>"</p>
-
-<p>See the section <a href="#usage">Draw programme command syntax</a> for more details.</p>
-
+<p>The programme is run from the command line, either interactively or by providing an input file containing a description of the diagrams that you wish to draw.  There are multiple 
+options available to adjust things like the overall size of the diagram, rotating the diagram, adding edge labels and so on.  Programme options may be added to the command line, 
+included in an input file, or added to individual input codes, as required.  The <a href="#usage">draw programme command syntax</a> is described below and examples provided for the more important drawing and control options.  A description of the <a href="#Input-file">input file format</a> is also provided.
+</p>
 
 <h3><a NAME="Software"></a>The draw programme software</h3>
 
-<p>The file <a href="../download/draw-release-8-1-22.tar">draw-release-8-1-22.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+<p>The file <a href="../download/draw-release-14-3-22.tar">draw-release-14-3-22.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
 
-<h2><a NAME="Drawing-knots"></a>3. Drawing knots and knotoids</h2>
+<h2><a NAME="Input-codes"></a>4. Supported input codes</h2>
 
-<p>The primary input for the draw programme is the labelled peer code description of a knot, link or knotoid, either from the command line or from an input file, although Gauss code input is also supported, as described <a href="#Gauss-code-input">below</a>.  Full details of labelled peer codes are provided in the paper <A HREF="../download/labelled-peer-code.pdf">labelled-peer-code.pdf</A>.  Here we provide only a brief description.</p>
+<p>The draw programme currently supports knots and links described by a <a href="#Labelled-peer-code">labelled peer code</a>, a 
+<a href="#Gauss-code-input">Gauss codes</a> or a <a href="#Planar-diagram-input">planar digram</a>.</p>
+
+<h3><a NAME="Labelled-peer-code"></a>Labelled peer codes</h3>
+
+<p>Full details of labelled peer codes are provided in the paper <A HREF="../download/labelled-peer-code.pdf">labelled-peer-code.pdf</A>.  Here we provide only a brief description.</p>
 
 <p>A labelled peer code for a virtual (or classical) link (knot) diagram is obtained from the underlying immersion by choosing an arbitary starting component and semi-arc and numbering each semi-arc of that component consecutively from zero as we trace around the component.  When we return to the starting semi-arc we move onto another component and continue the numbering.  
 
@@ -143,7 +158,7 @@ component of the link.</p>
 
 <p>we refer to this code as a <i>peer code</i>.</p>
 
-<p>The second part of a labelled peer code provides information about the original link diagram.  For classical crossings we assign the label <kbd>+</kbd> if the naming edge forms part of the over-arc of the crossing and the label <kbd>-</kbd>
+<p>The second part of a labelled peer code provides information about the crossings in the diagram.  For classical crossings we assign the label <kbd>+</kbd> if the naming edge forms part of the over-arc of the crossing and the label <kbd>-</kbd>
 if it forms part of the under-arc.  For virtual or welded crossings we assign the label <kbd>*</kbd> and for flat crossings we assign the label <kbd>#</kbd>.</p>
 
 <p>These labels are writen after the list of odd peers separated by a <kbd>/</kbd> character.  They are written in the order determined by the vertex numbering.  Thus continuing the above example if the original link diagram is as 
@@ -159,8 +174,7 @@ follows:</p>
 
 <P STYLE="margin-left: 1cm"><KBD>[-11 9, -3 1 -13 5 -7] / + - - + - + -</kbd></P>
 
-
-<h3><a NAME="Knotoid-codes"></a>Labelled peer codes for knotoids</h3>
+<h4><a NAME="Knotoid-peer-codes"></a>Labelled peer codes for knotoids</h4>
 
 <p>To represent a knotoid we draw a shortcut from the head to the leg comprised of under-crossings, whereupon we may obtain an immersion as before.  We then determine the peer code by starting with the edge containing the leg of the knotoid and proceed along the knotoid to the head and then along the shortcut.  We identify the first crossing created by adding the shortcut by writing the <kbd>^</kbd> character <i>after</i> the odd peer at that crossing in the first part of the peer code.  We attach labels to a knotoid's peer code in the same manner as we do with links.</p>
 
@@ -172,34 +186,45 @@ follows:</p>
 
 <p>Note that the <kbd>^</kbd> character uniquely identifies the head since there is a unique edge entering each crossing as part of the under-arc.</p>
 
+<h4><a NAME="Doodle-peer-codes"></a>Labelled peer codes for doodles</h4>
+
+<p>A doodle, or virtual doodle, may be described by a labelled peer code by designating the crossing label as flat, using the <kbd>#</kbd> character.  The following is an example of
+a doodle described by a labelled peer code: </p>
+
+<P STYLE="margin-left: 1cm"><KBD>
+[-15 -5, -1 -9 11, -13 7 -3]/# # # # # # # # 
+</KBD></P>
+
 <h3><a NAME="Gauss-code-input"></a>Using Gauss codes as input</h3>
 
-<p>The draw programme supports input data in the form of a Gauss code, whereupon it converts the Gauss code to a labelled peer code and draws the diagram corresponding
-to the peer code.  The user has no control over any virtual crossings that may need to be added in the conversion process, they are determined automatically by the conversion 
-algorithm and are not guaranteed to be optimally placed in the immersion.</p>  
+<p>The draw programme converts input data in the form of a Gauss code to a labelled peer code and draws the diagram corresponding to the peer code.  The conversion process is based on the algorithm used by Dror Bar-Natan and Jeremy Green in the production of their table of virtual knots. The user has no control over any virtual crossings that may need to be 
+added during the conversion, they are determined automatically by the algorithm and, although some optimizations have been added to the original algorithm, virtual crossings are not guaranteed to be optimally placed in the immersion in every case.</p>  
 
-<p>To describe a diagram using a standard Gauss code the (classical) crossings of the diagram are numbered 
-and a code produced by following each component of the link from some arbitrary starting point, according to a given orientation.  If a crossing is passed on an under-arc the crossing is written as a negative number and if the crossing is passed on an over-arc, it is written as a positive number.  Multiple components are written separated by commas.</p>
+<p>To describe a diagram using a standard Gauss code, the classical crossings of the diagram are numbered arbitrarily and a code produced by following each component of the link 
+from some arbitrary starting point, according to a chosen orientation.  If a crossing is passed on an under-arc the crossing is written as a negative number and if the crossing is passed on an over-arc, it is written as a positive number.  Multiple components are written separated by commas.</p>
 
 <p>To indicate the nature of each crossing, as a positive or negative crossing, we append the sign of the crossing to the Gauss code 
 following a '<kbd>/</kbd>' character.  Thus an example Gauss code for a classical link is as follows:</p>
 
 <p style="margin-left: 1cm"><kbd>1 -2 5 -4 3 -5, -1 2 -3 4 / ++--+</kbd></p>
 
-<p>The sign used in Gauss codes is the standard notion of a positive or negative crossing in classical
-knot theory.  Note that this is not the same as the use of signs in labelled peer codes.</p>
+<p>Note that the sign used in Gauss codes is the standard notion of a positive or negative crossing in classical knot theory.  This is not the same as the use of signs in 
+labelled peer codes.</p>
 
 <p>Alternatively, Gauss codes may be specified as a sequence of terms of the form (O|U)&ltcrossing-num&gt&ltcrossing-sign&gt, e.g. O1-O2+U1-O3+O4+U2+U3+U4+<p>
 
-<p>The same format may be used for virtual links by separating the crossing terms belonging to each component with a comma.  An example of the Gauss code 
+<p>The same under and over format may be used for virtual links by separating the crossing terms belonging to each component with a comma.  An example of the Gauss code 
 for a virtual link using the under and over format is U1+U2-,O3-,O1+O2-U3-.</p>
 
-<p>Gauss codes may also be used to draw knotoids, or multi-knotoids.  The Gauss code must number the segment component of a knotoid first and must start at the leg of the
-knotoid.  Moreover, in order to tell the programme that the Gauss code should be treated as a knotoid and not a virtual knot, the code must be preceded by "K:".  For example</p>
+<h4><a NAME="Knotoid-gauss-codes"></a>Gauss codes for knotoids</h4>
+
+<p>Gauss codes may also be used to draw knotoids, or multi-knotoids.  The Gauss code must describe the segment component of a knotoid first and must start at the leg of the
+knotoid.  Moreover, in order to tell the programme that the Gauss code should be treated as a knotoid and not a virtual knot, the code must be preceded by "K:".  An example 
+of a multi-knotoid with four components described by a Gauss code is:</p>
 
 <p style="margin-left: 1cm"><kbd>K:1 -2 10 -12, 4 -5 6 -7 8 -1 -3, 5 -8 2 3 -4, -13 9 -10 -11 14, -14 11 12 -9 7 -6 13 / - + + + + + + + - - - - - -</kbd></p>
  
-<p>describes describes a multi-knotoid with four components.</p>
+<h4><a NAME="Doodle-gauss-codes"></a>Gauss codes for doodles</h4> 
 
 <p>The Gauss code of a doodle or flat link diagram similarly numbers the crossings of the diagram and follows each 
 component from an arbitrary staring point.  Since in these cases there are no over of under crossings in these cases, we begin by assigning an orientation to every component and respecting that choice as trace the diagram.  Then, as we traverse a crossing the code records whether the other strand crosses our path from left to right or from right to left, according to the given orientation.  Crossing types are then labelled with the "flat" decoration <kbd>#</kbd> </p>
@@ -208,19 +233,49 @@ component from an arbitrary staring point.  Since in these cases there are no ov
 
 <p style="margin-left: 1cm"><kbd>L1 L2 R1 R2 L3 L4 R3 R4 / # # # #</kbd></p>
 
+<h3><a NAME="Planar-diagram-input"></a>Planar digram format for knots, links and knotoids</h3>
 
-<h2><a NAME="usage"></a>4. Draw programme command syntax</h2>
+<p>The draw programme supports planar diagram descriptions of knots, links, knotoids and multi-knotoids.  Currently planar diagrams are assumed to describe diagrams involving
+classical crossings only, there is no support for flat crossing and therefore no support for doodles.  Virtual knots and links are supported, as the programme treats planar 
+diagram descriptions as an alternative description of a Gauss code.  A planar diagram code is first converted to a Gauss code which is then converted to a labelled peer code.<p>
+
+<p>To produce a planar diagram description of a knot, link or knotoid, the arcs between classical crossings (or the leg and head of a knotoid) are labelled sequentially from 1 as we trace each unicursal component.  For virtual knots and links, the components may be considered in any order and with any chosen orientation and any arc may be chosen as the starting point for each component.  There are additional requirements for knotoids, described below. </p>
+
+<p> Having numbered a diagram, each crossing is described by the set of labels that appear at the crossing, using the standard convention of starting at the ingress under-arc and working anticlockwise around the crossing.  The programme uses standard syntax to deacribe these labels; an example of the planar diagram
+description supported by the programme is: </p>
+
+<p style="margin-left: 1cm"><kbd>X[3,1,4,2] X[4,2,5,3] X[7,6,8,5] X[6,1,7,8]</kbd></p>
+
+<p>Spaces are permitted within the description and longer planar diagram descriptions may be broken across multiple lines of an input file using the escape character <kbd>\</kbd> 
+thus: </p>
+
+<p style="margin-left: 1cm"><kbd>
+X[3,1,4,2] X[4,2,5,3] X[7,6,8,5] X[6,1,7,8]\<br>
+X[3,7,4,6] X[15,5,16,4]\<br>
+X[5,17,6,16], X[7,14,8,15] X[8,18,9,17] X[11,18,12,19] X[19,12,20,13], X[13,20,14,1]
+</kbd></p>
+
+<h4><a NAME="Knotoid-planar-diagrams"></a>Planar diagram description of knotoids</h4>
+
+<p>Knotoids may be described by planar diagrams by preceding the description with "K:", as in the case of Gauss codes.  For knotoids and multi-knotoids, it is required that the numbering start at the leg of the segment component of the knotoid, so that the arc containing the leg is numbered 1.  It is also required that the
+description of the crossing involving the leg of the knotoid appear first in the list of crossings.  The following is an example of a knotoid described by a planar
+diagram:</p>
+
+<p style="margin-left: 1cm"><kbd>K:X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1]</kbd></p>
+
+
+<h2><a NAME="usage"></a>5. Draw programme command syntax</h2>
 
 <p>The command syntax for the programme draw is as follows:</p>
 
-<p><kbd>Usage draw [--&lt;programme-option>][-&lt;metapost-control>][&lt;infile>[&lt;outfile>]]</kbd></p>
+<p style="margin-left: 1cm"><kbd>draw [--&lt;programme-option>][-&lt;metapost-control>][&lt;infile>[&lt;outfile>]]</kbd></p>
 
 <p>The programme reads labelled peer codes from the &lt;infile>, or from a command prompt if no &lt;infile>
 is provided, and then evaluates a triangulation of the disc determined by the immersion underlying
 the peer code.</p>
 
 <p>By default, the programme uses Ken Stephenson's circle packing algorithm to place the vertices of
-the triangulation.  Alternatively one of the following long programme options may be used to select
+the triangulation.  Alternatively a <kbd>&lt;programme-option></kbd>, as described below, may be used to select
 a different vertex placement technique.</p>
 
 <p>Once the vertices have been positioned, the programme creates a metapost script describing the
@@ -269,7 +324,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
   dots: draw knotoid shortcuts dashed with dots rather than dashed evenly
   disc-size: set the unit multiplier to determine the crossing disc diameter (default 30)
   knotoid-leg-unbounded: draw knotoids with the leg in the unbounded component of the immersion's complement
-  labels: add edge labels to the diagram
+  labels: add immersion edge labels to the diagram: by default immersion edge labels are numbered from 0 (see the L option)
   no-crossings: do not draw the crossing features
   no-immersion: do not draw the immersion
   oriented: draw orientation for knots (orientation always shown for knotoids)
@@ -290,10 +345,12 @@ input files as global options or as qualifiers (see the section <a href="#Input-
   edge-factor=&lt;float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement
   first-gap: always use the first gap as the active gap in edge distribution placement
   frame-corners: show frame corners when tracking placement iteration
+  gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1 
   grid[=&lt;grid-size>]: draw a grid to assist with using the translate option (default 10)
   hyperbolic: drawing diagram in the hyperbolic plane
   no-vertex-axes: do not show the axes when labelling the vertices of a diagram
   no-show-displacement: do not show the triangulation displacement when tracking placement iteration
+  parity: show crossings with odd parity in smoothed states  
   plot[=&lt;divisions>]: set the number of divisions for the histogram in edge distribution placement (default 20)
   script-labels: label vertices using TeX's script size font
   scriptscript-labels: label vertices using TeX's scriptscript size font
@@ -305,6 +362,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
                                                regions have an area within this factor of their average area
   smoothed-disc-size: set the smoothed state disc size multiplier to determine the size of smoothed 
                       crossings n*disc-size (default n=6)  
+  state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram
   tranlsate=&lttranslation-list>: specify a list of vertices together with a translation in the form UxPyR:VxQyS... where U and V 
                                are vertex numbers and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates 
                                shifting vertex 10 +8% to the right -3% up
@@ -350,25 +408,41 @@ input files (see below)</p>
 <li>pen-size = 1, giving pencirlce scale 0.5 pt</li>
 </ul>
 
+<p>The metapost code produces by the programme expresses dimensions as multiples of a unit paramater, u, whose default value is shown above.  The overall size
+of a diagram may therefore be modified by adjusting the unit size.  For large diagrams, metapost can sometimes complain that a quntity is too large, in which case
+reducing the unit size will typically solve the problem.</p>
+
+<p>To represent crossings, the metpost code places a disc at a crossing vertex and then draws an over-arc, or creates a virtual crossing glyph as required by the diagram.
+The size of these disc is controlled by the disc-size (or the short d) option.  As can be seen from the default value shown above, increasing the unit size also increases the disc size,
+so it is sometimes useful to control the two quantities separately.</p>
+
+<p>The pen-size determines the thickness of the lines in the resulting diagram, by controlling the size of pencircle used by metapost.</p>
+
+<p>If the diagram results in metapost coordinates that are too large, the metapost_coordinate_scale_factor used by the programme may be adjusted using the <kbd>M</kbd> option.  Simple help information is available by starting the programme with the command "<kbd>draw -h</kbd>", a full list of options may be seen by starting the programme with the command "<kbd>draw -H!</kbd>"</p>
+
+<p>The section <a href="#Example-diagrams">Example diagrams</a> below provides a description and some examples of the most common drawing options.</p>
+
 <h3><a NAME="Input-file"></a>Input file format</h3>
 
-<p>Multiple peer codes or Gauss codes may be included in the inputfile, written on different lines.  Default options 
-to be applied to all the codes in the file may be specified from the command line using long or short 
-options.  Alternatively, defaults may be included within the file by specifying one or more long
-options within square brackets, separated by commas, as in <kbd>[unit=30,labels]</kbd>.  It is 
+<p>Multiple peer codes, Gauss codes, or planar diagrams may be included in an <kbd>inputfile</kbd>, one per line.  As mentioned above for planar diagrams, long input strings may be broken across multiple lines by including an escape character <kbd>\</kbd> at the end of a line.  Note, however, that for peer codes and gauss codes you cannot use an escape character 
+after the <kbd>/</kbd> character within the code.<p>  
+
+<p>Default options to be applied to all the codes in the file may be specified from the command line using long or short options.  Alternatively, defaults may be included within the file itself by specifying one or more long options within square brackets, separated by commas, as in <kbd>[unit=30,labels]</kbd>.  It is 
 possible to override the defaults on a per-code basis by including <i>qualifiers</i> after a peer 
 code.  Qualifiers are long options, separated by commas, included within braces <kbd>{}</kbd></p>  
 
-<p>The input file may contain comments by inserting the <kbd>;</kbd> character anywhere on a line.
-Titles may be included by starting a line with <kbd>--</kbd> to allow names to be given to peer 
-codes.</p>
+<p>The input file may contain comments by inserting the <kbd>;</kbd> character anywhere on a line.  Any text on a line following a <kbd>;</kbd> is ignored.<p>
+ 
+<p> Input codes in a file may be provided with a title that is reported in the output of the programme.  Titles are specified by starting a line with <kbd>--</kbd>.</p>
+
+<p>You can force the programme to stop processing input codes in an input file at any point by including the word <kbd>exit</kbd> at the start of a line.</p>
 
 <p>An example input file is:</p>
 
 <pre>
 ; here is an example input file
 
-[oriented, unit=30] ; set the defaults for these codes
+[oriented, unit=30] ; set default options for all of the codes in this file
 
 -- an example of a flat knot; this is a comment on a title line
 [-5 -7 -1 -9 -3]/#####
@@ -393,10 +467,9 @@ is determined from the minumum and maximum x-coordinates and y-coordinades, the 
 being used to determine the centre of rotation.  In the above example an explicit centre of rotation is given as one of the vertices used to draw the diagram.  The metapost path created for each diagram has a vertex at each crossing and a vertex at the midpoint of each semi-arc.  A diagram with the vertices labelled may be drawn using the long option <kbd>vertices</kbd> or the short option 
 <kbd>v</kbd> (see below for an example).  Alternatively, an explicit centre of rotation may be specified by giving the exact x and y coordinates.</p>
 
-<h2><a NAME="Example-diagrams"></a>5. Example diagrams</h2>
+<h2><a NAME="Example-diagrams"></a>6. Example diagrams</h2>
 
-<p>Some examples of the diagrams that the programme can produce are shown below, these pictures are png format files that
-have been produced, and scaled, using Ghostscript for presentation on this page.</p>
+<p>Some examples of the diagrams that the programme can produce are shown below, these pictures are png format files generated by Ghostscript 
 
 <p>The following is an example of the diagram resulting from the metapost code produced by the draw programme for the virtual knot</p>
 
@@ -416,14 +489,19 @@ A more complex example is the link l11n455, which has peer code
 
 <P STYLE="margin-left: 2cm"><IMG SRC="images/knot-6-2-ooption.png"></P>
 
-<p>Using the <kbd>--label/-l</kbd> option produces labels on the edges of the diagram:</p>
+<p>Using the <kbd>--label/-l</kbd> option produces labels on the edges of the diagram.  By default the programme labels each semi-arc of the immersion, meaning
+that each semi-arc either side of a virtual crossing is assigned a different label.  If you want to label the arcs between classical crossings only, use the
+option <kbd>--gauss-labels</kbd>.  The following is an example of the default labelling:</p>
 
 <P STYLE="margin-left: 2cm"><IMG SRC="images/knot-6-2-loption.png"></P>
+
+<p>You can instruct the programme to use TeX's mathematics "script size" or "scriptscript size" font for semi-arc labels  with the <kbd>script-labels</kbd> and <kbd>scriptscript-labels</kbd> options respectively.</p>
+
 
 <p>Using the <kbd>--vertices/-v</kbd> option produces a diagram with coordinate axes and vertex labels, intended to aid the case where the Metapost code requires
 <a href="#Moving-vertices">manual adjustment</a>:</p>
 
-<P STYLE="margin-left: 2cm"><IMG SRC="images/knot-6-2-zoption.png"></P>
+<P STYLE="margin-left: 2cm"><IMG SRC="images/knot-6-2-voption.png"></P>
 
 <p>The following is an example of the diagram resulting from the metapost code produced by the draw programme for the knotoid</p>
 
@@ -495,7 +573,7 @@ produces the following immersion diagram
 <p>where &lt;x-shift&gt; and &lt;y-shift&gt; are chosen so the lower-left bounding box coordinates are non-negative.</p> 
 
 
-<h2><a NAME="Adding-Colour"></a>6. Adding colour</h2>
+<h2><a NAME="Adding-Colour"></a>7. Adding colour</h2>
 
 <p>By default the draw programme produces black and white diagrams but it is possible to create coloured drawings using the <a href="#usage">command line options </a> <kbd>colour</kbd> and <kbd>colour-map</kbd>.  The programme makes use of the metapost mpcolornames package and can draw an entire diagram with a different colour using the option
 <kbd>colour=&ltcolourname&gt</kbd>, or it can draw each component of the diagram with a different colour by using the option <kbd>colour</kbd> without specifying a particular colour.  
@@ -508,7 +586,7 @@ subsequent components are drawn black.</p>
 
 <p>Any valid mpcolornames colour may be specified in a colour-map file.</p>
 
-<h2><a NAME="Moving-vertices"></a>7. Manually Adjusting Diagrams</h2>
+<h2><a NAME="Moving-vertices"></a>8. Manually Adjusting Diagrams</h2>
 
 <p>In some cases, despite the range of options provided by the programme, the circle packing, or alternative, drawing algorithm may cannot arrange the vertices 
 used to draw a diagram in an aesthetic manner and it is necessary to adjust their position manually.  To support this, the programme provides a <kbd>translate</kbd> 
@@ -516,9 +594,9 @@ option that allows vertices to be moved relative to the overall size of the diag
 
 <p>As shown above in the section <a href="#Example-diagrams">Example digrams</a>, the <kbd>vertices</kbd> option displays the coordinate axes and the maximum and minimum
 coordinate values of the vertices used to draw the underlying immersion diagram.  The <kbd>translate</kbd> option allows vertices to be moved by a percentage of the 
-difference between these minimum and maximum values with respect to the coordinate axes.  Thus, in the example shown above, the minimum and maximum x-coordinates are
-61 and 578 units, so we can move vertices in steps of (578-61)/100 = 5 units (using integral division) in the x-direction.  Similarly, the minimum and maximum y-coordinates 
-are 20 and 620 units, so we can move vertices in steps of 6 units in the y-direction.</p>
+difference between these minimum and maximum values with respect to the coordinate axes.  Thus, in the example shown below, the minimum and maximum x-coordinates are
+-1091 and 175 units, so we can move vertices in steps of (175-(-1091)/100 = 12 units (using integral division) in the x-direction.  Similarly, the minimum and maximum y-coordinates 
+are -723 and 250 units, so we can move vertices in steps of 9 units in the y-direction.</p>
 
 <p>The syntax for specifying the required translation is <kbd>translate=UxPyR:VxQyS:...</kbd> where U and V are vertex numbers, P and Q are the number of steps in the x-direction
 and R and S are the number of steps in the y-direction.  Thus, the option <kbd>translate=0x5y7:2x-3y4:10x7y-4</kbd> move vertex <kbd>z0</kbd> 5 steps in the x-direction and 7 in the 
@@ -532,7 +610,7 @@ size may be set by appending a value to the option: <kbd>grid=&lt;grid-size></kb
 
 <P STYLE="margin-left: 2cm"><IMG SRC="images/grid.png"></P>
 
-<h2><a NAME="Smoothed-states"></a>8. Smoothed states</h2>
+<h2><a NAME="Smoothed-states"></a>9. Smoothed states</h2>
 
 <p>There are several invariants based on state sums for which it is sometimes useful to generate pictures of the smoothed states 
 for an example diagram.  By using the <kbd>smoothed</kbd> programme option, the draw programme will produce metapost code for all 
@@ -572,9 +650,54 @@ option, or if necessary additionally adjusting the crossing disc size with the <
 <p><IMG SRC="images/smoothed-26.png"> <IMG SRC="images/smoothed-27.png"> <IMG SRC="images/smoothed-28.png"> <IMG SRC="images/smoothed-29.png"></p>
 <p><IMG SRC="images/smoothed-30.png"> <IMG SRC="images/smoothed-31.png"> <IMG SRC="images/smoothed-32.png"> <IMG SRC="images/smoothed-33.png"></p>
 
-<h2><a NAME="References"></a>8. References</h2></p>
+<h3><a NAME="Parity"></a>Parity and smoothed states</h3>
 
-<P>Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
+<p>In some cases it is useful to identify which crossings have odd Gaussian parity, as described in [2]; that is, appear in a Gauss code with an odd
+number of terms between the two occurrences of the crossing, or equivalently, are represented on a Gauss diagram by a chord that is linked with an odd
+number of other chords.</p>
+
+<p>The draw programme provides a <kbd>parity</kbd> option that causes the programme to replace odd crossings with a graphical node.  The <kbd>parity</kbd> option
+may be used by itself or in conjunction with the <kbd>smoothed</kbd> option, in which programme draws all of the states corresponding to smoothing the even crossings.
+The option may also be used with the <kbd>state</kbd> option as described below.</p>  
+
+<h3><a NAME="Single-state"></a>Drawing individual smoothed states</h3>
+
+<p>You can draw an individual smoothed state using the <kbd>state=&ltstate-string&gt</kbd> option, where the <kbd>&ltstate-string&gt</kbd>
+is a sequence of A and B characters identifying whether a crossing should be A-smoothed or B-smoothed.</p>
+
+<p>Crossing designations as either A or B are required for each crossing in a diagram that is smoothed. Thus, for Gauss code input and planar diagram input a designation is required for
+each crossing and for peer code input a designation is required for each non-virtual and non-shortcut crossing.</p> 
+
+<p>The crossing designations are specified in ascending order corresponding to the crossing numbering used by the type of input provided.  Thus, when used with a Gauss code, the
+crossing numbering is that used by the Gauss code.  When used with a labelled peer code the crossing numbering is that determined by the naming edges of the peer code and when used
+with a planar diagram the crossing numbering is determined by the order in which the crossing data is provided.</p>
+
+<p>If the <kbd>parity</kbd> option is used at the same time as the <kbd>state</kbd> option, state designations are required only for the even crossings and are, again, specified
+in ascending order corresponding to the crossing numbering determined by the input format provided.  In the first of the following examples, without the <kbd>parity</kbd> option, a state
+designation is required for all six crossings, whereas in the second example only two designations are required since only the first and fourth crossings are even.
+</p>
+
+<P STYLE="margin-left: 1cm"><kbd> 
+X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1] {state=ABABAB}<br>
+X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1] {state=AB,parity}
+</kbd></P>
+
+<p>To identify the even crossings it can be helpful to draw the diagram using the <kbd>gauss-labels</kbd> option.  The left hand diagram below was generated using the input:</p>
+
+<P STYLE="margin-left: 1cm"><kbd> 
+X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1] {parity,gauss-labels}
+</kbd></P>
+
+<p>the right hand image was generated using the options <kbd>{state=AB,parity}</kbd>, as shown above.</p>
+
+<p><IMG SRC="images/parity.png" style="transform:rotate(90deg);"> <IMG SRC="images/parity-state.png" style="transform:rotate(90deg);"></p>
+
+<p>I am grateful to Maciej Borodzik for suggesting adding the capability to draw a single state.</p>
+
+<h2><a NAME="References"></a>10. References</h2></p>
+
+<P>[1] Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
+<p>[2] Parity in knot theory, (Russian), V. O. Manturov.  Mat. Sb., 201, (2010), no.5, 65-110; translation in Sb. Math., 201, (2010), no. 5, 693-733</p>
 
 <p><a href="../index.htm">back to maths homepage</a><p>
 
