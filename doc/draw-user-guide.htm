@@ -7,8 +7,8 @@
 
 <body>
 
-<h2 align="center"><a name="_top">Draw programme<a></h2>
-<p align="center">Last modified 14th March, 2022</p>
+<h2 align="center"><a name="_top">Draw programme version 17.1<a></h2>
+<p align="center">Last modified 25th March, 2022</p>
 
 <P align="center"><IMG SRC="images/bigelow.jpg" height="400"></P>
 
@@ -26,7 +26,7 @@ but none have been found to produce better results for the majority of diagrams.
 
 <p> This page contains the following sections:</p> 
 <ol START=2>
-<li><p><a href="#Overall-Description">Overall Description</a></p>
+<li><p><a href="#Overall-Description">Overall description</a></p>
     <p style="margin-left: 1cm"><a href="#Programme-control">Controlling programme behaviour</a></p>
 <li><p><a href="#Running-draw">Running the software</a></p>
     <p style="margin-left: 1cm"><a href="#Software">The draw programme software</a></p>
@@ -37,15 +37,16 @@ but none have been found to produce better results for the majority of diagrams.
 <li><p><a href="#usage">Draw programme command syntax</a></p>
     <p style="margin-left: 1cm"><a href="#Input-file">Input file format</a></p>
 <li><p><a href="#Example-diagrams">Example diagrams</a></p>
-<li><p><a href="#Adding-Colour">Adding Colour</a></p>
-<li><p><a href="#Moving-vertices">Manually Adjusting Diagrams</a></p>
+<li><p><a href="#Adding-Colour">Adding colour</a></p>
+<li><p><a href="#Moving-vertices">Manually adjusting diagrams</a></p>
 <li><p><a href="#Smoothed-states">Smoothed states</a></p>
-    <p style="margin-left: 1cm"><a href="#Single-state">Drawing individual smoothed states</a></p>
     <p style="margin-left: 1cm"><a href="#Parity">Parity and smoothed states</a></p>
+    <p style="margin-left: 1cm"><a href="#Single-state">Drawing individual smoothed states</a></p>
+<li><p><a href="#Version-history">Version history</a></p>
 <li><p><a href="#References">References</a></p>
 </ol>
 
-<h2><a NAME="Overall-Description"></a>2. Overall Description</h2>
+<h2><a NAME="Overall-Description"></a>2. Overall description</h2>
 
 <p>The default drawing algorithm is one based on circle packing taken from the drawing routine in Knotscape, by Jim Hoste and Morwen 
 Thistlethwaite, and in particular Ken Stephenson's implementation of Thurston's circle 
@@ -121,7 +122,9 @@ included in an input file, or added to individual input codes, as required.  The
 
 <h3><a NAME="Software"></a>The draw programme software</h3>
 
-<p>The file <a href="../download/draw-release-14-3-22.tar">draw-release-14-3-22.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+<p>The file <a href="../download/draw-17.1-src.tar">draw-17.1-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+
+<p>See the section <a href="#Version-history">Version history</a> for a summary of what's new in this version.</p>
 
 <h2><a NAME="Input-codes"></a>4. Supported input codes</h2>
 
@@ -236,12 +239,12 @@ component from an arbitrary staring point.  Since in these cases there are no ov
 <h3><a NAME="Planar-diagram-input"></a>Planar digram format for knots, links and knotoids</h3>
 
 <p>The draw programme supports planar diagram descriptions of knots, links, knotoids and multi-knotoids.  Currently planar diagrams are assumed to describe diagrams involving
-classical crossings only, there is no support for flat crossing and therefore no support for doodles.  Virtual knots and links are supported, as the programme treats planar 
+classical crossings only, there is no support for flat crossings and therefore no support for doodles.  Virtual knots and links are supported, as the programme treats planar 
 diagram descriptions as an alternative description of a Gauss code.  A planar diagram code is first converted to a Gauss code which is then converted to a labelled peer code.<p>
 
 <p>To produce a planar diagram description of a knot, link or knotoid, the arcs between classical crossings (or the leg and head of a knotoid) are labelled sequentially from 1 as we trace each unicursal component.  For virtual knots and links, the components may be considered in any order and with any chosen orientation and any arc may be chosen as the starting point for each component.  There are additional requirements for knotoids, described below. </p>
 
-<p> Having numbered a diagram, each crossing is described by the set of labels that appear at the crossing, using the standard convention of starting at the ingress under-arc and working anticlockwise around the crossing.  The programme uses standard syntax to deacribe these labels; an example of the planar diagram
+<p> Having numbered a diagram, each crossing is described by the set of labels that appear at the crossing, using the standard convention of starting at the ingress under-arc and working anticlockwise around the crossing.  The programme uses standard syntax to describe these labels; an example of the planar diagram
 description supported by the programme is: </p>
 
 <p style="margin-left: 1cm"><kbd>X[3,1,4,2] X[4,2,5,3] X[7,6,8,5] X[6,1,7,8]</kbd></p>
@@ -342,6 +345,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
 <pre>
   colour: draw different components with colours rather than just black lines
   colour-map=&lt;filename>: use the colours in &lt;filename> rather than the default colours
+  cusp_disc_size=<n>: set the cusp disc size multiplier to determine the size of the non-Seifert-smoothed cusp indicator discs, n/10*disc-size (default n=7)
   edge-factor=&lt;float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement
   first-gap: always use the first gap as the active gap in edge distribution placement
   frame-corners: show frame corners when tracking placement iteration
@@ -351,6 +355,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
   no-vertex-axes: do not show the axes when labelling the vertices of a diagram
   no-show-displacement: do not show the triangulation displacement when tracking placement iteration
   parity: show crossings with odd parity in smoothed states  
+  odd-parity-disc-size=<n>: set the odd parity disc size multiplier to determine the size of the odd parity crossing indicator, n/10*disc-size (default n=12)
   plot[=&lt;divisions>]: set the number of divisions for the histogram in edge distribution placement (default 20)
   script-labels: label vertices using TeX's script size font
   scriptscript-labels: label vertices using TeX's scriptscript size font
@@ -362,11 +367,14 @@ input files as global options or as qualifiers (see the section <a href="#Input-
                                                regions have an area within this factor of their average area
   smoothed-disc-size: set the smoothed state disc size multiplier to determine the size of smoothed 
                       crossings n*disc-size (default n=6)  
+  smoothed-disc-threshold=<n>: set the diameter in units u of the smoothed crossing disc below which the label of the crossings should be moved (default n=30)
+  smoothed-label-shift=<n>: set the number of units u by which the labels of small smoothed crossings should be moved (default n=50)  
   state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram
   tranlsate=&lttranslation-list>: specify a list of vertices together with a translation in the form UxPyR:VxQyS... where U and V 
                                are vertex numbers and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates 
                                shifting vertex 10 +8% to the right -3% up
   tension: set the metapost path tension, default value 1.0, i.e. the metapost ".." default
+  uniform-smoothed-discs: always draw state smoothed discs of the size specified by smoothed-disc-size
 </pre>
 
 <p>additional short options:</p>
@@ -586,7 +594,7 @@ subsequent components are drawn black.</p>
 
 <p>Any valid mpcolornames colour may be specified in a colour-map file.</p>
 
-<h2><a NAME="Moving-vertices"></a>8. Manually Adjusting Diagrams</h2>
+<h2><a NAME="Moving-vertices"></a>8. Manually adjusting diagrams</h2>
 
 <p>In some cases, despite the range of options provided by the programme, the circle packing, or alternative, drawing algorithm may cannot arrange the vertices 
 used to draw a diagram in an aesthetic manner and it is necessary to adjust their position manually.  To support this, the programme provides a <kbd>translate</kbd> 
@@ -622,18 +630,30 @@ smoothed crossing is one for which the smoothed state corresponds to tracing the
 crossing.</p>
 
 <p>The <kbd>smoothed</kbd> option produces a diagram of the original knot or knotoid, with semi-arcs labelled from zero as
-determined by the labelled peer code.  Then produces state diagrams, identifying each non-Seifert-smoothed crossing by 
-marking the crossing with a small black dot on each smoothed strand.  Furthermore it labels each crossing with a state 
-label as follows:</p>
+determined by the labelled peer code.  Then it produces state diagrams, identifying each non-Seifert-smoothed crossing by 
+marking the crossing cusp with a small black dot on each smoothed strand.  The size of this dot may be controlled by the option
+<kbd>cusp-disc-size</kbd>, see the section <a href="#usage">draw programme command syntax</a> for details.
+</p>  
 
-<p>For some diagrams, the default size of the smoothed crossing is too large and causes metapost to complain about paths not 
-intersecting.  In this case, reducing the size of the smoothed crossing using the <kbd>smoothed-disc-size</kbd> or <kbd>D</kbd>
-option, or if necessary additionally adjusting the crossing disc size with the <kbd>disc-size</kbd> or <kbd>d</kbd> should resolve the situation.</p>
+<p>Each smoothed crossing is labelled with its state as follows:</p>
 
 <ul>
 <li>Positive crossings: Seifert-smoothed are labelled A, non-Seifert-smoothed are labelled B</li>
 <li>Negative crossings: Seifert-smoothed are labelled B, non-Seifert-smoothed are labelled A</li>
 </ul> 
+
+<p>The size of a smoothed crossing is governed by the long option <kbd>smoothed-disc-size</kbd> or corresponding short option <kbd>D</kbd>, which defaults to six times
+the size of a un-smoothed crossing disc. If the arcs involved in a smoothed crossings are positioned in such a way that the current value of this option is too large 
+for the smoothed crossing to be drawn correctly, the programme will automatically reduce the size of the smoothed crossing disc to an appropriate size, unless the
+option <kbd>uniform-smoothed-discs</kbd> has also been used.  This is because, in some cases, reducing the size of the smoothed crossing using the
+<kbd>smoothed-disc-size</kbd> option, or additionally adjusting the crossing disc size with the <kbd>disc-size</kbd> or <kbd>d</kbd> may be preferable.</p>
+
+<p>If a smoothed crossing is small it may be the case that the default approach of labelling smoothed crossings at the centre (the location of the intersection in the
+underlying immersion) makes the labels difficult to read, even if they are adjusted using the <kbd>script-labels</kbd> or <kbd>scriptscript-labels</kbd> option.  In this case
+the labels are moved to one side of the crossing by an amount controlled by the <kbd>smoothed_label_shift</kbd> option, which defaults to 50 units.  The option 
+<kbd>smoothed_disc_threshold</kbd>, which defaults to 30 units, determines the threshold for the diameter of a smoothed crossing disc below whihc the label is moved to the side. 
+</p>
+
 
 <p>The following is an example of a smoothed state for a knotoid that closes to the Slavik knot:</p>
 
@@ -659,6 +679,9 @@ number of other chords.</p>
 <p>The draw programme provides a <kbd>parity</kbd> option that causes the programme to replace odd crossings with a graphical node.  The <kbd>parity</kbd> option
 may be used by itself or in conjunction with the <kbd>smoothed</kbd> option, in which programme draws all of the states corresponding to smoothing the even crossings.
 The option may also be used with the <kbd>state</kbd> option as described below.</p>  
+
+<p>The option <kbd>odd-parity-disc-size</kbd> may be used to control the diameter of the graphical node used to represent odd parity crossings.  See the section
+<a href="#usage">draw programme command syntax</a>.</p>
 
 <h3><a NAME="Single-state"></a>Drawing individual smoothed states</h3>
 
@@ -694,7 +717,47 @@ X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1] {parity,
 
 <p>I am grateful to Maciej Borodzik for suggesting adding the capability to draw a single state.</p>
 
-<h2><a NAME="References"></a>10. References</h2></p>
+<h2><a NAME="Version-history"></a>10. Version history</h2>
+
+<p>Version 1: support for Knotoids; identified by extending peer codes and immersion codes to allow a '^'
+              character following a crossing number to indicate the first shortcut crossing.</p>
+
+<p>Version 2: added immersions and rotation.</p>
+
+<p>Version 3: added labelled peer codes and Metapost control qualifiers.</p>
+
+<p>Version 4: added drawing of the triangulation underlying the circle packing.</p>
+
+<p>Version 5: added Fruchterman and Reingold force directed placement added edge magnification.</p>
+
+<p>Version 6: added inner hull and centre of gravity.</p>
+
+<p>Version 7: ported Ken Stephenson's circle packing algorithm to C++ and added check for connected code data.</p>
+
+<p>Version 8: replaced Fruchterman and Reingold force directed placement with the Plestenjak modifications updated the triangulation for diagrams 
+having two edges in the infinite turning cycle. </p>
+
+<p>Version 9 (December 2017) Added capability to draw straight-edge disc triangulations from either peer-code triangulations or dedicated input files.</p>
+
+<p>Version 10: reinstated a form of  Fruchterman and Reingold force directed placement where adjacent type 1 and type 2 vertices that are too close to each other repel. </p>
+
+<p>Version 11 (October 2018)) added region shrinking placement, rearranged and improved the use of long and short programme options.</p>
+
+<p>Version 12: added the ability to the draw smoothed states for a given knot, link knotoid or multi-knotoid diagram.</p>
+
+<p>Version 13: added lace drawing capability and the ability to draw diagrams with colour.</p>
+
+<p>Version 14 (December 2021) added the ability to draw knots from Gauss codes and added the smallarrowheads option.</p>
+
+<p>Version 15 (January 2022) added the ability to label Gauss-arcs rather than immersion edges.</p>
+
+<p>Version 16 (February 2022) added the ability to draw a single smoothed state rather than all of them.</p>
+
+<p>Version 17 (March 2022) added planar diagram support and optimized the Gauss to peer code conversion.</p>
+
+<p>Version 17.1 (March 2022) added automatic sizing of smoothed crossings and the ability to shift smoothed crossings labels to one side.</p>
+
+<h2><a NAME="References"></a>11. References</h2></p>
 
 <P>[1] Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
 <p>[2] Parity in knot theory, (Russian), V. O. Manturov.  Mat. Sb., 201, (2010), no.5, 65-110; translation in Sb. Math., 201, (2010), no. 5, 693-733</p>
