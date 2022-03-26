@@ -64,32 +64,33 @@ to vertices joined by an edge of the triangulation.
 
                   Coding started 21st April 2010
  
-   Version 1: support for Knotoids; identified by extending peer codes and immersion codes to allow a '^'
-              character following a crossing number to indicate the first shortcut crossing.
-   Version 2: added immersions and rotation
-   Version 3: added labelled peer codes and Metapost control qualifiers
-   Version 4: added drawing of the triangulation underlying the circle packing.
-   Version 5: added Fruchterman and Reingold force directed placement 
-              added edge magnification
-   Version 6: added inner hull and centre of gravity
-   Version 7: ported Ken Stephenson's circle packing algorithm to C++ and
-              added check for connected code data.
-   Version 8: replaced Fruchterman and Reingold force directed placement 
-              with the Plestenjak modifications
-              updated the triangulation for diagrams having two edges in the infinite turning cycle
-   Version 9: added capability to draw straight-edge disc triangulations
-              from either peer-code triangulations or dedicated input files.
-              coding started 7-12-17
-   Version 10: reinstated a form of  Fruchterman and Reingold force directed placement where adjacent 
-               type 1 and trype 2 vertices that are too close to each other repel
-   Version 11: added region shrinking placement, rearranged and improved the use of long and short
-               programme options, coding started 25-10-18
-   Version 12: added the ability to the draw smoothed states for a given knot, link knotoid or multi-knotoid diagram
-   Version 13: added lace drawing capability and the ability to draw diagrams with colour
-   Version 14: added the ability to draw knots from Gauss codes and added the smallarrowheads option.  December 2021.
-   Version 15: added ability to label Gauss-arcs rather than immersion edges
-   Version 16: added the ability to draw a single smoothed state rather than all of them
-   Version 17: added planar diagram support and optimized the Gauss to peer code conversion.
+   Version 1:    support for Knotoids; identified by extending peer codes and immersion codes to allow a '^'
+                 character following a crossing number to indicate the first shortcut crossing.
+   Version 2:    added immersions and rotation
+   Version 3:    added labelled peer codes and Metapost control qualifiers
+   Version 4:    added drawing of the triangulation underlying the circle packing.
+   Version 5:    added Fruchterman and Reingold force directed placement 
+                 added edge magnification
+   Version 6:    added inner hull and centre of gravity
+   Version 7:    ported Ken Stephenson's circle packing algorithm to C++ and
+                 added check for connected code data.
+   Version 8:    replaced Fruchterman and Reingold force directed placement 
+                 with the Plestenjak modifications
+                 updated the triangulation for diagrams having two edges in the infinite turning cycle
+   Version 9:    added capability to draw straight-edge disc triangulations
+                 from either peer-code triangulations or dedicated input files.
+                 coding started 7-12-17
+   Version 10:   reinstated a form of  Fruchterman and Reingold force directed placement where adjacent 
+                 type 1 and trype 2 vertices that are too close to each other repel
+   Version 11:   added region shrinking placement, rearranged and improved the use of long and short
+                 programme options, coding started 25-10-18
+   Version 12:   added the ability to the draw smoothed states for a given knot, link knotoid or multi-knotoid diagram
+   Version 13:   added lace drawing capability and the ability to draw diagrams with colour
+   Version 14:   added the ability to draw knots from Gauss codes and added the smallarrowheads option  (December 2021)
+   Version 15:   added ability to label Gauss-arcs rather than immersion edges (January 2022)
+   Version 16:   added the ability to draw a single smoothed state rather than all of them (February 2022)
+   Version 17:   added planar diagram support and optimized the Gauss to peer code conversion (March 2022)
+   Version 17.1: added automatic sizing of smoothed crossings and the ability to shift smoothed crossings labels to one side (March 2022)
 **************************************************************************/
 using namespace std;
 
@@ -108,7 +109,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "17.0";
+string 		version  = "17.1";
    
 
 extern ofstream    debug;
@@ -141,7 +142,7 @@ bool USE_SMALL_REGION_SHRINKING_PLACEMENT = false;
 bool USE_EDGE_DISTRIBUTION_PLACEMENT = false;
 bool PLOT_TRIANGULATION_EDGES = false;
 bool USE_FIRST_GAP_AS_ACTIVE = false;
-bool STATE_SMOOTHED = false;
+//bool mp_control.state_smoothed = false;
 
 bool USE_ALL_LONG_GAPS = false;  // temporary - remove after testing
 
@@ -458,11 +459,11 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		else
 		{
 			cout << "\nThe programme will produce a metapost file for drawing the knot or knotoid";
-			cout << "specified by a labelled peer code or a labelled immersion code.\n";
+			cout << " specified by a labelled peer code, Gauss code or planar diagram.\n";
 			
 			cout <<"\nType help at the input prompt to view the help screens, type q to exit.\n";
 	
-			cout << "\nEnter a labelled peer code.";		
+			cout << "\nEnter diagram code.";		
 		}
     }
 	
@@ -941,7 +942,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 
 			}
 
-			if (STATE_SMOOTHED)
+			if (mp_control.state_smoothed)
 			{
 //				bool draw_labels = mp_control.draw_labels;
 //				bool draw_shortcut = mp_control.draw_shortcut;
@@ -1351,6 +1352,28 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.cudgel_space << endl;
 }	
 	}
+	else if (!strcmp(loc_buf,"cusp-disc-size"))
+	{
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: setting cusp_disc_size as a result of " << source << " option" << endl;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.cusp_disc_size,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify a disc size multiplier if you use the cusp-disc-size option, e.g. 'cusp-disc-size=4'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: cusp_disc_size read from " << source << ", cusp_disc_size = " 
+	      << mp_control.cusp_disc_size << endl;
+}	
+	}
 	else if (!strcmp(loc_buf,"cycle"))
 	{
 
@@ -1688,6 +1711,28 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: no-show-displacement read from " << source << endl;
 	}
+	else if (!strcmp(loc_buf,"odd-parity-disc-size"))
+	{
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: setting odd_parity_disc_size as a result of " << source << " option" << endl;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.odd_parity_disc_size,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify a disc size multiplier if you use the odd_parity-disc-size option, e.g. 'odd-parity-disc-size=4'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: odd_parity_disc_size read from " << source << ", odd_parity_disc_size = " 
+	      << mp_control.odd_parity_disc_size << endl;
+}	
+	}
 	else if (!strcmp(loc_buf,"oriented"))
 	{
     	mp_control.draw_oriented = true;
@@ -1869,15 +1914,37 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	}	
 	else if (!strcmp(loc_buf,"smoothed"))
 	{
-		STATE_SMOOTHED = true;
+		mp_control.state_smoothed = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set programme long_option: option STATE_SMOOTHED read from " << source << endl;
+	debug << "set programme long_option: option mp_control.state_smoothed read from " << source << endl;
+	}
+	else if (!strcmp(loc_buf,"smoothed-disc-threshold"))
+	{
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: setting smoothed_state_disc_threshold as a result of " << source << " option" << endl;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.smoothed_disc_threshold,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify the threshold in units u for the smoothed disc for moving labels if you use the smoothed-disc-threshold option, e.g. 'smoothed-disc-threshold=70'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: smoothed_state_disc_threshold read from " << source << ", smoothed_state_disc_threshold = " 
+	      << mp_control.smoothed_disc_threshold << endl;
+}	
 	}
 	else if (!strcmp(loc_buf,"smoothed-disc-size"))
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_long_option: setting smoothed-state-disc_size as a result of " << source << " option" << endl;
+	debug << "set_programme_long_option: setting smoothed_state_disc_size as a result of " << source << " option" << endl;
 
 		if (*c1 == '=')
 		{
@@ -1895,11 +1962,33 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.smoothed_state_disc_size << endl;
 }	
 	}
+	else if (!strcmp(loc_buf,"smoothed-label-shift"))
+	{
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: setting smoothed_label_shift as a result of " << source << " option" << endl;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.smoothed_label_shift,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify the number of units u to shift labels if you use the smoothed-label-shift option, e.g. 'smoothed-label-shift=60'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: smoothed_label_shift read from " << source << ", smoothed_label_shift = " 
+	      << mp_control.smoothed_label_shift << endl;
+}	
+	}
 	else if (!strcmp(loc_buf,"state"))
 	{
 		if (*c1 == '=')
 		{
-			STATE_SMOOTHED = true;
+			mp_control.state_smoothed = true;
 			mp_control.state = ++c1;
 		}
 		else
@@ -1911,7 +2000,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "set_programme_long_option: state read from " << source << ", state = " << mp_control.state << endl;
-	debug << "set programme long_option: STATE_SMOOTHED set as a result of receiving state option " << source << endl;
+	debug << "set programme long_option: mp_control.state_smoothed set as a result of receiving state option " << source << endl;
 }
 	}
 	else if (!strcmp(loc_buf,"tension"))
@@ -1987,6 +2076,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			exit(0);
 		}
 	}
+	else if (!strcmp(loc_buf,"uniform-smoothed-discs"))
+	{
+    	mp_control.uniform_smoothed_discs = true;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: uniform_smoothed_discs read from " << source << endl;
+	}
 	else if (!strcmp(loc_buf,"unit"))
 	{
 
@@ -2060,89 +2155,9 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		else
 		{
 
-			help_info(false);
+			help_info(true);
 
-			cout << "The short <metapost-control> options have corresponding long options, useful for including in\n";
-			cout << "input files as global options or as qualifiers:\n";		
-			cout << "  centre=<centre>: specify the centre of rotation <centre> = (<x>,<y>)|z<n>\n";
-			cout << "  cycle=<cycle>: specify the turning cycle to bound the infinite region\n";
-			cout << "  dots: draw knotoid shortcuts dashed with dots rather than dashed evenly\n";
-			cout << "  disc-size: set the unit multiplier to determine the crossing disc diameter (default 30)\n";
-			cout << "  draw-lace-frame: draw the entire frame when drawing laces\n";
-			cout << "  knotoid-leg-unbounded: draw knotoids with the leg in the unbounded component of the immersion's complement\n";
-			cout << "  labels: add immersion edge labels to the diagram: by default immersion edge labels are numbered from 0 (see the L option)\n";
-			cout << "  no-crossings: do not draw the crossing features\n";
-			cout << "  no-immersion: do not draw the immersion\n";
-			cout << "  oriented: draw orientation for knots (orientation always shown for knotoids)\n";
-			cout << "  packing: draw the underlying circle packing that determines the diagram\n";
-			cout << "  pen-size: set the pen multiplier n to determine the pencircle scale n*0.5pt (default n=1)\n";
-			cout << "  rotate=<degrees>: rotate the diagram anti-clockwise by the specified number of degrees\n";
-			cout << "  shortcut: draw the shortcut if the code describes a knotoid\n";
-			cout << "  triangulation: draw the triangulation of the unit disc\n";
-			cout << "  unit: set the unit dimension nn to determine u=0.nn points (default 20)\n";
-			cout << "  vertices: label the vertices and draw coordinate axes\n";
-				
-			cout << "\nadditional long options\n";
-			cout << "  colour: draw different components with colours rather than just black lines\n";
-			cout << "  colour-map=<filename>: use the colours in <filename> rather than the default colours\n";
-			cout << "  cudgel-space=<float> default 1.0: amount by which the calculated inter-cudgels gap for laces is expanded\n";
-			cout << "  edge-factor=<float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement\n";
-			cout << "  first-gap: always use the first gap as the active gap in edge distribution placement\n";
-			cout << "  frame-corners: show frame corners when tracking placement iteration\n";
-			cout << "  gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1\n";
-			cout << "  grid=<grid-size>: draw a grid to assist with using the translate option, default 10 (percent of diagram width or height)\n";
-			cout << "  h-units: size of horizontal spacing for laces, in multiples of unit\n";
-			cout << "  hyperbolic: drawing diagram in the hyperbolic plane\n";
-			cout << "  left-term-tail-points: when drawing laces include tail points for body disc arcs terminating on the left side of a cudgel\n";
-			cout << "  midpoints=<arc-list>: specify those adjacent coordinates in a lace diagram between which a mipoint should be added\n";
-			cout << "                        <arc-list> =  p-q:r-s:t-u..., where midpoints are required between zp and zq, zr and zs, zt and zu etc.\n";
-			cout << "  midpoints-not-tail-points: add midpoints rather than tail points when drawing laces\n";
-			cout << "  midpoint-tension: metapost path tension for lace midpoints, default value 1.0, i.e. the metapost \"..\" default\n";
-			cout << "  no-adjacent-cudgel-midpoints: when drawing laces do not include midpoints in body disc arcs joining adjacent cudgels\n";			
-			cout << "  no-vertex-axes: do not show the axes when labelling the vertices of a diagram\n";			
-			cout << "  no-right-orig-tail-points: when drawing laces do not include tail points for body disc originating on the right side of a cudgel\n";
-			cout << "  no-show-displacement: do not show the triangulation displacement when tracking placement iteration\n";
-			cout << "  plot=<divisions>: set the number of divisions for the histogram in edge distribution placement (default 20)\n";
-			cout << "  parity: show crossings with odd parity in smoothed states\n";
-			cout << "  script-labels: label vertices using TeX's script size font\n";
-			cout << "  scriptscript-labels: label vertices using TeX's scriptscript size font\n";
-			cout << "  show-shrink: draw the effect of shrinking the triangulation when using region shrinking placement\n";
-			cout << "  show-small: highlight the small edges of the triangulation when using edge_distribution placement\n";
-			cout << "  shrink-factor=<float> default 0.75: amount by which region shrinking placement retracts trianglulation vertices towards the barycentre\n";
-			cout << "  shrink-area-factor=<float> default 1.618034: region shrinking placement converges if all compact regions that have an area within this\n"; cout << "                                               factor of the average area\n";
-			cout << "  smoothed-disc-size: set the smoothed state disc size multiplier to determine the size of smoothed crossings n*disc-size (default n=6)\n";
-			cout << "  state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram\n";
-			cout << "  transate=<translation-list>: specify a list of vertices together with a translation in the form UxPyQ:VxRyS... where U and V are vertex numbers\n";
-			cout << "                               and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates shifting vertex 10 +8% to the right -3% up\n";
-			cout << "  tension: set the metapost path tension, default value 1.0, i.e. the metapost \"..\" default\n";
-			cout << "  v-units: size of vertical spacing for laces, in multiples of unit\n";
-			
-			cout << "\nadditional short options\n";
-			cout << "  #: debug\n";
-			cout << "  a=<float> default 1.0: average triangulation edge length factor\n";
-			cout << "     used to magnify edge vertices closer than a*average_triangulation_edge_length\n";
-			cout << "  A: adjust the angle of diagram arcs at crossings to be right angles\n";
-			cout << "  b: do not use badness optimization\n";
-			cout << "  B: include boundary vertices; may be used with f, g, P, or t.\n";
-			cout << "     Boundary vertices are alway included in force directed placement,\n";
-			cout << "     in which case this option only has an effect if the t option is also used.\n";
-			cout << "  E: use edge repulsion rather than Plestenjak force directed placement\n";
-			cout << "  i[=<max-iterations>] default 1000: set maximum circle packing iterations\n";
-			cout << "  H!: additional help screen\n";
-			cout << "  #H!: display debug help screen\n";
-			cout << "  K: use Fenn's circle packing algorithm rather than Ken Stephenson's\n";
-			cout << "  L: start from one when labelling edges\n";
-			cout << "  M=<scale_factor> : set metapost_coordinate_scale_factor: default 2500 with the circle packing\n";
-			cout << "     option, 1000 with force or gravity placement, 600 with the convex-disc option, 25 otherwise\n";			
-			cout << "  O: create metapost with one cycled path for each component\n";
-			cout << "  P: draw circle packing\n";
-			cout << "  R=<float>: retract boundary vertices radially towards their centroid by a factor <float> < 1\n";
-			cout << "  T[=<track-step>] default 1: track placement iteration (force, gravity, shrink)\n";
-			cout << "  V[=<vertex>] default 0: check inner hull calculation of <vertex>\n";
-			cout << "  x=[0|1|2|3] default 0: set debug level for Stephenson circle packing\n";			
-
-			cout << endl;
-	    	exit(0);
+//	    	exit(0);
 		}
 	}
 
@@ -2590,18 +2605,18 @@ void help_info(bool exit_after_help)
 {
 	cout << "\n\nThis is A. Bartholomew's programme for drawing knot diagrams, version " << version << "\n";
 	
-	cout << "\nUsage draw [--<programme-option>][-<metapost-control>][<infile>[<outfile>]]\n";
+	cout << "\nUsage draw [--<long-option>][-<short-options>][<infile>[<outfile>]]\n";
 
-	cout << "\nThe programme reads labelled peer codes from the <infile>, or from a command prompt if no <infile>\n";
-	cout << "is provided, and then evaluates a triangulation of the disc determined by the immersion underlying\n";
-	cout << "the peer code.\n";
+	cout << "\nThe programme reads labelled peer codes, Gauss codes or planar diagram data from the <infile>, or from\n";
+	cout << "a command prompt if no <infile> is provided, and then evaluates a triangulation of the disc determined\n";
+	cout << "by the immersion underlying the input code.\n";
 	cout << "\nBy default, the programme uses Ken Stephenson's circle packing algorithm to place the vertices of\n";
 	cout << "the triangulation.  Alternatively one of the following long programme options may be used to select\n";
 	cout << "a different vertex placement technique.\n";
 	cout << "\nOnce the vertices have been positioned, the programme creates a metapost script describing the\n";
 	cout << "diagram in <outfile>, or in the file draw.out if no <outfile> is provided.\n";
 
-	cout << "\n<programme-option>\n";
+	cout << "\nProgramme control <long-option>\n";
 	cout << "  convex-disc: draw the convex, straight line triangulation of a disc\n";
 	cout << "  edge[=<max-iterations>] default 200: use edge distribution placement\n";
 	cout << "  force[=<max-iterations>] default 200: use Plestenjak force directed placement\n";
@@ -2612,7 +2627,7 @@ void help_info(bool exit_after_help)
 	cout << "  small-shrink[=<max-iterations>]: use small region shrinking placement after circle packing\n";
 	cout << "  smoothed: draw all of the smoothed states for the given diagram\n";
 
-	cout << "\n<metapost-control>\n";
+	cout << "\nMetapost control <short-option>\n";
 	cout << "  c=<centre>: specify the centre of rotation <centre> = (<x>,<y>)|z<n>\n";
 	cout << "  C=<cycle>: specify the turning cycle to bound the infinite region\n";
 	cout << "  D: set the smoothed state disc size multiplier to determine the size of smoothed crossings n*d (default n=6) \n";
@@ -2631,6 +2646,93 @@ void help_info(bool exit_after_help)
 	cout << "  t: draw the triangulation of the unit disc\n";
 	cout << "  u: set the unit dimension nn to determine u=0.nn points (default 20)\n";
 	cout << "  v: label the vertices and draw coordinate axes\n";
+	cout << endl;
+
+	cout << "The Metapost control short options have corresponding long options, useful for including in\n";
+	cout << "input files as global options or as qualifiers:\n";		
+	cout << "  centre=<centre>: specify the centre of rotation <centre> = (<x>,<y>)|z<n>\n";
+	cout << "  cycle=<cycle>: specify the turning cycle to bound the infinite region\n";
+	cout << "  dots: draw knotoid shortcuts dashed with dots rather than dashed evenly\n";
+	cout << "  disc-size: set the unit multiplier to determine the crossing disc diameter (default 30)\n";
+	cout << "  draw-lace-frame: draw the entire frame when drawing laces\n";
+	cout << "  knotoid-leg-unbounded: draw knotoids with the leg in the unbounded component of the immersion's complement\n";
+	cout << "  labels: add immersion edge labels to the diagram: by default immersion edge labels are numbered from 0 (see the L option)\n";
+	cout << "  no-crossings: do not draw the crossing features\n";
+	cout << "  no-immersion: do not draw the immersion\n";
+	cout << "  oriented: draw orientation for knots (orientation always shown for knotoids)\n";
+	cout << "  packing: draw the underlying circle packing that determines the diagram\n";
+	cout << "  pen-size: set the pen multiplier n to determine the pencircle scale n*0.5pt (default n=1)\n";
+	cout << "  rotate=<degrees>: rotate the diagram anti-clockwise by the specified number of degrees\n";
+	cout << "  shortcut: draw the shortcut if the code describes a knotoid\n";
+	cout << "  triangulation: draw the triangulation of the unit disc\n";
+	cout << "  unit: set the unit dimension nn to determine u=0.nn points (default 20)\n";
+	cout << "  vertices: label the vertices and draw coordinate axes\n";
+		
+	cout << "\nadditional long options\n";
+	cout << "  colour: draw different components with colours rather than just black lines\n";
+	cout << "  colour-map=<filename>: use the colours in <filename> rather than the default colours\n";
+	cout << "  cudgel-space=<float> default 1.0: amount by which the calculated inter-cudgels gap for laces is expanded\n";
+	cout << "  cusp_disc_size=<n>: set the cusp disc size multiplier to determine the size of the non-Seifert-smoothed cusp indicator discs, 0.n*disc-size (default n=7)\n";
+	cout << "  edge-factor=<float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement\n";
+	cout << "  first-gap: always use the first gap as the active gap in edge distribution placement\n";
+	cout << "  frame-corners: show frame corners when tracking placement iteration\n";
+	cout << "  gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1\n";
+	cout << "  grid=<grid-size>: draw a grid to assist with using the translate option, default 10 (percent of diagram width or height)\n";
+	cout << "  h-units: size of horizontal spacing for laces, in multiples of unit\n";
+	cout << "  hyperbolic: drawing diagram in the hyperbolic plane\n";
+	cout << "  left-term-tail-points: when drawing laces include tail points for body disc arcs terminating on the left side of a cudgel\n";
+	cout << "  midpoints=<arc-list>: specify those adjacent coordinates in a lace diagram between which a mipoint should be added\n";
+	cout << "                        <arc-list> =  p-q:r-s:t-u..., where midpoints are required between zp and zq, zr and zs, zt and zu etc.\n";
+	cout << "  midpoints-not-tail-points: add midpoints rather than tail points when drawing laces\n";
+	cout << "  midpoint-tension: metapost path tension for lace midpoints, default value 1.0, i.e. the metapost \"..\" default\n";
+	cout << "  no-adjacent-cudgel-midpoints: when drawing laces do not include midpoints in body disc arcs joining adjacent cudgels\n";			
+	cout << "  no-vertex-axes: do not show the axes when labelling the vertices of a diagram\n";			
+	cout << "  no-right-orig-tail-points: when drawing laces do not include tail points for body disc originating on the right side of a cudgel\n";
+	cout << "  no-show-displacement: do not show the triangulation displacement when tracking placement iteration\n";
+	cout << "  odd-parity-disc-size=<n>: set the odd parity disc size multiplier to determine the size of the odd parity crossing indicator, n*0.2*disc-size (default n=6)\n";
+	cout << "  plot=<divisions>: set the number of divisions for the histogram in edge distribution placement (default 20)\n";
+	cout << "  parity: show crossings with odd parity in smoothed states\n";
+	cout << "  script-labels: label vertices using TeX's script size font\n";
+	cout << "  scriptscript-labels: label vertices using TeX's scriptscript size font\n";
+	cout << "  show-shrink: draw the effect of shrinking the triangulation when using region shrinking placement\n";
+	cout << "  show-small: highlight the small edges of the triangulation when using edge_distribution placement\n";
+	cout << "  shrink-factor=<float> default 0.75: amount by which region shrinking placement retracts trianglulation vertices towards the barycentre\n";
+	cout << "  shrink-area-factor=<float> default 1.618034: region shrinking placement converges if all compact regions that have an area within this\n"; 
+	cout << "                                               factor of the average area\n";
+	cout << "  smoothed-disc-size=<n>: set the smoothed state disc size multiplier to determine the size of smoothed crossings n*disc-size (default n=6)\n";	
+	cout << "  smoothed-disc-threshold=<n>: set the diameter in units u of the smoothed crossing disc below which the label of the crossings should be moved (default n=30)\n";
+	cout << "  smoothed-label-shift=<n>: set the number of units u by which the labels of small smoothed crossings should be moved (default n=50)\n";
+	cout << "  state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram\n";
+	cout << "  transate=<translation-list>: specify a list of vertices together with a translation in the form UxPyQ:VxRyS... where U and V are vertex numbers\n";
+	cout << "                               and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates shifting vertex 10 +8% to the right -3% up\n";
+	cout << "  tension: set the metapost path tension, default value 1.0, i.e. the metapost \"..\" default\n";
+	cout << "  uniform-smoothed-discs: always draw state smoothed discs of the size specified by smoothed-disc-size\n";
+	cout << "  v-units: size of vertical spacing for laces, in multiples of unit\n";
+	
+	cout << "\nadditional short options\n";
+	cout << "  #: debug\n";
+	cout << "  a=<float> default 1.0: average triangulation edge length factor\n";
+	cout << "     used to magnify edge vertices closer than a*average_triangulation_edge_length\n";
+	cout << "  A: adjust the angle of diagram arcs at crossings to be right angles\n";
+	cout << "  b: do not use badness optimization\n";
+	cout << "  B: include boundary vertices; may be used with f, g, P, or t.\n";
+	cout << "     Boundary vertices are alway included in force directed placement,\n";
+	cout << "     in which case this option only has an effect if the t option is also used.\n";
+	cout << "  E: use edge repulsion rather than Plestenjak force directed placement\n";
+	cout << "  i[=<max-iterations>] default 1000: set maximum circle packing iterations\n";
+//	cout << "  H!: additional help screen\n";
+	cout << "  #H!: display debug help screen\n";
+	cout << "  K: use Fenn's circle packing algorithm rather than Ken Stephenson's\n";
+	cout << "  L: start from one when labelling edges\n";
+	cout << "  M=<scale_factor> : set metapost_coordinate_scale_factor: default 2500 with the circle packing\n";
+	cout << "     option, 1000 with force or gravity placement, 600 with the convex-disc option, 25 otherwise\n";			
+	cout << "  O: create metapost with one cycled path for each component\n";
+	cout << "  P: draw circle packing\n";
+	cout << "  R=<float>: retract boundary vertices radially towards their centroid by a factor <float> < 1\n";
+	cout << "  T[=<track-step>] default 1: track placement iteration (force, gravity, shrink)\n";
+	cout << "  V[=<vertex>] default 0: check inner hull calculation of <vertex>\n";
+	cout << "  x=[0|1|2|3] default 0: set debug level for Stephenson circle packing\n";			
+
 	cout << endl;
 	
 	if (exit_after_help)

@@ -50,7 +50,7 @@ extern bool IMMERSION_CROSSINGS_AT_RIGHT_ANGLES;
 extern bool USE_FORCE_DIRECTED_PLACEMENT;
 extern bool USE_CENTRE_OF_GRAVITY_PLACEMENT;
 extern bool USE_REGION_SHRINKING_PLACEMENT;
-extern bool STATE_SMOOTHED;
+//extern bool mp_control.state_smoothed;
 extern int check_inner_hull_vertex;
 extern double average_triangulation_edge_length;
 extern float average_triangulation_length_factor;
@@ -294,7 +294,7 @@ void write_metapost(ofstream& os, generic_code_data& code_data, string title, me
 	
 	vector<int> state;
        
-	if (STATE_SMOOTHED && _state !=0)
+	if (mp_control.state_smoothed && _state !=0)
 	{
 		state = *_state;
 
@@ -746,7 +746,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		
 	delete Cycle;
 	
-	if (STATE_SMOOTHED && _state !=0)
+	if (mp_control.state_smoothed && _state !=0)
 	{
 		os << "% state:  ";
 		for (unsigned int i=0; i< state.size(); i++)
@@ -762,7 +762,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 	os << "\nbeginfig(fignum);" << endl;
 	os << "fignum:=fignum+1;" << endl;
-	os << "numeric u,d;" << endl;
+	os << "numeric u,d,theta;" << endl;
 	float unit_points = mp_control.unit_size;
 	os << "u=" << unit_points/100 << "pt;" << endl;
 	os << "d=" << mp_control.disc_size << "u;" << endl;
@@ -1587,25 +1587,60 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		
 				os << "draw fullcircle scaled d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
 			}
-//			else if (STATE_SMOOTHED && mp_control.show_odd_parity_crossings && code_table[LABEL][i] == generic_code_data::ODD)
 			else if (mp_control.show_odd_parity_crossings && code_table[LABEL][i] == generic_code_data::ODD)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is odd" << endl;
 		
-				os << "fill fullcircle scaled 1.2d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
+//				os << "fill fullcircle scaled 1.2d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
+				os << "fill fullcircle scaled " << mp_control.odd_parity_disc_size << "*0.1d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
 			}
 			else if (code_table[LABEL][i] != generic_code_data::FLAT)
 			{
 				bool A_crossing;
 				bool seifert_smoothed;
 				
-				if (STATE_SMOOTHED && _state != 0 && !(ignore_shortcut && shortcut_crossing[i]))
+				if (mp_control.state_smoothed && _state != 0 && !(ignore_shortcut && shortcut_crossing[i]))
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is smoothed" << endl;
 
-					os << "p" << 2*num_components+i+1 << " = fullcircle scaled " << mp_control.smoothed_state_disc_size << "d shifted z" << i << ";" << endl;
+					/* identify the components and corresponding paths of the even terminating and odd terminating edges */
+					int et_edge = code_table[EVEN_TERMINATING][i];
+					int ot_edge = code_table[ODD_TERMINATING][i];
+					int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
+					int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
+					int et_path = 2 * (et_component+1);
+					int ot_path = 2 * (ot_component+1);
+					int et_point = edge_path_offset[code_table[EVEN_TERMINATING][i]]+1;
+					int ot_point = edge_path_offset[code_table[ODD_TERMINATING][i]]+1;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
+	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
+}					
+					if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
+						et_point++; // move et_point past the second type 4 vertex
+					else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
+						ot_point++; // move ot_point past the second type 4 vertex
+
+					if (mp_control.uniform_smoothed_discs)
+					{
+						os << "p" << 2*num_components+i+1 << " = fullcircle scaled " << mp_control.smoothed_state_disc_size << "d shifted z" << i << ";" << endl;
+					}
+					else
+					{
+						os << "r:= min(arclength (z" << i << "--(point " << et_point-1 << ".5 of p" << et_path << ")),";
+						os <<         "arclength (z" << i << "--(point " << ot_point-1 << ".5 of p" << ot_path << ")),";
+						os <<         "arclength (z" << i << "--(point " << et_point << ".5 of p" << et_path << ")),";
+						os <<         "arclength (z" << i << "--(point " << ot_point << ".5 of p" << ot_path << ")));" << endl;
+
+						os << "p" << 2*num_components+i+1 << " = fullcircle scaled min(2r," << mp_control.smoothed_state_disc_size << "d) shifted z" << i << ";" << endl;
+						os << "theta := angle((direction " << et_point << " of p" << et_path << ")+(direction " << ot_point << " of p" << ot_path << "))-90;" << endl;
+					}
+					
+					
 					os << "fill p" << 2*num_components+i+1 << " withcolor 1white;" << endl;
 					
 					if (   (code_table[TYPE][i] == generic_code_data::TYPE1 && code_table[LABEL][i] == generic_code_data::NEGATIVE)
@@ -1653,28 +1688,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 						os << "\\fiverm ";
 					else if (mp_control.script_labels)
 						os << "\\sevenrm ";
-				    os << (A_crossing?"A":"B") << " etex, z" << i << ");" << endl;
-					
-					/* identify the components and corresponding paths of the even terminating and odd terminating edges */
-					int et_edge = code_table[EVEN_TERMINATING][i];
-					int ot_edge = code_table[ODD_TERMINATING][i];
-					int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
-					int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
-					int et_path = 2 * (et_component+1);
-					int ot_path = 2 * (ot_component+1);
-					int et_point = edge_path_offset[code_table[EVEN_TERMINATING][i]]+1;
-					int ot_point = edge_path_offset[code_table[ODD_TERMINATING][i]]+1;
-
-if (debug_control::DEBUG >= debug_control::DETAIL)
-{
-	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
-	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
-}					
-					if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
-						et_point++; // move et_point past the second type 4 vertex
-					else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
-						ot_point++; // move ot_point past the second type 4 vertex
-						
+				    os << (A_crossing?"A":"B") << " etex, z" << i << "+if(r< " << mp_control.smoothed_disc_threshold << "u):("
+				       << mp_control.smoothed_label_shift << "u*cosd theta, " << mp_control.smoothed_label_shift << "u*sind theta) else:(0,0) fi);" << endl;				    
+											
 					os << "z" << 2*num_vertices+4*i << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point-1<< "," << et_point << ") of p" << et_path << ";" << endl;
 					os << "z" << 2*num_vertices+4*i+1 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point-1 << "," << ot_point <<  ") of p" << ot_path << ";" << endl;
 					os << "z" << 2*num_vertices+4*i+2 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point << "," << et_point+1 << ") of p" << et_path << ";" << endl;
@@ -1691,8 +1707,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 						os << "draw z" << 2*num_vertices+4*i << "--z" << 2*num_vertices+4*i+1 << ";" << endl;
 						os << "draw z" << 2*num_vertices+4*i+2 << "--z" << 2*num_vertices+4*i+3 << ";" << endl;						
 						
-						os << "fill fullcircle scaled 0.7d shifted 0.5[z" << 2*num_vertices+4*i << ",z" << 2*num_vertices+4*i+1 << "];" << endl;
-						os << "fill fullcircle scaled 0.7d shifted 0.5[z"  << 2*num_vertices+4*i+2 << ",z" << 2*num_vertices+4*i+3 << "];" << endl;
+						os << "fill fullcircle scaled 0." << mp_control.cusp_disc_size << "*0.1d shifted 0.5[z" << 2*num_vertices+4*i << ",z" << 2*num_vertices+4*i+1 << "];" << endl;
+						os << "fill fullcircle scaled 0." << mp_control.cusp_disc_size << "*0.1d shifted 0.5[z"  << 2*num_vertices+4*i+2 << ",z" << 2*num_vertices+4*i+3 << "];" << endl;
 					}
 					state_place++;
 				}
