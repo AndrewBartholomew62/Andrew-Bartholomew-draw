@@ -60,13 +60,17 @@ public:
 	double rotation_centre_x;
 	double rotation_centre_y;
 	int arrowhead_bp_size;	
+	int cusp_disc_size;
 	int disc_size;
 	int grid_size;
 	int horizontal_units;
 	int infinite_cycle;
 	int pen_size;
 	int rotation_centre_z;	
+	int smoothed_disc_threshold;
+	int smoothed_label_shift;
 	int smoothed_state_disc_size;
+	int odd_parity_disc_size;
 	int unit_size;
 	int vertical_units;
 	float cudgel_space;
@@ -92,6 +96,7 @@ public:
 	bool show_odd_parity_crossings;
 	bool show_vertex_axes;
 	bool smallarrowheads;
+	bool state_smoothed;
 	bool circle_packing;
 	bool draw_shrink_effect;
 	bool highlight_small_edges;
@@ -101,6 +106,7 @@ public:
 	bool left_terminating_tail_points;
 	bool magnify_small_circles;
 	bool midpoints_not_tail_points;
+	bool uniform_smoothed_discs;
 	float midpoint_tension;
 	string colourmap;
 	string singlecolour;
@@ -111,15 +117,15 @@ public:
 	
 	metapost_control(): frame_minx(0), frame_maxx(0), frame_miny(0),frame_maxy(0),rotate(false), explicit_rotation_centre(false), implicit_rotation_centre(false),
 	                    rotation_degrees(0), rotation_centre_x(0) , rotation_centre_y(0), 
-	                    arrowhead_bp_size(6),disc_size(30),grid_size(10), horizontal_units(5), infinite_cycle(-1),
-	                    pen_size(1),rotation_centre_z(0),smoothed_state_disc_size(6), unit_size(20), vertical_units(5),
+	                    arrowhead_bp_size(6),cusp_disc_size(7),disc_size(30),grid_size(10), horizontal_units(5), infinite_cycle(-1),
+	                    pen_size(1),rotation_centre_z(0),smoothed_disc_threshold(30),smoothed_label_shift(50),smoothed_state_disc_size(6),odd_parity_disc_size(12),unit_size(20), vertical_units(5),
 						cudgel_space(1.0), dash_with_dots(false), knotoid_leg_unbounded(false), one_metapost_path(false),
 						colour(false), draw_lace_frame(false), draw_immersion(true), draw_crossing_features(true), draw_frame_corners(false), draw_grid(false),
 						draw_triangulation(false), draw_triangulation_displacement(true), draw_labels(false), label_edges_from_one(false), draw_oriented(false), 
 						draw_shortcut(false), gauss_labels(false), label_vertices(false), script_labels(false), scriptscript_labels(false), show_odd_parity_crossings(false), 
-						show_vertex_axes(true), smallarrowheads(false),circle_packing(false), draw_shrink_effect(false),
+						show_vertex_axes(true), smallarrowheads(false),state_smoothed(false),circle_packing(false), draw_shrink_effect(false),
 	                    highlight_small_edges(false),tension(false),adjacent_cudgel_midpoints(true), right_originating_tail_points(true),
-						left_terminating_tail_points(false), magnify_small_circles(false),midpoints_not_tail_points(false),midpoint_tension(1.0),colourmap(""),singlecolour(""),
+						left_terminating_tail_points(false), magnify_small_circles(false),midpoints_not_tail_points(false),uniform_smoothed_discs(false),midpoint_tension(1.0),colourmap(""),singlecolour(""),
 	                    state(""),draw_colour({"red","blue","ForestGreen","Brown","DarkViolet","Orange"}){}	
 
 };
