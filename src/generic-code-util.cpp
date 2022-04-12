@@ -6,6 +6,8 @@ void read_peer_code (generic_code_data& code_data, string input_string)
 void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_zags, bool labelled)
 void read_gauss_code (generic_code_data& code_data, string input_string)
 void write_gauss_code(ostream& s, generic_code_data& code_data)
+void read_planar_diagram (generic_code_data& code_data, string input_string)
+void write_planar_diagram(ostream& s, generic_code_data& code_data)
 void read_code_data (generic_code_data& code_data, string input_string)
 void write_code_data(ostream& s, generic_code_data& code_data)
 string convert_gauss_code(string OU_gauss_code);

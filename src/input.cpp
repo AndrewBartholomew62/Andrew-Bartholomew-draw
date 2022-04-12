@@ -43,7 +43,7 @@ void get_input_word (ifstream& input, string& buffer, string& title)
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
-    debug << "braid::get_input_word: accepting ";
+    debug << "get_input_word: accepting ";
     if (input_control::ACCEPT_MAP & input_control::braid_word)
 		debug << "braid words ";
     if (input_control::ACCEPT_MAP & input_control::immersion_code)
@@ -52,6 +52,8 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 		debug << "peer codes ";
     if (input_control::ACCEPT_MAP & input_control::gauss_code)
 		debug << "Gauss codes ";
+    if (input_control::ACCEPT_MAP & input_control::planar_diagram)
+		debug << "planar diagrams ";
     if (input_control::ACCEPT_MAP & input_control::lace_code)
 		debug << "lace codes ";
     debug << endl;
@@ -61,7 +63,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
     {		
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "braid::get_input_word: read line: " << next_line << endl;
+    debug << "get_input_word: read line: " << next_line << endl;
 
 		/* kill the <cr> at the end of the line, if one exists */
 		string::size_type pos = next_line.find("\r");
@@ -92,7 +94,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			qualifiers = next_line.substr(pos);
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: read qualifiers " << qualifiers << " from line " << next_line << endl;
+    debug << "get_input_word: read qualifiers " << qualifiers << " from line " << next_line << endl;
 
 			next_line = next_line.substr(0,pos);
 			
@@ -101,10 +103,10 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 		char* line_buf = c_string(next_line);
 				
 	    /* if this line contains a switch, or programme options ignore it */
-	    if ( strchr(line_buf,'[') && !strchr(line_buf,'/') && !strchr(line_buf,'\\'))
+	    if ( strchr(line_buf,'[') && !strchr(line_buf,'/') && !strchr(line_buf,'\\') && !strchr(line_buf,'X'))
 		{
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "braid::get_input_word: line contains programme options, ignoring line" << endl;
+    debug << "get_input_word: line contains programme options, ignoring line" << endl;
 			goto done_with_line;
 		}
 		else if (  (strchr(line_buf,'s') || strchr(line_buf,'S')) && 
@@ -113,7 +115,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			    )
 		{
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "braid::get_input_word: line contains a switch, ignoring line" << endl;
+    debug << "get_input_word: line contains a switch, ignoring line" << endl;
 			goto done_with_line;
 		}
 
@@ -127,7 +129,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	    {
 			
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: next word line = " << lptr << endl;
+    debug << "get_input_word: next word line = " << lptr << endl;
 
 			/* check for a title line */
 			char* cptr = lptr;
@@ -138,11 +140,15 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 				goto done_with_line;
 			}
 
-			/* the target of the line parsing is either one of the word buffers 
-			   w1-w8, or is 'buffer', if the input is a braid statement, a peer code, an 
-			   immersion code, or a Gauss code, .  An immersion code is 
-			   indicated by the presence of a '(' character, a peer code by a '[' character.
-			   A Gauss code is indicated by the presence of a '/' or '\' character but no '(' or '['.			
+			/* the target of the line parsing is either one of the word buffers w1-w8, or is 'buffer', if the input is a braid statement, 
+			   a peer code, an immersion code, a Gauss code, a planar diagram or a lace, .  
+			   
+			    - an immersion code is indicated by the presence of a '(' character but no '|'
+			    - a peer code is indicated by the presence of a '[' character
+			    - a Gauss code is indicated by the presence of a '/', an 'O' or '\' character but no '(' or '['.	
+			    - a braid word is indicated by the presents of an 's','S', 't' or 'T'
+			    - a planar diagram is indicated by the presence of an 'X'
+			    - a lace code is indicated by the presence of a '|'
 			*/
 			if (!accepted_non_braid_input && !accepted_braid_input)
 			{
@@ -151,21 +157,21 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 					accepted_non_braid_input = true;
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: detected acceptable start of immersion code" << endl;
+    debug << "get_input_word: detected acceptable start of immersion code" << endl;
 				}
 				else if (strchr(line_buf,'[') && (input_control::ACCEPT_MAP & input_control::peer_code))
 				{
 					accepted_non_braid_input = true;
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: detected acceptable start of peer code" << endl;
+    debug << "get_input_word: detected acceptable start of peer code" << endl;
 				}
 				else if ((strchr(lptr,'/') || strchr(lptr,'O') || strchr(lptr,'\\')) && (input_control::ACCEPT_MAP & input_control::gauss_code))
 				{
 					accepted_non_braid_input = true;
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: detected acceptable start of Gauss code" << endl;
+    debug << "get_input_word: detected acceptable start of Gauss code" << endl;
 				}
 				else if ((strchr(line_buf,'s') || strchr(line_buf,'S') || 
 				          strchr(line_buf,'t') || strchr(line_buf,'T')) && (input_control::ACCEPT_MAP & input_control::braid_word))
@@ -173,14 +179,21 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 					accepted_braid_input = true;
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: detected acceptable start of braid word" << endl;
+    debug << "get_input_word: detected acceptable start of braid word" << endl;
+				}
+				else if (strchr(line_buf,'X') && (input_control::ACCEPT_MAP & input_control::planar_diagram))
+				{
+					accepted_non_braid_input = true;
+
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+    debug << "get_input_word: detected acceptable start of planar diagram" << endl;
 				}
 				else if (strchr(lptr,'|') && (input_control::ACCEPT_MAP & input_control::lace_code))
 				{
 					accepted_non_braid_input = true;
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: detected acceptable start of lace code" << endl;
+    debug << "get_input_word: detected acceptable start of lace code" << endl;
 				}
 				else
 					goto done_with_line;
@@ -191,6 +204,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			     ( (input_control::ACCEPT_MAP & input_control::gauss_code) || 
 			       (input_control::ACCEPT_MAP & input_control::immersion_code) || 
 			       (input_control::ACCEPT_MAP & input_control::peer_code) ||
+			       (input_control::ACCEPT_MAP & input_control::planar_diagram) ||
 			       (input_control::ACCEPT_MAP & input_control::lace_code)
 			     ) 
 			   )
@@ -198,9 +212,13 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			    /* Take out line escapes and build up either the
 				   labelled immersion code or the Gauss code in buffer
 			    */
+			    bool escape_present = false;
 			    cptr = strchr(lptr,'\\');
 			    if (cptr)
+			    {
+					escape_present = true;
 					*cptr = ' ';
+				}
 
 			    /* copy the line into buffer and decide if there's more to come */
 				buffer += string(lptr);
@@ -208,12 +226,12 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			    /* This test means we cannot break lines after
 				   the '/' character in the input file
 				*/
-				if (strchr(lptr,'/') || strchr(lptr,'|') || strchr(lptr,'O'))
+				if (strchr(lptr,'/') || strchr(lptr,'|') || strchr(lptr,'O') || (strchr(lptr,'X') && !escape_present) )
 				{
 					word_found = true;					
 					
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: adding qualifiers " << qualifiers << " to buffer " << buffer << endl;;
+    debug << "get_input_word: adding qualifiers " << qualifiers << " to buffer " << buffer << endl;;
 
 					buffer += qualifiers;
 				}
@@ -231,7 +249,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 			cptr = strchr(lptr, '=');
 			
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: looking for a braid word...";
+    debug << "get_input_word: looking for a braid word...";
 
 			if (cptr) // assignment statement
 			{
@@ -342,7 +360,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 				   append any qualifiers provided with that braid statement
 				*/
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: adding qualifiers " << qualifiers << " to buffer " << buffer << endl;;
+    debug << "get_input_word: adding qualifiers " << qualifiers << " to buffer " << buffer << endl;;
 
 				buffer += qualifiers;
 			}
@@ -355,6 +373,6 @@ done_with_line:
     	buffer = "exit";
 		
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
-    debug << "braid::get_input_word: returning buffer " << buffer << endl;;
+    debug << "get_input_word: returning buffer " << buffer << endl;;
 		
 }

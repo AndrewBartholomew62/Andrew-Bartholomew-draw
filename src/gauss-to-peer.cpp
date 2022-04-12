@@ -406,7 +406,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			/* look for another crossing */
 			complete = true;
 			int best_crossing;
-			int best_match_count;
+			int best_match_count = 0;
 			int best_precedence = 5;  // bigger than the maximum prececence we use
 			int last_fringe_index;
 			int best_last_fringe_index;
@@ -617,6 +617,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					}
 				
 					if (precedence < best_precedence || (precedence == best_precedence && match_count > best_match_count)) 
+//					if (match_count > best_match_count || (match_count == best_match_count && precedence < best_precedence)) 
 					{
 					    best_crossing = i;
 					    best_precedence = precedence;
@@ -2696,10 +2697,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	
 			if (i%2 == 0)
 			{
-			peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
+				peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
 //if (debug_control::DEBUG >= debug_control::DETAIL)
 //	debug << " crossing " << i/2;
-		}
+			}
 			else
 			{
 				peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;

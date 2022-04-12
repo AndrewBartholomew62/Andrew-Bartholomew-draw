@@ -108,7 +108,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		for (int i=0; i <  num_components; i++)
 		{
 			int start = code_data.first_edge_on_component[i];
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): start_of_component = " << start << endl;
 
 			int edge=start;
@@ -116,12 +116,12 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 			/*	trace this component */
 			do
 			{		
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): edge = " << edge;
 
 				int next_crossing = term_crossing[edge];
 
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", next_crossing = " << next_crossing;
 
 				bool first_visit = (code_table[OPEER][next_crossing] == edge? true: false);
@@ -134,7 +134,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 				else
 					next_crossing_orientation_polarity = gauss_orientation_data::LEFT;	
 					
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", polarity = " << (next_crossing_orientation_polarity == gauss_orientation_data::LEFT? "LEFT" : "RIGHT") << endl;
 				
 				orientation_matrix[0][index] = next_crossing_orientation_polarity;
@@ -200,7 +200,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 			if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1 && shortcut_crossing.size())
 				pure_knotoid_code_data = true;
 		
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): extended version: num_classical_crossings = " << num_classical_crossings << endl;
 		}
 		else
@@ -210,7 +210,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 				if (code_table[LABEL][i] == generic_code_data::VIRTUAL)
 					num_classical_crossings--;
 			}
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): num_classical_crossings = " << num_classical_crossings << endl;
 		
 			if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1 && shortcut_crossing.size())
@@ -221,12 +221,12 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 					if (shortcut_crossing[i] != 0)
 						num_classical_crossings--;
 				}
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): knotoid: num_classical_crossings = " << num_classical_crossings << endl;
 			}
 		}
 	
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): pure_knotoid_code_data = " << pure_knotoid_code_data << endl;
 
 		/* create the orientation matrix and write the number of crossings */
@@ -264,7 +264,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		
 		do 
 		{
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): start_of_component = " << start << endl;
 	
 			/* set the offset for the start of this component */
@@ -282,12 +282,12 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 			do
 			{	
 	
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data): edge = " << edge;
 				edge_flag[edge] = 1;
 				int next_crossing = term_crossing[edge];
 
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", next_crossing = " << next_crossing;
 
 				int next_crossing_orientation_polarity;
@@ -295,18 +295,18 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 				
 				if (!extended_version && code_table[LABEL][next_crossing] == generic_code_data::VIRTUAL)
 				{
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is virtual" << endl;
 				}
 				else if (!extended_version && pure_knotoid_code_data && shortcut_crossing[next_crossing])
 				{
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is a shortcut crossing" << endl;
 				}
 				else 
 				{
 					component_terms++;
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is a Gauss crossing" << endl;
 	
 				    if ((edge%2 == 0 && code_table[TYPE][next_crossing] == generic_code_data::TYPE1) ||
@@ -325,7 +325,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 				if (!extended_version && (code_table[LABEL][next_crossing] == generic_code_data::VIRTUAL || (pure_knotoid_code_data && shortcut_crossing[next_crossing])))
 				{
 					
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data):   doing nothing" << endl;
 					
 					/* just move on around the component */				
@@ -359,7 +359,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 								
 								index++;
 
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data):   second visit to Gauss crossing " << i << endl;
 								break;
 							}
@@ -388,7 +388,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 	
 						immersion_crossing[num_classical_crossings_visited] = next_crossing;
 					
-if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_orientation_data::constructor(generic_code_data):   first visit, becomes Gauss crossing " << num_classical_crossings_visited << endl;
 
 						num_classical_crossings_visited++;
