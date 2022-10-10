@@ -140,7 +140,7 @@ class gc_pc_xlabels
 
 void read_immersion_code (generic_code_data& code_data, string input_string);
 void write_immersion_code(ostream& s, generic_code_data& code_data);
-void print_code_data(generic_code_data& code_data, ostream& s, string prefix="");
+void print_code_data(ostream& s, generic_code_data& code_data, string prefix="");
 void read_peer_code (generic_code_data& code_data, string input_string);
 void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_zags=false, bool labelled=true);
 void read_gauss_code (generic_code_data& code_data, string input_string);
