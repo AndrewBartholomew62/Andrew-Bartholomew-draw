@@ -90,7 +90,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "magnify: code_data: ";
 	write_code_data(debug,code_data);
 	debug << endl;
-	print_code_data(code_data, debug, "magnify: ");
+	print_code_data(debug, code_data, "magnify: ");
 }
 
 	/* Read triangulation data from triangulation_output_file */

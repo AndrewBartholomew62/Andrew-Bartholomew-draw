@@ -110,7 +110,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "region_shrinking_placement: code_data: ";
 	write_code_data(debug,code_data);
 	debug << endl;
-	print_code_data(code_data, debug, "region_shrinking_placement: ");
+	print_code_data(debug, code_data, "region_shrinking_placement: ");
 	debug << "region_shrinking_placement: num_iterations = " << num_iterations << endl;
 	if (TRACK_PLACEMENT_ITERATION)
 		debug << "region_shrinking_placement: placement_iteration_tracking_step = " << placement_iteration_tracking_step << endl;

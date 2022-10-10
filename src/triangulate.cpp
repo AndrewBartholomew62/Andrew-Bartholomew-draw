@@ -487,7 +487,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	   type 4 vertices always connect to five neighbours
 	   (standard) type 5 vertices are connected to exactly five neighbours.  
 	   
-	   We therefore have the maximum number of neighbours being max(8,length of longest turning cycle + num_Reidemeister_I_loops).  
+	   We therefore have the maximum number of neighbours being max(8,length of longest turning cycle + 2*num_Reidemeister_I_loops).  
 	   We allow an additional column (0) to record the number of neighbours.
 	   
 	   July 2017: we include an additional two rows in the matrix to handle non-standard type 5
@@ -498,8 +498,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	int max_neighbours = 8;
 	for ( int i=0; i< num_cycles; i++)
 	{
-		if (max_neighbours < cycle[i][0]+num_Reidemeister_I_loops)
-			max_neighbours = cycle[i][0]+num_Reidemeister_I_loops;
+		if (max_neighbours < cycle[i][0]+2*num_Reidemeister_I_loops)
+			max_neighbours = cycle[i][0]+2*num_Reidemeister_I_loops;
 	}
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -507,13 +507,11 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
     
     matrix<int> neighbour(num_vertices+2,max_neighbours+1);
     
-    /* Start by noting the neighbours of the type 5 vertices, since this enables us to 
-       note to which type 1 vertex each of these vertices is joined to, which we shall 
-       need to complete the neighbours of the type 1 vertices.
+    /* Start by noting the neighbours of the type 5 vertices, since this enables us to note to which type 1 vertex each of 
+       these vertices is joined to, which we shall need to complete the neighbours of the type 1 vertices.
       
-       Work around the infinite turning cycle so we can deal with the exceptional cases
-       of just two edges or Reidemeister I loops in the infinite turning cycle, where
-       we need to determine neighbours differently.
+       Work around the infinite turning cycle so we can deal with the exceptional cases of just two edges or Reidemeister I 
+       loops in the infinite turning cycle, where we need to determine neighbours differently.
     */
     int vertex = num_type_1234_vertices;
     matrix<int> type_5_vertex_corresponding_to_type_1_vertex(num_crossings,2);
@@ -530,8 +528,21 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		
 		if (cycle[infinite_region][0] == 2)
 		{
+			/* We have just two edges in the  infinite turning cycle, so we add a type 5 vertex radially at each type 1 vertex 
+			   in the infinite turning cycle to give four in all (which allows circle packing to be performed).  The type 5
+			   vertices are numbered consecutively as we proceed around the turning cycle, starting with the vertex radially 
+			   associated with the first edge, then the terminating or originating crossing dependent on whether the edge is 
+			   even or odd respectively, then similarly the second edge and remainign crossing.
+			   
+			   We have two type 5 vertices associated with each type 1 vertex in this case.  We record them so that the vertex
+			   radially associated with the edge appears first and that radialy associated with the crossing appears second.
+			   
+			   To be consistent with the other cases, if the infinite turning cycle is a right cycle, we record the neighbours
+			   in a clockwise rather than an anti-clockwise manner.
+			*/
+		
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "triangulate:   infinite turning cycle contains just two edges" << endl;
+    debug << "\ntriangulate:   infinite turning cycle contains just two edges" << endl;
     
 			neighbour[vertex][0] = 4; 
 			neighbour[vertex+1][0] = 4; 
@@ -552,19 +563,22 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			neighbour[vertex][2] = type_2_vertex[abs(edge)];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "triangulate:     neighbour 2 for type_5_vertex " << vertex << " is " << neighbour[vertex][2] << endl;
+    debug << "triangulate:     neighbour " << 2 << " for type_5_vertex " << vertex << " is " << neighbour[vertex][2] << endl;
 
 			if (edge < 0)
 			{
 				neighbour[vertex][3] = (abs(edge)-1)/2;
 				neighbour[vertex+1][2] = (abs(edge)-1)/2;
+				
 				type_5_vertex_corresponding_to_type_1_vertex[(abs(edge)-1)/2][0] = vertex;
 				type_5_vertex_corresponding_to_type_1_vertex[(abs(edge)-1)/2][1] = vertex+1;
+				
 			}
 			else
 			{
 				neighbour[vertex][3] = edge/2;
 				neighbour[vertex+1][2] = edge/2;
+				
 				type_5_vertex_corresponding_to_type_1_vertex[edge/2][0] = vertex;
 				type_5_vertex_corresponding_to_type_1_vertex[edge/2][1] = vertex+1;
 			}
@@ -572,7 +586,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
     debug << "triangulate:     neighbour 3 for type_5_vertex " << vertex << " is " << neighbour[vertex][3] 
-          << ", neighbour 2 for type_5_vertex " << vertex+1 << " is " << neighbour[vertex+1][2] << endl;
+          << ", neighbour " << 2 << " for type_5_vertex " << vertex+1 << " is " << neighbour[vertex+1][2] << endl;
 }
 		
 			int next_edge = (i==1? cycle[infinite_region][2]: cycle[infinite_region][1]);
@@ -595,8 +609,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
-    debug << "triangulate:     neighbour 4 for type_5_vertex " << vertex << " is " << neighbour[vertex][4] 
-          << ", neighbour 4 for type_5_vertex " << vertex+1 << " is " << neighbour[vertex+1][4] << endl;
+    debug << "triangulate:     neighbour " << 4 << " for type_5_vertex " << vertex << " is " << neighbour[vertex][4] 
+          << ", neighbour " << 4 << " for type_5_vertex " << vertex+1 << " is " << neighbour[vertex+1][4] << endl;
 }
 			
 			vertex += 2;
@@ -846,7 +860,20 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 		if (region == infinite_region)
 		{
-			if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
+			if (cycle[infinite_region][0] == 2)
+			{
+				if (infinite_region < num_left_cycles)
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+				}
+				else
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+				}
+			}
+			else if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
 			{				
 				if (first_occurrence(code_data, infinite_cycle_first_visit, i, 0))
 					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
@@ -894,7 +921,20 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 		if (region == infinite_region)
 		{
-			if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
+			if (cycle[infinite_region][0] == 2)
+			{
+				if (infinite_region < num_left_cycles)
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+				}
+				else
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+				}
+			}
+			else if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
 			{
 				
 				if (first_occurrence(code_data, infinite_cycle_first_visit, i, 1))
@@ -942,7 +982,20 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 		if (region == infinite_region)
 		{
-			if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
+			if (cycle[infinite_region][0] == 2)
+			{
+				if (infinite_region < num_left_cycles)
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+				}
+				else
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+				}
+			}
+			else if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
 			{
 				
 				if (first_occurrence(code_data, infinite_cycle_first_visit, i, 2))
@@ -994,7 +1047,20 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:       type 5 vertices corresponding to crossing " << type_5_vertex_corresponding_to_type_1_vertex[i][0] << ' ' << type_5_vertex_corresponding_to_type_1_vertex[i][1] << endl;
 			
-			if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
+			if (cycle[infinite_region][0] == 2)
+			{
+				if (infinite_region < num_left_cycles)
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+				}
+				else
+				{
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
+					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][1];				
+				}
+			}
+			else if (type_5_vertex_corresponding_to_type_1_vertex[i][1])
 			{								
 				if (first_occurrence(code_data, infinite_cycle_first_visit, i, 3))
 					neighbour[i][nbr++] = type_5_vertex_corresponding_to_type_1_vertex[i][0];				
@@ -1165,38 +1231,47 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					else if (find(Reidemeister_I_loop_edges.begin(),Reidemeister_I_loop_edges.end(),abs(cycle[infinite_region][i])) != Reidemeister_I_loop_edges.end())
 						offset += (i==1?2:3);
 					else
-						offset++;
+						offset += (cycle[infinite_region][0] == 2?2:1);
 				}
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     offset in type_5_vertex of type 5 vertex corresponding to edge = " << offset << endl;
 				
-				/* We have two neighbours in the infinite region, the type 5 vertex associated with the
-				   edge and the type 5 vertex associated with a crossing.  If the edge is odd it is the 
-				   type 5 vertex corresponding to the crossing we reach along this edge .  If the edge 
-				   is even we have as a neighbour the type 5 vertex corresponding  to the crossing 
-				   we've just left.
+				/* We have two neighbours in the infinite region, the type 5 vertex associated with the  edge and the type 5 
+				   vertex associated with a crossing.  If the edge is odd it is the type 5 vertex corresponding to the crossing 
+				   we reach along this edge .  If the edge is even we have as a neighbour the type 5 vertex corresponding to 
+				   the crossing we've just left.
 				   
-				   We are enumerating our neighbours in an anti-clockwise manner, so if the turning cycle 
-				   bounding the infinite region is a left turning cycle we want the type 5 vertex 
-				   corresponding to the edge first, and otherwise the type 5 vertex corresponding to
-				   the crossing first.
+				   If there are two type 5 vertices connected to the crossing we have to select the appropriate occurrence, 
+				   determined either by having just two edges in the infinite cycle, where we recorded the type 5 vertex
+				   radialy associated with the crossing second, or by checking infinite_cycle_first_visit as described below.
+				   
+				   We are enumerating our neighbours in an anti-clockwise manner, so if the turning cycle bounding the infinite 
+				   region is a left turning cycle we want the type 5 vertex corresponding to the edge first, and otherwise the 
+				   type 5 vertex corresponding to the crossing first.
 				*/
 				int crossing = (edge % 2? term_crossing[edge]: orig_crossing[edge]);
 				int occurrence;
 			
-				/* infinite_cycle_first_visit records the ingress and egress edges in the infinite turning cycle of
-				   the first encounter at a particular crossing. Since we may be traversing a left or right turning 
-				   cycle as we go around the infinite region, and we may be going forwards or backwards along an even 
-				   or odd edge, then  we check both the ingress and egress turning cycle edges to see if edge is part 
-				   of the first or second occurrence of the vertex in the infinite turning cycle.
-				   
-				*/
-				if (infinite_cycle_first_visit[crossing][0] == edge || infinite_cycle_first_visit[crossing][1] == edge)
-					occurrence = 0;
-				else
+				if (cycle[infinite_region][0] == 2)
+				{
 					occurrence = 1;
-
+				}
+				else
+				{
+					/* infinite_cycle_first_visit records the ingress and egress edges in the infinite turning cycle of
+					   the first encounter at a particular crossing. Since we may be traversing a left or right turning 
+					   cycle as we go around the infinite region, and we may be going forwards or backwards along an even 
+					   or odd edge, then  we check both the ingress and egress turning cycle edges to see if edge is part 
+					   of the first or second occurrence of the vertex in the infinite turning cycle.
+					   
+					*/
+					if (infinite_cycle_first_visit[crossing][0] == edge || infinite_cycle_first_visit[crossing][1] == edge)
+						occurrence = 0;
+					else
+						occurrence = 1;
+				}
+				
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     crossing = " << crossing << ", occurrence = " << occurrence << endl;
 			
@@ -1355,30 +1430,36 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					else if (find(Reidemeister_I_loop_edges.begin(),Reidemeister_I_loop_edges.end(),abs(cycle[infinite_region][i])) != Reidemeister_I_loop_edges.end())
 						offset += (i==1?2:3);
 					else
-						offset++;
+						offset += (cycle[infinite_region][0] == 2?2:1);
 				}
 
-				
-				/* We have two neighbours in the infinite region, the type 5 vertex associated with the
-				   edge and the type 5 vertex associated with a crossing.  If the edge is odd it is the 
-				   type 5 vertex corresponding to the crossing we reach along this edge .  If the edge 
-				   is even we have as a neighbour the type 5 vertex corresponding  to the crossing 
-				   we've just left.
+				/* We have two neighbours in the infinite region, the type 5 vertex associated with the  edge and the type 5 
+				   vertex associated with a crossing.  If the edge is odd it is the type 5 vertex corresponding to the crossing 
+				   we reach along this edge .  If the edge is even we have as a neighbour the type 5 vertex corresponding to 
+				   the crossing we've just left.
 				   
-				   We are enumerating our neighbours in an anti-clockwise manner, so if the turning cycle 
-				   bounding the infinite region is a left turning cycle we want the type 5 vertex 
-				   corresponding to the edge first, and otherwise the type 5 vertex corresponding to
-				   the crossing first.
+				   If there are two type 5 vertices connected to the crossing we have to select the appropriate occurrence, 
+				   determined either by having just two edges in the infinite cycle, where we recorded the type 5 vertex
+				   radialy associated with the crossing second, or by checking infinite_cycle_first_visit as described below.
+				   
+				   We are enumerating our neighbours in an anti-clockwise manner, so if the turning cycle bounding the infinite 
+				   region is a left turning cycle we want the type 5 vertex corresponding to the edge first, and otherwise the 
+				   type 5 vertex corresponding to the crossing first.
 				*/
-	
 				int crossing = (edge % 2? term_crossing[edge]: orig_crossing[edge]);
 				int occurrence;
 				
-				if (infinite_cycle_first_visit[crossing][0] == edge || infinite_cycle_first_visit[crossing][1] == edge)
-					occurrence = 0;
-				else
+				if (cycle[infinite_region][0] == 2)
+				{
 					occurrence = 1;
-
+				}
+				else
+				{
+					if (infinite_cycle_first_visit[crossing][0] == edge || infinite_cycle_first_visit[crossing][1] == edge)
+						occurrence = 0;
+					else
+						occurrence = 1;
+				}
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     crossing = " << crossing << ", occurrence = " << occurrence << endl;
 			
@@ -1507,7 +1588,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				else
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "triangulate: edge " << edge << endl;
+    debug << "triangulate: edge " << edge << " type 2 vertex = " << type_2_vertex[edge] << endl;
 
 					neighbour[vertex][nbr++] = type_2_vertex[edge];			
 				}
@@ -1556,7 +1637,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				else
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "triangulate: edge " << edge << endl;
+    debug << "triangulate: edge " << edge << " vertex = " << vertex << " nbr = " << nbr << " type 2 vertex = " << type_2_vertex[edge] << endl;
 
 					neighbour[vertex][nbr++] = type_2_vertex[edge];						
 				}
@@ -1975,8 +2056,6 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		
 		output << "END" << endl;
 		output.close();  	
-		
-		system("cat __triangulate.out >> triangulation.txt");
 	}
 }
 

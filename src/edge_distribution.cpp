@@ -113,7 +113,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "edge_distribution_placement: code_data: ";
 	write_code_data(debug,code_data);
 	debug << endl;
-	print_code_data(code_data, debug, "edge_distribution_placement: ");
+	print_code_data(debug, code_data, "edge_distribution_placement: ");
 	debug << "edge_distribution_placement: num_iterations = " << num_iterations << endl;
 	if (TRACK_PLACEMENT_ITERATION)
 		debug << "edge_distribution_placement: placement_iteration_tracking_step = " << placement_iteration_tracking_step << endl;

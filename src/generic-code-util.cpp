@@ -1,7 +1,7 @@
 /**************************************************************************
 void read_immersion_code (generic_code_data& code_data, string input_string)
 void write_immersion_code(ostream& s, generic_code_data& code_data)
-void print_code_data(generic_code_data& code_data, ostream& s, string prefix)
+void print_code_data(ostream& s, generic_code_data& code_data, string prefix)
 void read_peer_code (generic_code_data& code_data, string input_string)
 void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_zags, bool labelled)
 void read_gauss_code (generic_code_data& code_data, string input_string)
@@ -248,7 +248,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
 	debug << "read_immersion_code: code data produced from immersion code:" << endl;
-	print_code_data(code_data,debug,"read_immersion_code: ");	
+	print_code_data(debug,code_data,"read_immersion_code: ");	
 }
 
 	delete[] inbuf;
@@ -334,7 +334,7 @@ void write_immersion_code(ostream& s, generic_code_data& code_data)
 	}	
 }
 
-void print_code_data(generic_code_data& code_data, ostream& s, string prefix)
+void print_code_data(ostream& s, generic_code_data& code_data, string prefix)
 {
 	int num_crossings = code_data.num_crossings;
 	
@@ -422,21 +422,21 @@ void print_code_data(generic_code_data& code_data, ostream& s, string prefix)
 //	if (code_data.type == generic_code_data::peer_code)
 	{
 		s << prefix << "num_component_edges: ";
-		for (int i=0; i< code_data.num_components; i++)
+		for (unsigned int i=0; i< code_data.num_component_edges.size(); i++)
 			s << code_data.num_component_edges[i] << ' ';
 		s << endl;
 		s << prefix << "first_edge_on_component: ";
-		for (int i=0; i< code_data.num_components; i++)
+		for (unsigned int i=0; i< code_data.first_edge_on_component.size(); i++)
 			s << code_data.first_edge_on_component[i] << ' ';
 		s << endl;
 	}
 	
 	s << prefix << "term_crossing: ";
-	for (int i=0; i< 2*num_crossings; i++)
+	for (unsigned int i=0; i< code_data.term_crossing.size(); i++)
 		s << code_data.term_crossing[i] << ' ';
 	s << endl;
 	s << prefix << "orig_crossing: ";
-	for (int i=0; i< 2*num_crossings; i++)
+	for (unsigned int i=0; i< code_data.orig_crossing.size(); i++)
 		s << code_data.orig_crossing[i] << ' ';
 	s << endl;
 	s << prefix << "shortcut_crossing: ";
@@ -644,7 +644,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 {
 	debug << "read_peer_code: code data produced from peer code:" << endl;
-	print_code_data(code_data,debug,"read_peer_code: ");	
+	print_code_data(debug,code_data,"read_peer_code: ");	
 }
 
 	delete[] inbuf;
@@ -1119,7 +1119,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
 	debug << "read_gauss_code: code data produced from gauss code:" << endl;
-	print_code_data(code_data,debug,"read_gauss_code: ");	
+	print_code_data(debug,code_data,"read_gauss_code: ");	
 }
 
 	delete[] inbuf;
@@ -2001,7 +2001,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
 //	debug << "renumber_peer_code: given code data:" << endl;
-//	print_code_data(code_data,debug,"renumber_peer_code: ");	
+//	print_code_data(debug,code_data,"renumber_peer_code: ");	
 	debug << "renumber_peer_code: shift = ";
 	for (int i=0; i< num_components; i++)
 		debug << shift[i] << ' ';
@@ -2211,7 +2211,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
 	debug << "renumber_peer_code: current code data:" << endl;
-	print_code_data(code_data,debug,"renumber_peer_code: ");	
+	print_code_data(debug,code_data,"renumber_peer_code: ");	
 	debug << "renumber_peer_code: current code_table:" << endl;
 	print(code_table,debug, 3, "renumber_peer_code: ");	
 	debug << "renumber_peer_code: code_table[LABEL][" << i << "] = " << code_table[LABEL][i] << endl;
@@ -2374,7 +2374,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
 	debug << "renumber_peer_code: renumbered code data:" << endl;
-	print_code_data(code_data,debug,"renumber_peer_code: ");	
+	print_code_data(debug,code_data,"renumber_peer_code: ");	
 }
 
 }
@@ -2482,6 +2482,8 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
    be part of the first connected component, since the leg semi_arc is numbered zero.  That means the head and 
    immersion character is set correctly in code_data and that the default initialization of the head and immersion 
    character in subsequent_code_data is also correct.
+   
+   Both peer codes and Gauss codes are supported.
 */					
 generic_code_data partition_peer_code(generic_code_data& code_data, vector<int>& component_flags)
 {
@@ -2489,6 +2491,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 {
 	debug << "partition_peer_code: presented with code data ";
 	write_code_data(debug,code_data);	
+	print_code_data(debug,code_data);
 	debug << endl;
 	debug << "partition_peer_code: component_flags: ";
 	for (unsigned int j=0; j< component_flags.size(); j++)
@@ -2497,7 +2500,6 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 }
 	generic_code_data first_code_data;
 	generic_code_data subsequent_code_data;
-	subsequent_code_data.type = generic_code_data::code_type::peer_code;
 
 	bool pure_knotoid_code_data = false;
 	int head_semi_arc = -1;
@@ -2557,6 +2559,10 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 			lptr++;
 		}
 		
+		int num_f_components=0;
+		for (int i=0; i<code_data.num_components; i++)
+			num_f_components += f_components[i];
+		
 if (debug_control::DEBUG >= debug_control::BASIC)
 {
 	debug << "partition_peer_code: f_components: " ;
@@ -2578,6 +2584,10 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 		   structure to do this.		
 		*/				
 		int num_s_crossings = code_data.num_crossings - num_f_crossings;
+		int num_s_components = code_data.num_components - num_f_components;
+
+if (debug_control::DEBUG >= debug_control::BASIC)
+	debug << "partition_peer_code: num_f_components = " << num_f_components << " num_f_crossings = " << num_f_crossings << " num_s_components = " << num_s_components << " num_s_crossings = " << num_s_crossings << endl;
 		
 		for (int i=0; i< 2; i++)
 		{
@@ -2585,16 +2595,23 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 	debug << "partition_peer_code: determine the peer code of partition " << i << endl;
 	
 			int num_partition_crossings = (i==0? num_f_crossings: num_s_crossings);
+			int num_partition_components = (i==0? num_f_components: num_s_components);
 			matrix<int> partition_code_table(CODE_TABLE_SIZE,num_partition_crossings,-1);
 			matrix<int> partition_zig_zag_count(2,num_partition_crossings);
+			vector<int> first_edge_on_partition_cpt(num_partition_components); // used for writing Gauss codes
+
 			
 			/* write new edge labels into the even (row 0)  and odd (row 1) rows of new_partition_labels, 
 			   in the location corresponding to the old edge labels in the EVEN_TERMINATING and ODD_TERMINATING
 			   rows of code_data.code_table.  In row 2 of new_partition_labels we record the component number
 			   of the unicursal component in the partition.
+			   
+			   If we are working with a Gauss code, the third row of new_partition_labels records the crossing
+			   number as determined by the new edge labels.
 			*/
-			matrix<int> new_partition_labels(3,code_data.num_crossings,-1);
+			matrix<int> new_partition_labels(4,code_data.num_crossings,-1);
 			int edge = 0;
+			int partition_crossing = 0;
 			int component = -1;
 			int new_head = -1;
 			
@@ -2616,6 +2633,8 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 if (debug_control::DEBUG >= debug_control::BASIC)
 	debug << "partition_peer_code:   unicursal component " << j << " is part of partition " << i << endl;
 					
+				first_edge_on_partition_cpt[component] = edge;
+				
 				int num_component_edges = code_data.num_component_edges[j];
 				int first_edge = code_data.first_edge_on_component[j];
 				
@@ -2625,17 +2644,35 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 					int row;
 					int column;
 										
-					if (old_edge % 2 == 0)
+					if (code_data.type == generic_code_data::gauss_code)
 					{
-						row = 0; // even
-						column = old_edge/2;
-						
-						new_partition_labels[2][column] = component;
+						column = code_data.term_crossing[old_edge];
+						if (code_data.code_table[EVEN_TERMINATING][column] == old_edge)
+						{
+							row = 0;
+						}
+						else
+						{
+							row = 1;
+							new_partition_labels[2][column] = component;
+							new_partition_labels[3][column] = partition_crossing++;
+						}
+							
 					}
 					else
 					{
-						row = 1; // odd
-						column = code_data.code_table[EPEER][(old_edge-1)/2]/2;
+						if (old_edge % 2 == 0)
+						{
+							row = 0; // even
+							column = old_edge/2;
+							
+							new_partition_labels[2][column] = component;
+						}
+						else
+						{
+							row = 1; // odd
+							column = code_data.code_table[EPEER][(old_edge-1)/2]/2;
+						}
 					}
 					
 if (debug_control::DEBUG >= debug_control::BASIC)
@@ -2650,31 +2687,45 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 }					
 					new_partition_labels[row][column] = edge;
 					edge++;					
-				}
-						
-				/* write the new edge labels into the correct location in the OPEER row of a partition code table, 
-				   and set the TYPE LABEL and COMPONENT rows 
-				*/
-				for (int j=0; j < code_data.num_crossings; j++)
+				}						
+			}
+
+if (debug_control::DEBUG >= debug_control::BASIC)
+{
+	debug << "partition_peer_code: first_edge_on_partition_cpt " ;
+	for (int j=0; j< num_partition_components; j++)
+		debug << first_edge_on_partition_cpt[j] << ' ';
+	debug << endl;
+}					
+			
+			/* write the new edge labels into the correct location in the EPEER and OPEER rows of the partition code table, 
+			   and set the TYPE LABEL and COMPONENT rows 
+			*/
+			for (int j=0; j < code_data.num_crossings; j++)
+			{
+				if (new_partition_labels[0][j] != -1)
 				{
-					if (new_partition_labels[0][j] != -1)
-					{
-						int crossing = new_partition_labels[0][j]/2;
-						partition_code_table[OPEER][crossing] = new_partition_labels[1][j];
-						partition_code_table[COMPONENT][crossing] = new_partition_labels[2][j];
-						partition_code_table[TYPE][crossing] = code_data.code_table[TYPE][j];
-						partition_code_table[LABEL][crossing] = code_data.code_table[LABEL][j];
+					int crossing;
+					
+					if (code_data.type == generic_code_data::gauss_code)
+						crossing = new_partition_labels[3][j];
+					else
+						crossing = new_partition_labels[0][j]/2;
 						
-						if (track_zig_zag_counts)
-						{
-							partition_zig_zag_count[0][crossing] = code_data.zig_zag_count[0][j];
-							partition_zig_zag_count[1][crossing] = code_data.zig_zag_count[1][j];
-						}
+					partition_code_table[EPEER][crossing] = new_partition_labels[0][j];
+					partition_code_table[OPEER][crossing] = new_partition_labels[1][j];
+					partition_code_table[COMPONENT][crossing] = new_partition_labels[2][j];
+					partition_code_table[TYPE][crossing] = code_data.code_table[TYPE][j];
+					partition_code_table[LABEL][crossing] = code_data.code_table[LABEL][j];
+					
+					if (track_zig_zag_counts)
+					{
+						partition_zig_zag_count[0][crossing] = code_data.zig_zag_count[0][j];
+						partition_zig_zag_count[1][crossing] = code_data.zig_zag_count[1][j];
 					}
 				}
-				
 			}
-			
+				
 if (debug_control::DEBUG >= debug_control::BASIC)
 {
 	debug << "partition_peer_code: new_partition_labels even terminating: ";
@@ -2683,6 +2734,15 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 	debug << "\npartition_peer_code: new_partition_labels odd terminating:  ";
 	for (int k=0; k< code_data.num_crossings; k++)
 		debug << setw(3) << new_partition_labels[1][k];
+	debug << "\npartition_peer_code: new_partition_labels component:  ";
+	for (int k=0; k< code_data.num_crossings; k++)
+		debug << setw(3) << new_partition_labels[2][k];
+	if (code_data.type == generic_code_data::gauss_code)
+	{
+		debug << "\npartition_peer_code: new_partition_labels partition crossing:  ";
+		for (int k=0; k< code_data.num_crossings; k++)
+			debug << setw(3) << new_partition_labels[3][k];
+	}
 	debug << endl;
 	debug << "partition_peer_code: partition_code_table" << endl;
 	debug << "partition_peer_code:  odd peer: ";
@@ -2709,16 +2769,25 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 	}
 }
 			generic_code_data partition_code_data;
-			partition_code_data.type = generic_code_data::code_type::peer_code;
+			partition_code_data.type = code_data.type;
+			partition_code_data.immersion = code_data.immersion;
+			partition_code_data.num_components = num_partition_components;
 			partition_code_data.num_crossings = num_partition_crossings;
 			partition_code_data.code_table = partition_code_table;
+			partition_code_data.first_edge_on_component = first_edge_on_partition_cpt;
+
+if (debug_control::DEBUG >= debug_control::BASIC)
+{
+	debug << "partition_peer_code: partition_code_data: " << endl;
+	print_code_data(debug,partition_code_data,"partition_peer_code:  ");
+}
 						
 			ostringstream oss;
-			write_peer_code(oss, partition_code_data);
+			write_code_data(oss, partition_code_data);
 			
 			if (i==0)
 			{
-				read_peer_code(first_code_data, oss.str());
+				read_code_data(first_code_data, oss.str());
 
 				first_code_data.immersion = code_data.immersion;
 				first_code_data.head_zig_zag_count = code_data.head_zig_zag_count;				
@@ -2738,7 +2807,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 			}
 			else
 			{
-				read_peer_code(subsequent_code_data, oss.str());			
+				read_code_data(subsequent_code_data, oss.str());			
 			}	
 
 			if (track_zig_zag_counts)
@@ -2768,10 +2837,10 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 	if (i==0)
 	{
 		debug << "partition_peer_code:   first partition peer code ";
-		write_peer_code(debug,first_code_data);
+		write_code_data(debug,first_code_data);
 		debug << endl;
 		debug << "partition_peer_code:   first partition code_data" << endl;
-		print_code_data(first_code_data, debug, "partition_peer_code:   ");
+		print_code_data(debug, first_code_data, "partition_peer_code:   ");
 		debug << "partition_peer_code:   component_flags updated to: ";
 		for (unsigned int j=0; j< component_flags.size(); j++)
 			debug << component_flags[j] << ' ';
@@ -2780,10 +2849,10 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 	else
 	{
 		debug << "partition_peer_code:   subsequent partition peer code ";
-		write_peer_code(debug,subsequent_code_data);
+		write_code_data(debug,subsequent_code_data);
 		debug << endl;
 		debug << "partition_peer_code:   subsequent partition code_data" << endl;
-		print_code_data(subsequent_code_data, debug, "partition_peer_code:   ");
+		print_code_data(debug, subsequent_code_data, "partition_peer_code:   ");
 	}
 }							
 		}
@@ -2808,7 +2877,7 @@ void cycle_gauss_code_labels(generic_code_data& gauss_code_data, int edge)
 if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 {
 	debug << "cycle_gauss_code_labels: initial gauss_code_data :" << endl;
-	print_code_data(gauss_code_data,debug,"cycle_gauss_code_labels: ");	
+	print_code_data(debug,gauss_code_data,"cycle_gauss_code_labels: ");	
 	debug << "cycle_gauss_code_labels: cycling component containing edge " << edge << endl;
 }
 
@@ -2881,7 +2950,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 {
 	debug << "cycle_gauss_code_labels: resultant gauss_code_data :" << endl;
-	print_code_data(gauss_code_data,debug,"cycle_gauss_code_labels: ");	
+	print_code_data(debug,gauss_code_data,"cycle_gauss_code_labels: ");	
 }
 	
 }
@@ -2976,7 +3045,7 @@ list<int> vertex_span (generic_code_data& code_data, int initial_crossing, vecto
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
     debug << "vertex_span: checking code ";
-	write_peer_code (debug, code_data);
+	write_code_data (debug, code_data);
 	debug << "\nvertex_span: starting from crossing " << initial_crossing;
 }
 
@@ -3149,7 +3218,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "calculate_turning_cycles: code data: ";
 	write_peer_code (debug, code_data);
 	debug << endl;
-	print_code_data(code_data,debug,"calculate_turning_cycles: ");	
+	print_code_data(debug,code_data,"calculate_turning_cycles: ");	
 }
 
 	matrix<int>& code_table = code_data.code_table;
@@ -3783,11 +3852,22 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
    where the new_crossing number is determined by the order in which we encounter the crossings.  We then append the 
    crossing signs obtained by that choice of orientation and starting position and compare the concatenation of the vector
    and signs lexicographcally.  That is, we use the lexicographical vector comparison operator to compare the vectors and
-   if they are equal, compare the signs manually to select the minimal representation.
+   if they are equal, compare the signs manually (preferring + over -) to select the minimal representation.
+   
+   For links, we have to consider the case that a diagram admits two different Gauss codes having the same sequence
+   {<crossing>,<O|U>} and signs.  For example, the unoriented immersion [13 -15 17 -1 3 -5, 11 7 -9] / * + - - + * + * - admits the
+   two Gauss code descriptions 
+   
+           1 2 -3 -5 -1 3 4 -6,-2 -4 5 6/+ - + + - +  and
+           1 2 -3 -5,-1 3 4 -6 -2 -4 5 6/+ - + + - +
+   
+   which differ only in the position of the component separator.  To handle this we consider the number of terms in each 
+   component and prefer the smallest vector lexicographically.  Thus, the first of the above codes has component lengths
+   6 and 4, whereas the second has component lengths 4 and 6, so we prefer the second form.
    
    Every Gauss code has a unique over-preferered representation, thus there is a unique over-preferred description of each 
    diagram.  However, reflecting a diagram in a disjoint line of the plane results in a diagram that may differ from the 
-   original but has the same Gauss code, so th eover-preferred Gauss code does not determine a unique diagram
+   original but has the same Gauss code, so the over-preferred Gauss code does not determine a unique diagram
 */
 string over_preferred_gauss_code(generic_code_data& code_data, bool unoriented)
 {
@@ -3797,7 +3877,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "over_preferred_gauss_code: initial code data ";	
 	write_code_data(debug,code_data);
 	debug << endl;
-	print_code_data(code_data, debug, "over_preferred_gauss_code: ");
+	print_code_data(debug, code_data, "over_preferred_gauss_code: ");
 }
 
 	generic_code_data g; // Gauss code data
@@ -3820,7 +3900,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "over_preferred_gauss_code: gauss_code_data ";	
 	write_code_data(debug,g);
 	debug << endl;
-	print_code_data(g, debug, "over_preferred_gauss_code: ");
+	print_code_data(debug, g, "over_preferred_gauss_code: ");
 }
 		
 	}
@@ -3831,6 +3911,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	vector<char> min_perm_sign;
 	vector<int> min_component_perm;
 	vector<int> min_component_cycle;
+	vector<int> min_component_length; // the number of terms in each component when considered in the order determined by min_component_perm
 	vector<int> min_term_crossing;
 	vector<bool> min_r_flag;
 	
@@ -3920,6 +4001,11 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		debug << component_perm[i] << ' ';
 	debug << endl;
 }	
+
+			vector<int> component_length(num_components);
+			for (int i=0; i< num_components; i++)
+				component_length[i] = g.num_component_edges[component_perm[i]];
+			
 			/* component_cycle will record the cyclic rotation of each component, enumerated
 			   in the order given by g, by recording which term of the component we are going 
 			   to start at.  We will then need to find this instance and evaluate the starting 
@@ -4155,15 +4241,19 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 				else if (perm_weight == min_perm_weight)
 				{
 					/* compare signs */
+					bool equal_signs = true;
+					
 					for (int i=0; i< num_crossings; i++)
 					{
 						if (perm_sign[i] == '+' && min_perm_sign[i] == '-')
 						{
+							equal_signs = false;
 							minimum_weight = true;
 							break;
 						}
 						else if (perm_sign[i] == '-' && min_perm_sign[i] == '+')
 						{
+							equal_signs = false;
 							break; // perm_sign lexicographically bigger than min_perm_sign
 						}
 					}
@@ -4174,6 +4264,21 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		debug << min_perm_sign[i] << ' ';
 	debug << endl;
 }
+					if (equal_signs && num_components >1)
+					{
+						/* compare component lengths */
+						if (component_length < min_component_length)
+							minimum_weight = true;
+							
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+{
+	debug << "over_preferred_gauss_code:       perm_weight equal to min_perm_weight and perm_sign equials min_perm_sign; component_length" << (minimum_weight? "" : " not") << " better than min_component_length ";
+	for (int i=0; i< num_components; i++)
+		debug << min_component_length[i] << ' ';
+	debug << endl;
+}
+							
+					}
 				}
 
 				if (minimum_weight)
@@ -4193,6 +4298,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 					min_perm = perm;
 					min_component_perm = component_perm;
 					min_component_cycle = component_cycle;
+					min_component_length = component_length;
 					min_term_crossing = term_crossing;
 					min_r_flag = r_flag;					
 				}
@@ -4385,7 +4491,11 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	oss << '/';
 
 	for (int i=0; i< num_crossings; i++)
-		oss << min_perm_sign[i] << ' ';
+	{
+		oss << min_perm_sign[i];
+		if (i < num_crossings - 1)
+			oss << ' ';
+	}
 		
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "over_preferred_gauss_code: over preferred Gauss code string = " << oss.str() << endl;

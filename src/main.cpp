@@ -91,6 +91,7 @@ to vertices joined by an edge of the triangulation.
    Version 16:   added the ability to draw a single smoothed state rather than all of them (February 2022)
    Version 17:   added planar diagram support and optimized the Gauss to peer code conversion (March 2022)
    Version 17.1: added automatic sizing of smoothed crossings and the ability to shift smoothed crossings labels to one side (March 2022)
+   Version 18:   added labelling of Gauss crossings, as specified by Gauss code or planar diagram input, or calculated from peer code input (October 2022)
 **************************************************************************/
 using namespace std;
 
@@ -109,7 +110,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "17.1";
+string 		version  = "18";
    
 
 extern ofstream    debug;
@@ -208,9 +209,9 @@ void check_debug_option_parameters(char* pptr, string option);
 void read_code_data (generic_code_data& code_data, string input_string);
 void triangulate (generic_code_data& code_data, matrix<int>& cycle, int num_cycles, int num_left_cycles, int infinite_region);
 double badness(string vertex_file, generic_code_data& code_data);
-void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, matrix<double> vcoords, vector<double> vertex_radius, vector<int>* _state=0);
+void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, matrix<double> vcoords, vector<double> vertex_radius, vector<int>* auxiliary_data=0);
 void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, 
-                    char const* circlepack_output_file, char const* circlepack_output_savefile, vector<int>* _state=0);
+                    char const* circlepack_output_file, char const* circlepack_output_savefile, vector<int>* auxiliary_data=0);
 bool calculate_turning_cycles(generic_code_data& code_data, matrix<int>& cycle, int& num_left_cycles, int& num_cycles);
 bool valid_knotoid_input(generic_code_data& code_data);
 void magnify(generic_code_data& code_data);
@@ -223,10 +224,7 @@ int KS_circle_pack (char const* inputfile, char const* outputfile);
 void draw_convex_triangulation (metapost_control& mp_control, const char* filename);
 void draw_lace (metapost_control& mp_control, string input_string);
 bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal=true, vector<int>* gauss_crossing_map=0, bool evaluate_gauss_crossing_perm=false);
-
-
-
-int debug_control::DEBUG = debug_control::OFF;
+vector<int> identify_gauss_crossings(generic_code_data& code_data);
 
 void sigfpe_handler (int sig) 
 {
@@ -502,7 +500,7 @@ try {
 		bool planar_diagram_input = false;
 		
 		generic_code_data code_data;
-		vector<int> gauss_crossing_map;  // used for drawing specific smoothed states of Gauss codes.
+		vector<int> gauss_crossing_map;  // used for drawing specific smoothed states of Gauss codes and adding Gauss crossing labels.
 		int num_cycles = 0;
 		int num_left_cycles;
 		int num_crossings;
@@ -575,6 +573,10 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			if (peer_code_input)
 			{
 				read_peer_code(code_data,input_string);		
+				
+				if (mp_control.gauss_crossings)
+					gauss_crossing_map = identify_gauss_crossings(code_data);
+					
 			}
 			else
 			{	
@@ -588,7 +590,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				gauss_crossing_map = vector<int>(gauss_code_data.num_crossings);
 
 				/* If we're given a Gauss code that does not start at crossing 1, then gauss_arc 0 does not terminate at crossing 1.
-				   The following call to gauss_to_peer_code evaluated the gauss_crossing_map, which tells us the order in which we first
+				   The following call to gauss_to_peer_code evaluates the gauss_crossing_map, which tells us the order in which we first
 				   encounter the classical immersion crossings as we trace the diagram from gauss_arc zero.
 				   gauss_crossing_map[i] is the immersion crossing corresponding to Gauss crossing i
 				*/
@@ -1159,7 +1161,10 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			}
 			else
 			{
-				write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile);		
+				if (peer_code_input && !mp_control.gauss_crossings)
+					write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile);							
+				else
+					write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile,&gauss_crossing_map);		
 			}
 			
 			mp_control.draw_shrink_effect = saved_draw_shrink_effect;
@@ -1491,6 +1496,13 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: frame-corners read from " << source << endl;
 	}
+	else if (!strcmp(loc_buf,"gauss-crossings"))
+	{
+    	mp_control.gauss_crossings = true;
+    	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: gauss_crossings read from " << source << endl;
+	}
 	else if (!strcmp(loc_buf,"gauss-labels"))
 	{
     	mp_control.gauss_labels = true;
@@ -1569,6 +1581,28 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
     	mp_control.draw_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: draw_labels read from " << source << endl;
+	}
+	else if (!strcmp(loc_buf,"label-shift"))
+	{
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: setting label_shift as a result of " << source << " option" << endl;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.label_shift,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify the number of units u to shift labels if you use the label-shift option, e.g. 'label-shift=60'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: label_shift read from " << source << ", label_shift = " 
+	      << mp_control.label_shift << endl;
+}	
 	}
 	else if (!strcmp(loc_buf,"laces"))
 	{
@@ -1960,28 +1994,6 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "set_programme_long_option: smoothed_state_disc_size read from " << source << ", smoothed_state_disc_size = " 
 	      << mp_control.smoothed_state_disc_size << endl;
-}	
-	}
-	else if (!strcmp(loc_buf,"smoothed-label-shift"))
-	{
-
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_long_option: setting smoothed_label_shift as a result of " << source << " option" << endl;
-
-		if (*c1 == '=')
-		{
-			get_number(mp_control.smoothed_label_shift,++c1);
-		}
-		else
-		{
-			cout << "\nYou must specify the number of units u to shift labels if you use the smoothed-label-shift option, e.g. 'smoothed-label-shift=60'" << endl;
-			exit(0);
-		}
-		
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-{
-	debug << "set_programme_long_option: smoothed_label_shift read from " << source << ", smoothed_label_shift = " 
-	      << mp_control.smoothed_label_shift << endl;
 }	
 	}
 	else if (!strcmp(loc_buf,"state"))
@@ -2676,10 +2688,12 @@ void help_info(bool exit_after_help)
 	cout << "  edge-factor=<float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement\n";
 	cout << "  first-gap: always use the first gap as the active gap in edge distribution placement\n";
 	cout << "  frame-corners: show frame corners when tracking placement iteration\n";
+	cout << "  gauss-crossings: show labels for the Gauss crossings, as specified by Gauss code or planar diagram input, or calculated from peer code input\n";
 	cout << "  gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1\n";
 	cout << "  grid=<grid-size>: draw a grid to assist with using the translate option, default 10 (percent of diagram width or height)\n";
 	cout << "  h-units: size of horizontal spacing for laces, in multiples of unit\n";
 	cout << "  hyperbolic: drawing diagram in the hyperbolic plane\n";
+	cout << "  label-shift=<n>: set the number of units u by which the labels of small smoothed crossings or Gauss crossings should be moved (default n=50)\n";
 	cout << "  left-term-tail-points: when drawing laces include tail points for body disc arcs terminating on the left side of a cudgel\n";
 	cout << "  midpoints=<arc-list>: specify those adjacent coordinates in a lace diagram between which a mipoint should be added\n";
 	cout << "                        <arc-list> =  p-q:r-s:t-u..., where midpoints are required between zp and zq, zr and zs, zt and zu etc.\n";
@@ -2701,7 +2715,6 @@ void help_info(bool exit_after_help)
 	cout << "                                               factor of the average area\n";
 	cout << "  smoothed-disc-size=<n>: set the smoothed state disc size multiplier to determine the size of smoothed crossings n*disc-size (default n=6)\n";	
 	cout << "  smoothed-disc-threshold=<n>: set the diameter in units u of the smoothed crossing disc below which the label of the crossings should be moved (default n=30)\n";
-	cout << "  smoothed-label-shift=<n>: set the number of units u by which the labels of small smoothed crossings should be moved (default n=50)\n";
 	cout << "  state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram\n";
 	cout << "  transate=<translation-list>: specify a list of vertices together with a translation in the form UxPyQ:VxRyS... where U and V are vertex numbers\n";
 	cout << "                               and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates shifting vertex 10 +8% to the right -3% up\n";

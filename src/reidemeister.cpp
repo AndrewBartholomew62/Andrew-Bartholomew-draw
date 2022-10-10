@@ -1135,7 +1135,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "remove_edge_flags_from_peer_code: new code_data: " << endl;
-	print_code_data (code_data, debug, "remove_edge_flags_from_peer_code: \t");
+	print_code_data (debug, code_data, "remove_edge_flags_from_peer_code: \t");
 	debug << "remove_edge_flags_from_peer_code: removed " << num_components - code_data.num_components << " components" << endl;
 }		
 
@@ -2027,7 +2027,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
-	print_code_data(code_data,debug,"virtual_Reidemeister_II_plus: ");
+	print_code_data(debug,code_data,"virtual_Reidemeister_II_plus: ");
 }	
 	
 	matrix<int>& code_table = code_data.code_table;
@@ -2781,7 +2781,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "remove_Reidemeister_II: virtual Reidemister II detour found" << endl;
-	print_code_data(code_data, debug, "remove_Reidemeister_II: ");
+	print_code_data(debug, code_data, "remove_Reidemeister_II: ");
 }
 
 	
@@ -4771,7 +4771,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "remove_Reidemeister_II: new code_data: " << endl;
-	print_code_data (code_data, debug, "remove_Reidemeister_II:   ");
+	print_code_data (debug, code_data, "remove_Reidemeister_II:   ");
 }		
 				}
 			}
@@ -5505,7 +5505,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "Reidemeister_III_move: returning updated_peer_code_data: ";
 	write_code_data(debug, updated_peer_code_data);
 	debug << endl;
-	print_code_data(updated_peer_code_data,debug,"Reidemeister_III_move: ");
+	print_code_data(debug,updated_peer_code_data,"Reidemeister_III_move: ");
 }	
 
 		return updated_peer_code_data;
@@ -5517,7 +5517,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "Reidemeister_III_move: returning updated_gauss_code_data: ";
 	write_code_data(debug, updated_gauss_code_data);
 	debug << endl;
-	print_code_data(updated_gauss_code_data,debug,"Reidemeister_III_move: ");
+	print_code_data(debug,updated_gauss_code_data,"Reidemeister_III_move: ");
 }	
 		return updated_gauss_code_data;
 	}

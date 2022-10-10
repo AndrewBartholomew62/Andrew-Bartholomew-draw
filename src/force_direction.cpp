@@ -70,7 +70,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "force_directed_placement: code_data: ";
 	write_code_data(debug,code_data);
 	debug << endl;
-	print_code_data(code_data, debug, "force_directed_placement: ");
+	print_code_data(debug, code_data, "force_directed_placement: ");
 	debug << "force_directed_placement: num_iterations = " << num_iterations << endl;
 	if (TRACK_PLACEMENT_ITERATION)
 		debug << "force_directed_placement: placement_iteration_tracking_step = " << placement_iteration_tracking_step << endl;
@@ -730,7 +730,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "centre_of_gravity_placement: code_data: ";
 	write_code_data(debug,code_data);
 	debug << endl;
-	print_code_data(code_data, debug, "centre_of_gravity_placement: ");
+	print_code_data(debug, code_data, "centre_of_gravity_placement: ");
 	debug << "centre_of_gravity_placement: num_iterations = " << num_iterations << endl;
 	if (TRACK_PLACEMENT_ITERATION)
 		debug << "centre_of_gravity_placement: placement_iteration_tracking_step = " << placement_iteration_tracking_step << endl;

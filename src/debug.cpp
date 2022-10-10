@@ -30,8 +30,10 @@ ofstream debug;
 
    
 */
+#include <debug-control.h>
 #include <debug.h>
 
+int debug_control::DEBUG = debug_control::OFF; 
 
 #include <util.h>
 #include <algorithm>

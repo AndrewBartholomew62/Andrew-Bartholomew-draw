@@ -825,12 +825,16 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	debug << "compute_circle_pack_centres:   vertex 0 centre = (" << vertex_centre[0][0] << "," << vertex_centre[0][1] << ")" << endl;
 	debug << "compute_circle_pack_centres:   first_petal = " << first_petal << endl;
 }		
-	/* we don't want to put a type 4 vertex on the x-axis, so make sure that the
-	   first petal is an interior vertex.
+	/* we don't want to put a type 4 vertex on the x-axis, so make sure that the first petal is an interior vertex.
+	   to accommodate infinite turning cycles with just two edges, we may have to look past the second petal in 
+	   flowers as well as the first.
 	*/
 	if (first_petal >= num_type_1234_vertices)
 	{
 		first_petal = flowers[0][2]-1;
+
+		if (first_petal >= num_type_1234_vertices)
+			first_petal = flowers[0][3]-1;
 	
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	debug << "compute_circle_pack_centres:   first_petal is a type 4 vertex, changing first petal to " << first_petal << endl;

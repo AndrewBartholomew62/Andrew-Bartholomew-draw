@@ -172,7 +172,7 @@ bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& pe
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: initial gauss_code_data :" << endl;
-	print_code_data(gauss_code_data,debug,"gauss_to_peer_code: ");	
+	print_code_data(debug,gauss_code_data,"gauss_to_peer_code: ");	
 }
 
 	int num_components = gauss_code_data.num_components;
@@ -187,7 +187,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "gauss_to_peer_code: gauss_code_data includes an unsupported crossing label" << endl;
-	print_code_data(gauss_code_data,debug,"gauss_to_peer_code: ");	
+	print_code_data(debug,gauss_code_data,"gauss_to_peer_code: ");	
 }
 		    return false;
 		}
@@ -292,7 +292,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		
 		list<gc_pc_xlabels> candidate_virtual_crossings;
 		list<int> candidate_diametric_virtual_crossings;
-		vector<int> fringe (2*num_gauss_crossings);
+		vector<int> fringe (max(4,2*num_gauss_crossings)); // need at least four fringe edges, even for codes like 1,-1/+
 		
 		
 		
@@ -2648,7 +2648,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: peer code data produced from gauss code:" << endl;
-	print_code_data(peer_code_data,debug,"gauss_to_peer_code: ");	
+	print_code_data(debug,peer_code_data,"gauss_to_peer_code: ");	
 }
 	
 	if (peer_code_data.immersion == generic_code_data::character::KNOTOID && num_virtual_crossings_on_gauss_arc[0] != 0)
@@ -2710,7 +2710,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: adjusted peer code data for knotoid gauss code:" << endl;
-	print_code_data(peer_code_data,debug,"gauss_to_peer_code: ");	
+	print_code_data(debug,peer_code_data,"gauss_to_peer_code: ");	
 }
 		/* update the immersion_crossing_peers for the Gauss crossings so we determine the correct gauss_crossing_map */
 if (debug_control::DEBUG >= debug_control::SUMMARY)

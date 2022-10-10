@@ -5,7 +5,9 @@
 string invstr(string& str)
 double badness(string vertex_file, generic_code_data& code_data)
 bool first_occurrence(matrix<int>& code_table, matrix<int>& infinite_cycle_first_visit, int crossing, int position)
-void write_metapost(ofstream& os, matrix<int>& code_table, string title, metapost_control& mp_control)
+void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, matrix<double> vcoords, vector<double> vertex_radius, vector<int>* auxiliary_data=0)
+void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, 
+                    char const* circlepack_output_file, char const* circlepack_output_savefile, vector<int>* auxiliary_data=0)
 bool calculate_turning_cycles(generic_code_data& code_data, matrix<int>& cycle, int& num_left_cycles, int& num_cycles)
 void print (metapost_control& mp_control, ostream& os, string prefix)
 void set_edge_directions(generic_code_data& code_data, matrix<double>& vcoords, matrix<double>& edge_direction)
@@ -283,7 +285,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	return first;
 }
 
-void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, matrix<double> vcoords, vector<double> vertex_radius, vector<int>* _state=0)
+/* The auxiliary_data parameter in write_metapost is used to convey a specific smoothed state if a single state is to be drawn, or to convey the gauss_crossing map when a Gauss_code (or PD data)
+   is being drawn, for use with the gauss-crossings option.
+*/
+void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, matrix<double> vcoords, vector<double> vertex_radius, vector<int>* auxiliary_data=0)
 {
 	int num_crossings = code_data.num_crossings;
 	int num_components = code_data.num_components;
@@ -294,9 +299,9 @@ void write_metapost(ofstream& os, generic_code_data& code_data, string title, me
 	
 	vector<int> state;
        
-	if (mp_control.state_smoothed && _state !=0)
+	if (mp_control.state_smoothed && auxiliary_data !=0)
 	{
-		state = *_state;
+		state = *auxiliary_data;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
@@ -746,7 +751,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		
 	delete Cycle;
 	
-	if (mp_control.state_smoothed && _state !=0)
+	if (mp_control.state_smoothed && auxiliary_data !=0)
 	{
 		os << "% state:  ";
 		for (unsigned int i=0; i< state.size(); i++)
@@ -1600,7 +1605,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				bool A_crossing;
 				bool seifert_smoothed;
 				
-				if (mp_control.state_smoothed && _state != 0 && !(ignore_shortcut && shortcut_crossing[i]))
+				if (mp_control.state_smoothed && auxiliary_data != 0 && !(ignore_shortcut && shortcut_crossing[i]))
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is smoothed" << endl;
@@ -1689,7 +1694,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					else if (mp_control.script_labels)
 						os << "\\sevenrm ";
 				    os << (A_crossing?"A":"B") << " etex, z" << i << "+if(r< " << mp_control.smoothed_disc_threshold << "u):("
-				       << mp_control.smoothed_label_shift << "u*cosd theta, " << mp_control.smoothed_label_shift << "u*sind theta) else:(0,0) fi);" << endl;				    
+				       << mp_control.label_shift << "u*cosd theta, " << mp_control.label_shift << "u*sind theta) else:(0,0) fi);" << endl;				    
 											
 					os << "z" << 2*num_vertices+4*i << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point-1<< "," << et_point << ") of p" << et_path << ";" << endl;
 					os << "z" << 2*num_vertices+4*i+1 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point-1 << "," << ot_point <<  ") of p" << ot_path << ";" << endl;
@@ -1832,6 +1837,45 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 	}
 
+	if (mp_control.gauss_crossings && auxiliary_data != 0)
+	{
+		vector<int>& gauss_crossing_map = *auxiliary_data;
+		
+		for (size_t i=0; i< gauss_crossing_map.size(); i++)
+		{
+			int crossing = gauss_crossing_map[i];
+
+			/* identify the components and corresponding paths of the even terminating and odd terminating edges */
+			int et_edge = code_table[EVEN_TERMINATING][crossing];
+			int ot_edge = code_table[ODD_TERMINATING][crossing];
+			int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
+			int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
+			int et_path = 2 * (et_component+1);
+			int ot_path = 2 * (ot_component+1);
+			int et_point = edge_path_offset[code_table[EVEN_TERMINATING][crossing]]+1;
+			int ot_point = edge_path_offset[code_table[ODD_TERMINATING][crossing]]+1;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
+	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
+}					
+			if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
+				et_point++; // move et_point past the second type 4 vertex
+			else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
+				ot_point++; // move ot_point past the second type 4 vertex
+
+			os << "theta := angle((direction " << et_point << " of p" << et_path << ")+(direction " << ot_point << " of p" << ot_path << "))-90;" << endl;
+
+			os << "label (btex $"; 
+			if (mp_control.scriptscript_labels)
+				os << "\\textfont0=\\fiverm ";
+			else if (mp_control.script_labels)
+				os << "\\textfont0=\\sevenrm ";
+
+		    os << i+1 << "$ etex, z" << crossing << "+(" << mp_control.label_shift << "u*cosd theta, " << mp_control.label_shift << "u*sind theta));" << endl;				    
+		}
+	}
 	if (mp_control.circle_packing)
 	{
 		for (int i=0; i< num_type1234_vertices; i++)
@@ -1855,7 +1899,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 }
 
 void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, 
-                    char const* circlepack_output_file, char const* circlepack_output_savefile, vector<int>* _state=0)
+                    char const* circlepack_output_file, char const* circlepack_output_savefile, vector<int>* auxiliary_data=0)
 {
 	ifstream Cinput;
 			
@@ -1906,7 +1950,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	
 	Sinput.close();
 
-	write_metapost(output, code_data, title, mp_control, vcoords, vertex_radius, _state);		
+	write_metapost(output, code_data, title, mp_control, vcoords, vertex_radius, auxiliary_data);		
 }
 
 void print (metapost_control& mp_control, ostream& os, string prefix)
@@ -2553,4 +2597,154 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 }
 	
 	return parity;
+}
+
+
+/* identify_gauss_crossings returns a vector, gauss_crossing_map that maps Gauss crossing i to  gauss_crossing_map[i] */
+vector<int> identify_gauss_crossings(generic_code_data& code_data)
+{
+
+	matrix<int>& code_table = code_data.code_table;
+	int num_crossings = code_data.num_crossings;
+	
+	vector<int>& term_crossing = code_data.term_crossing;
+	int num_edges = 2*num_crossings;
+	vector<int> edge_flag(num_edges); // initialized to zero
+
+		
+	int num_classical_crossings = num_crossings;
+	bool pure_knotoid_code_data = false;
+	vector<int>& shortcut_crossing = code_data.shortcut_crossing;
+	
+	for (int i=0; i< num_crossings; i++)
+	{
+		if (code_table[LABEL][i] == generic_code_data::VIRTUAL)
+			num_classical_crossings--;
+	}
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings: num_classical_crossings = " << num_classical_crossings << endl;
+
+	if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1 && shortcut_crossing.size())
+	{
+		pure_knotoid_code_data = true;
+		for (unsigned int i=0; i< shortcut_crossing.size(); i++)
+		{
+			if (shortcut_crossing[i] != 0)
+				num_classical_crossings--;
+		}
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+	debug << "identify_gauss_crossings: knotoid: num_classical_crossings = " << num_classical_crossings << endl;
+	}
+
+	int num_classical_crossings_visited = 0;
+		
+	/* gauss_crossing_map records the immersion crossings corresponding to Gauss crossings
+	   so that gauss_crossing_map[i] is the immersion crossing corresponding to the ith Gauss crossing.
+	   
+	   crossing_visited will be a flag to indicate whether the ith immersion crossing
+	   has been recorded in gauss_crossing_map or not.
+	*/
+	vector<int> gauss_crossing_map(num_classical_crossings);
+	vector<int> crossing_visited(num_crossings);
+
+	int start=0;
+	int edge=0;
+	bool complete = false;
+		
+	do 
+	{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings: component_start = " << start << endl;
+			
+		/*	trace this component */
+		do
+		{	
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings: edge = " << edge;
+			edge_flag[edge] = 1;
+			int next_crossing = term_crossing[edge];
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", next_crossing = " << next_crossing;
+		
+			if (code_table[LABEL][next_crossing] == generic_code_data::VIRTUAL)
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", is virtual" << endl;
+			}
+			else if (pure_knotoid_code_data && shortcut_crossing[next_crossing])
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", is a shortcut crossing" << endl;
+			}
+			else if ((edge%2 != 0 && code_table[LABEL][next_crossing] == generic_code_data::POSITIVE) ||
+			    (edge%2 == 0 && code_table[LABEL][next_crossing] == generic_code_data::NEGATIVE))
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", going under" << endl;	
+			}
+			else
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", going over" << endl;
+			}
+				
+			if (code_table[LABEL][next_crossing] != generic_code_data::VIRTUAL && !(pure_knotoid_code_data && shortcut_crossing[next_crossing]))
+			{
+				if(crossing_visited[next_crossing])
+				{
+					for (int i=0; i< num_classical_crossings_visited; i++)
+					{
+						if (gauss_crossing_map[i] == next_crossing)
+						{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings:   second visit to Gauss crossing " << i+1<< endl;
+							break;
+						}
+					}
+				}
+				else
+				{
+
+					gauss_crossing_map[num_classical_crossings_visited] = next_crossing;
+					crossing_visited[next_crossing] = 1;
+					num_classical_crossings_visited++;
+					
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings:   first visit, becomes Gauss crossing " << num_classical_crossings_visited << endl;
+				}
+
+				if (edge%2)
+					edge = code_table[EVEN_ORIGINATING][next_crossing];
+				else
+					edge = code_table[ODD_ORIGINATING][next_crossing];					
+			}
+			else
+			{
+				/* just move on around the component */				
+				if (edge%2)
+					edge = code_table[EVEN_ORIGINATING][next_crossing];
+				else
+					edge = code_table[ODD_ORIGINATING][next_crossing];
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings:   doing nothing" << endl;
+			}				
+		} while (edge != start);
+
+		/* look for the start of another component */
+		complete = true;
+		for (int i=0; i< num_edges; i++)
+		{
+			if (edge_flag[i] == 0)
+			{
+				complete = false;
+				start = i;
+				edge = start;
+				break;
+			}
+		}			
+	} while (!complete);
+	
+	return gauss_crossing_map;
 }
