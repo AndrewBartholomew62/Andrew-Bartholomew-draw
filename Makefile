@@ -1,8 +1,8 @@
 
 OBJFILES = util.o debug.o main.o drawfns.o class-control.o input.o \
-           bigint-scalar.o triangulate.o circle_pack.o KS_circle_pack.o generic-code-util.o gauss-to-peer.o \
+           triangulate.o circle_pack.o KS_circle_pack.o generic-code-util.o gauss-to-peer.o \
            force_direction.o magnify.o convex.o shrink_regions.o edge_distribution.o plot.o \
-            gauss-orientation.o reidemeister.o laces.o
+           gauss-orientation.o reidemeister.o laces.o
 DEPS     = ./include/* 
 
 COMPILE  = g++ -Wall -Wno-misleading-indentation -std=c++11 -I ./include -g -c $< -o $@ 
@@ -19,9 +19,6 @@ debug.o: ./src/debug.cpp $(DEPS)
 class-control.o: ./src/class-control.cpp $(DEPS)
 	$(COMPILE)
 	
-bigint-scalar.o: ./src/bigint-scalar.cpp ./include/bigint-scalar.h	
-	$(COMPILE)
-
 input.o: ./src/input.cpp $(DEPS)
 	$(COMPILE)
 
