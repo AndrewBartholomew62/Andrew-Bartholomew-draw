@@ -1,4 +1,36 @@
-/* code table rows
+/********************************************************************************************************************************************
+
+   generic_code_data stores information relating to a peer code or a Gauss code.  It can handle also handle the deprecated immersion code and 
+   supports Gauss codes described as Planar Diagram data.  The code is capable of describing knots and links, and knotoids.
+   
+   The original version of generic_code_data supported only knotoids and multiknotoids involving a single open segment but in April 2023 support 
+   was introduced for multi-linkoids that support multiple open segments.  As in the original version, open segments are stored along with a 
+   shortcut that passes everywhere under the diagram.  With only one open component the requirement was for the segment component to be numbered 
+   first and the head crossing was indicated with a ^ character.  The head crossing was set to -1 when the generic code had no head crossing and 
+   head was consequently used as a flag to indicate pure knotoids, or as a check that the code data was consistent with the immersion character
+   had been set correctly.
+   
+   The updated version in April 2023 introduced the extended peer code syntax:
+   ^: open component with leg the first edge  
+   $: open component with leg the last edge 
+   @: knot-like open component 
+   
+   In addition, we introduced an integer, num_open_components, initialized to zero and record the head crossing for each non-knot-like open component 
+   in vector<int> head.  We have a vector<component_character> component_type that records the nature of each component and, if necessay, the first 
+   under-crossing of the shortcut on that component.
+   
+   For the extended syntax, the first component should be open and numbering should start from the leg, so that the new code is as close 
+   to the legacy format as possible.
+   
+   
+   TO DO
+   =====
+   
+   int head_zig_zag_count wil need migrating to vector<int> head_zig_zag_count if parity arrow supports multi-linkoids.
+   
+   
+   
+   code table rows:
    
    OPEER: for immersion and peer codes, at position i, the (odd) peer of the even edge 2i, for Gauss codes the 
           terminating edge on the first visit to the crossing
@@ -24,15 +56,15 @@
    COMPONENT: at position i, for immersion and peer codes, the component to which the naming edge at crossing i belongs, 
               for Gauss codes, the component to which the first visit to the crossing belongs
               
-   For the parity arrow polynomial, generic_code_data includes the number of irreducible cusps on each edge
-   in zig_zag_count.  This matrix has two rows and num_crossings columns (corresponding to the crossings in the immersion),
-   row 0 (even) stores the number of cusps on the even terminating edge of the crossing and row 1 (odd) stores the number of 
-   cusps on the odd terminating edge.  If the first cusp on the edge is a left turn the count is recorded as a negative number
-   and if the first cusp is a right turn it is recorded as a positive number.
+   For the parity arrow polynomial, generic_code_data includes the number of irreducible cusps on each edge    in zig_zag_count.  This matrix has two 
+   rows and num_crossings columns (corresponding to the crossings in the immersion), row 0 (even) stores the number of cusps on the even terminating 
+   edge of the crossing and row 1 (odd) stores the number of cusps on the odd terminating edge.  If the first cusp on the edge is a left turn the count 
+   is recorded as a negative number and if the first cusp is a right turn it is recorded as a positive number.
 
-*/
+***********************************************************************************************************************************************/
 
 #include <list>
+#include <vector>
 
 #define EPEER 				0	
 #define OPEER 				1	
@@ -44,6 +76,25 @@
 #define ODD_ORIGINATING 	7
 #define COMPONENT 			8	// the component to which the naming (even) edge belongs
 #define CODE_TABLE_SIZE 	9
+
+class component_character
+{
+public:
+
+	enum
+	{
+		CLOSED,
+		PURE_START_LEG, // leg on even edge
+		PURE_END_LEG,   // leg on odd edge
+		KNOT_TYPE_START_LEG, // leg and head on even edge
+		KNOT_TYPE_END_LEG // leg and head on odd edge
+	};
+
+	int type;
+	int head;
+	
+	component_character():type(CLOSED),head(-1){}
+};
 
 class generic_code_data
 {
@@ -78,6 +129,7 @@ public:
 	
 	enum type 
 	{
+		UNKNOWN = 0,
 		TYPE1 = -1,
 		TYPE2 = 1
 	};
@@ -87,11 +139,22 @@ public:
 		CLOSED,
 		LONG_KNOT,
 		PURE_KNOTOID, // indicates a pure knotoid peer code
-		KNOTOID  // indicates knot-type knotoid peer codes and all knotoid Gauss codes
+		KNOTOID,  // indicates knot-type knotoid peer codes and all knotoid Gauss codes
+		MULTI_LINKOID  // with peer codes, requires use of the extended syntax @: knot-like open component $: open component with leg the last edge not the first
 	};
-
-	int type;
+	
+	int type; // code_type
 	int head; // used for knotoids
+	int num_open_components; 
+	
+	/* component_type is used for multi-linkoids.  If immersion == character::MULTI_LINKOID, component_type is a vector of num_components integers pairs that records the 
+	   nature of the component and, if necessary, the first undercrossing in the shortcut corresponding to that component.
+	   - which components are open and which are closed
+	   - whether the component is knot-type open or pure
+	   - whether the leg of the open component is even or odd 
+	*/
+	vector<component_character> component_type; 
+	
 	int head_zig_zag_count; // used with knotoids by parity arrow
 	
     /* immersion records the character of the immersion described by the generic code data and is set to one 
@@ -115,7 +178,7 @@ public:
 	matrix<int> zig_zag_count;  // used by parity arrow polynomial
 
 
-	generic_code_data(): type(unknown),head(-1),head_zig_zag_count(0),immersion(character::CLOSED),num_crossings(0),num_components(0) {}
+	generic_code_data(): type(unknown),num_open_components(0),head_zig_zag_count(0),immersion(character::CLOSED),num_crossings(0),num_components(0) {}
 	generic_code_data(int n, int c): type(unknown),head(-1),head_zig_zag_count(0),immersion(character::CLOSED),num_crossings(n),num_components(c),
 	                                 code_table(matrix<int>(CODE_TABLE_SIZE,n)),num_component_edges(vector<int>(c)), 
 									 first_edge_on_component(vector<int>(c)),term_crossing(vector<int>(2*n)), orig_crossing(vector<int>(2*n)), 
@@ -162,3 +225,5 @@ bool realizable_code_data(generic_code_data& code_data, matrix<int>& cycle, int&
 bool valid_knotoid_input(generic_code_data& code_data);
 string over_preferred_gauss_code(generic_code_data& code_data, bool unoriented);
 int amalgamate_zig_zag_counts(int a, int b);
+string read_dowker_code (string input_string);
+bool non_prime_immersion(generic_code_data& code_data, bool crossing_test);

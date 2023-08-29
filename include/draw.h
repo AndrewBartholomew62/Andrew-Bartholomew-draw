@@ -74,6 +74,7 @@ public:
 	int unit_size;
 	int vertical_units;
 	float cudgel_space;
+	float scale; 
 	bool dash_with_dots;
 	bool knotoid_leg_unbounded;
 	bool one_metapost_path;
@@ -120,7 +121,7 @@ public:
 	                    rotation_degrees(0), rotation_centre_x(0) , rotation_centre_y(0), 
 	                    arrowhead_bp_size(6),cusp_disc_size(7),disc_size(30),grid_size(10), horizontal_units(5), infinite_cycle(-1),
 	                    label_shift(50),pen_size(1),rotation_centre_z(0),smoothed_disc_threshold(30),smoothed_state_disc_size(6),odd_parity_disc_size(12),unit_size(20), vertical_units(5),
-						cudgel_space(1.0), dash_with_dots(false), knotoid_leg_unbounded(false), one_metapost_path(false),
+						cudgel_space(1.0), scale(0), dash_with_dots(false), knotoid_leg_unbounded(false), one_metapost_path(false),
 						colour(false), draw_lace_frame(false), draw_immersion(true), draw_crossing_features(true), draw_frame_corners(false), draw_grid(false),
 						draw_triangulation(false), draw_triangulation_displacement(true), draw_labels(false), label_edges_from_one(false), draw_oriented(false), 
 						draw_shortcut(false), gauss_crossings(false), gauss_labels(false), label_vertices(false), script_labels(false), scriptscript_labels(false), show_odd_parity_crossings(false), 
