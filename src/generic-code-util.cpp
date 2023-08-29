@@ -5,7 +5,7 @@ void print_code_data(ostream& s, generic_code_data& code_data, string prefix)
 void read_peer_code (generic_code_data& code_data, string input_string)
 void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_zags, bool labelled)
 void read_gauss_code (generic_code_data& code_data, string input_string)
-void write_gauss_code(ostream& s, generic_code_data& code_data)
+void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 void read_planar_diagram (generic_code_data& code_data, string input_string)
 void write_planar_diagram(ostream& s, generic_code_data& code_data)
 void read_code_data (generic_code_data& code_data, string input_string)
@@ -24,6 +24,8 @@ bool valid_knotoid_input(generic_code_data& code_data)
 string over_preferred_gauss_code(generic_code_data& code_data, bool unoriented)
 vector<int> classical_gauss_data(generic_code_data& code_data)
 int amalgamate_zig_zag_counts(int a, int b)
+string read_dowker_code (string input_string)
+bool non_prime_immersion(generic_code_data& code_data, bool crossing_test)
 **************************************************************************/
 #include <fstream>
 #include <iostream>
@@ -40,8 +42,6 @@ extern ofstream     output;
 extern ifstream     input;
 
 #include <util.h>
-#include <quaternion-scalar.h>
-#include <polynomial.h>
 #include <matrix.h>
 #include <generic-code.h>
 #include <debug-control.h>
@@ -355,14 +355,36 @@ void print_code_data(ostream& s, generic_code_data& code_data, string prefix)
 		case (generic_code_data::character::LONG_KNOT): s << "LONG_KNOT"; break;
 		case (generic_code_data::character::PURE_KNOTOID): s << "PURE_KNOTOID"; break;
 		case (generic_code_data::character::KNOTOID): s << "KNOTOID"; break;		
+		case (generic_code_data::character::MULTI_LINKOID): s << "MULTI_LINKOID"; break;		
 		default: s << "unknown";
 	};	
 	s << endl;
 	
 	s << prefix << "head = " << code_data.head << endl;
+	s << prefix << "num_open_components = " << code_data.num_open_components << endl;
 	s << prefix << "head_zig_zag_count = " << code_data.head_zig_zag_count << endl;
 	s << prefix << "num_crossings = " << num_crossings << endl;
 	s << prefix << "num_components = " << code_data.num_components << endl;
+	
+	if (code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+	{
+		s << prefix << "component_type = ";
+		for (int i=0; i< code_data.num_components; i++)
+		{
+			s << i << ":(";
+			switch (code_data.component_type[i].type)
+			{
+				case(component_character::CLOSED): s << "CLOSED, "; break;
+				case(component_character::PURE_START_LEG): s << "PURE_START_LEG," << code_data.component_type[i].head; break;
+				case(component_character::PURE_END_LEG): s << "PURE_END_LEG," << code_data.component_type[i].head; break;
+				case(component_character::KNOT_TYPE_START_LEG): s << "KNOT_TYPE_START_LEG,"; break;
+				case(component_character::KNOT_TYPE_END_LEG): s << "KNOT_TYPE_END_LEG,"; break;
+			};
+			s << ") ";
+		}
+		s << endl;
+	}
+	
 	s << prefix << "type:      ";	
 	matrix<int>& code_table = code_data.code_table;
 	
@@ -474,9 +496,23 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		code_data.immersion = generic_code_data::character::KNOTOID;
 	else if (input_string.find("L:") != string::npos)
 		code_data.immersion = generic_code_data::character::LONG_KNOT;
+	else if (input_string.find("$") != string::npos || input_string.find("@") != string::npos)
+	{
+		int num_components = count(input_string.begin(),input_string.end(),',')+1;
+		
+		code_data.immersion = generic_code_data::character::MULTI_LINKOID;
+		code_data.component_type = vector<component_character>(num_components);
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_peer_code: input_string determined " << num_components << " components" << endl;
+	}
 	else
 		code_data.immersion = generic_code_data::character::CLOSED;
 
+	int num_open_components = count(input_string.begin(),input_string.end(),'^');
+	num_open_components += count(input_string.begin(),input_string.end(),'$');
+	num_open_components += count(input_string.begin(),input_string.end(),'@');
+	code_data.num_open_components = num_open_components;
 	
 	char* inbuf = c_string(input_string);
 	int num_crossings = 0;
@@ -499,6 +535,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 
 	int num_edges = 2*num_crossings;
 	int component = 0;
+	bool component_start = true; // used for multi-linkoid knot type components 
 
 	/* assume all crossings are generic_code_data::TYPE2 and set those 
 	   indicated as generic_code_data::TYPE1 accordingly.
@@ -516,6 +553,9 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		bool crossing_complete = false;
 		do
 		{
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+	debug << "read_peer_code: cptr = " << *cptr << endl;
+
 			if (*cptr == ']')
 			{
 				cout << "\nError! Not enough peers specified in peer code" << endl;
@@ -552,14 +592,48 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				
 				if (*cptr == '^')
 				{
-					/* we've found the knotoid head, note the 
-					corresponding crossing number */
-					code_data.head = i;
-					code_data.immersion = generic_code_data::character::PURE_KNOTOID;
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+	debug << "read_peer_code: pure open component " << component << ", leg on first edge (even)" << endl;
+					/* we've found the knotoid head, note the corresponding crossing number */
+					if (code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+					{
+						code_data.component_type[component].type = component_character::PURE_START_LEG;
+						code_data.component_type[component].head = i;
+					}
+					else
+					{
+						code_data.head = i;
+						code_data.immersion = generic_code_data::character::PURE_KNOTOID;
+					}
 					cptr++;
 				}			
+				else if (*cptr == '$' && code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+				{
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+	debug << "read_peer_code: pure open component " << component << ", leg on last edge (odd)" << endl;
+					code_data.component_type[component].type = component_character::PURE_END_LEG;
+					code_data.component_type[component].head = i;
+					cptr++;
+				}			
+				else if (*cptr == '@' && code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+				{
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+	debug << "read_peer_code: knot-type open component " << component << ", leg on last edge (odd)" << endl;
+					code_data.component_type[component].type = component_character::KNOT_TYPE_END_LEG;
+					cptr++;
+				}			
+				
 				crossing_complete = true;
+				component_start = false;
 			}
+			else if (*cptr == '@' && code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+			{
+if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
+	debug << "read_peer_code: knot-type open component " << component << ", leg on first edge (even)" << endl;
+	
+				code_data.component_type[component].type = (component_start? component_character::KNOT_TYPE_START_LEG:component_character::KNOT_TYPE_END_LEG) ;
+				cptr++;
+			}			
 			else if (*cptr == ',')
 			{
 				/* we've come to the end of a component and are about to 
@@ -567,6 +641,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				*/
 				component++;
 				cptr++;
+				component_start = true;
 			}
 			else
 				cptr++;		
@@ -672,6 +747,47 @@ void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_za
 	
 	s << '[';
 	
+	int crossing = 0;
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_peer_code: code_data.num_crossings = " << code_data.num_crossings << endl;
+
+	if (code_data.num_crossings > 0)
+	{
+		for (int i=0; i< code_data.num_components; i++)
+		{
+
+			if (crossing > 0 && code_table[COMPONENT][crossing] != code_table[COMPONENT][crossing-1])
+				s << ", ";
+			
+			if (code_data.immersion == generic_code_data::character::MULTI_LINKOID && code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG)
+				s << '@';
+			
+			for (int j = 0; j< code_data.num_component_edges[i]/2; j++)
+			{
+				if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+					s << '-';
+				s << code_table[OPEER][crossing];
+				
+				if ((code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head == crossing) || 
+				    (code_data.immersion == generic_code_data::character::MULTI_LINKOID && code_data.component_type[i].type == component_character::PURE_START_LEG && code_data.component_type[i].head == crossing)
+				   )
+					s << '^';
+				else if (code_data.immersion == generic_code_data::character::MULTI_LINKOID && code_data.component_type[i].type == component_character::PURE_END_LEG && code_data.component_type[i].head == crossing)
+					s << '$';
+				
+				if ( crossing < num_crossings-1 && code_table[COMPONENT][crossing] == code_table[COMPONENT][crossing+1])
+					s << ' ';
+
+				crossing++;
+			}
+	
+			if (code_data.immersion == generic_code_data::character::MULTI_LINKOID && code_data.component_type[i].type == component_character::KNOT_TYPE_END_LEG)
+				s << '@';
+		}
+	}
+	
+/*	
 	if (code_table[TYPE][0] == generic_code_data::TYPE1)
 		s << '-';
 	if (code_data.num_crossings >0)
@@ -696,6 +812,8 @@ void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_za
 		if ( i < num_crossings-1 && code_table[COMPONENT][i] == code_table[COMPONENT][i+1])
 			s << ' ';
 	}
+*/
+	
 	s << "]";
 	if (labelled)
 	{
@@ -818,11 +936,22 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	}
 	
 	bool knotoid_or_long_indicator = false;
+	int num_components = (int) count(input_string.begin(),input_string.end(),',') + 1;
 	
 	if (input_string.find("K:") != string::npos)
 	{
 		code_data.immersion = generic_code_data::character::KNOTOID;
 		knotoid_or_long_indicator = true;
+	}
+	else if (input_string.find("K(") != string::npos)
+	{
+		code_data.immersion = generic_code_data::character::MULTI_LINKOID;
+		get_number(code_data.num_open_components,input_string,input_string.find('(')+1);
+		knotoid_or_long_indicator = true;		
+		code_data.component_type = vector<component_character>(num_components);
+		
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+	debug << "read_gauss_code: num_open_components determined from gauss code " << input_string << " is " << code_data.num_open_components << endl;
 	}
 	else if (input_string.find("L:") != string::npos)
 	{
@@ -836,7 +965,7 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	code_data.head = -1;
 //	code_data.immersion = generic_code_data::character::CLOSED;
 	
-	int num_components = (int) count(input_string.begin(),input_string.end(),',') + 1;
+//	int num_components = (int) count(input_string.begin(),input_string.end(),',') + 1;
 
 	char* inbuf = c_string(input_string);
 	int num_crossings = 0;
@@ -1132,7 +1261,7 @@ void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 {	
 	int debug_save = debug_control::DEBUG;
 	debug_control::DEBUG = debug_control::OFF;
-	
+
 	matrix<int>& code_table = code_data.code_table;
 	int num_crossings = code_data.num_crossings;
 	int num_components = code_data.first_edge_on_component.size();
@@ -1152,6 +1281,8 @@ void write_gauss_code(ostream& s, generic_code_data& code_data, bool OU_FORMAT)
 
 		if (code_data.immersion == generic_code_data::character::KNOTOID)
 			s << "K:";
+		else if (code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+			s << "K(" << code_data.num_open_components << "):";
 		else if (code_data.immersion == generic_code_data::character::LONG_KNOT)
 			s << "L:";
 
@@ -1323,7 +1454,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		bool complete = false;
 
 
-		if (code_data.immersion == generic_code_data::character::KNOTOID)
+		if (code_data.immersion == generic_code_data::character::KNOTOID || code_data.immersion == generic_code_data::character::PURE_KNOTOID)
 			oss << "K:";
 		else if (code_data.immersion == generic_code_data::character::LONG_KNOT)
 			oss << "L:";
@@ -1858,8 +1989,13 @@ void read_code_data (generic_code_data& code_data, string input_string)
 		read_planar_diagram(code_data, input_string);
 	else if (input_string.find('[') != string::npos)
 		read_peer_code(code_data, input_string);
-	else if (input_string.find('(') != string::npos)
+	else if (input_string.find("K(") == string::npos && input_string.find('(') != string::npos)
 		read_immersion_code(code_data, input_string);
+	else if (input_string.find("DT:") != string::npos)
+	{
+		string peer_code = read_dowker_code(input_string.substr(input_string.find(':')+1));
+		read_peer_code(code_data, peer_code);
+	}
 	else
 		read_gauss_code(code_data, input_string);
 }
@@ -2373,7 +2509,9 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 
 if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
-	debug << "renumber_peer_code: renumbered code data:" << endl;
+	debug << "renumber_peer_code: renumbered code data: ";
+	write_peer_code(debug,code_data);
+	debug << endl;	
 	print_code_data(debug,code_data,"renumber_peer_code: ");	
 }
 
@@ -2483,6 +2621,10 @@ if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
    immersion character is set correctly in code_data and that the default initialization of the head and immersion 
    character in subsequent_code_data is also correct.
    
+   The vector component_flags is used by the calling code to track the unicursal components included in the first 
+   connected component, partition_peer_code will clear the i-th set component_flag (which may not be at index i)
+   if the i-th unicursal component of code_data does not belong to the first connected component.
+   
    Both peer codes and Gauss codes are supported.
 */					
 generic_code_data partition_peer_code(generic_code_data& code_data, vector<int>& component_flags)
@@ -2491,6 +2633,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 {
 	debug << "partition_peer_code: presented with code data ";
 	write_code_data(debug,code_data);	
+	debug << endl;
 	print_code_data(debug,code_data);
 	debug << endl;
 	debug << "partition_peer_code: component_flags: ";
@@ -3244,7 +3387,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			for (int k=1; k<= cycle[j][0]; k++)
 			{
 				if (abs(cycle[j][k]) == i)
-//				if (cycle[j][k] == i)
 				{
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -3267,7 +3409,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 			/* we always traverse odd edges backwards */
 			int edge = (i%2? -i: i);
-//			int edge = i;
 			cycle [num_cycles][column++] = edge;
 			bool complete = false;
 
@@ -3285,12 +3426,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				if (edge % 2) // edge is odd (and negative)
 				{
 					int vertex = orig_crossing[-edge];
-//					int vertex = orig_crossing[edge];
 					if (code_table[TYPE][vertex] == generic_code_data::TYPE1)
 		    			edge = code_table[EVEN_ORIGINATING][vertex];
 					else
 						edge = -code_table[ODD_TERMINATING][vertex];
-//						edge = code_table[ODD_TERMINATING][vertex];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "calculate_turning_cycles:   takes us to crossing " << vertex << " next edge = " << edge << endl;
@@ -3301,7 +3440,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					int vertex = term_crossing[edge];
 					if (code_table[TYPE][vertex] == generic_code_data::TYPE1)
 						edge = -code_table[ODD_TERMINATING][vertex];
-//						edge = code_table[ODD_TERMINATING][vertex];
 					else
 		    			edge = code_table[EVEN_ORIGINATING][vertex];
 
@@ -3362,7 +3500,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			for (int k=1; k<= cycle[j][0]; k++)
 			{
 				if (abs(cycle[j][k]) == i)
-//				if (cycle[j][k] == i)
 				{
 					
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -3393,7 +3530,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			
 			/* we always traverse odd edges backwards */
 			int edge = (i%2? -i: i);
-//			int edge = i;
 			cycle [num_cycles][column++] = edge;
 			bool complete = false;
 
@@ -3404,10 +3540,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				if (edge % 2) // edge is odd (and negative)
 				{
 					int vertex = orig_crossing[-edge];
-//					int vertex = orig_crossing[edge];
 					if (code_table[TYPE][vertex] == generic_code_data::TYPE1)
 						edge = -code_table[ODD_TERMINATING][vertex];
-//						edge = code_table[ODD_TERMINATING][vertex];
 					else
 		    			edge = code_table[EVEN_ORIGINATING][vertex];
 
@@ -3422,7 +3556,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		    			edge = code_table[EVEN_ORIGINATING][vertex];
 					else
 						edge = -code_table[ODD_TERMINATING][vertex];
-//						edge = code_table[ODD_TERMINATING][vertex];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "calculate_turning_cycles:   takes us to crossing " << vertex << " next edge = " << edge << endl;
@@ -3457,152 +3590,19 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	return true;
 }
 
-/* in the case of links it is possible that the code data we have been given is disconnected, as in 
-   [-3 -5 -1, -9 -11 7]/# # # # # #, therefore we first check that the code is connected, then check
-   the Euler characteristic.  In the process of this check we return a set of turning cycles to the call.
-*/
+
 bool realizable_code_data(generic_code_data& code_data, matrix<int>& cycle, int& num_left_cycles, int& num_cycles)
 {
 	int num_crossings = code_data.num_crossings;
-	int num_edges = 2* num_crossings;
-	
-	/* first check that the code is connected by calling vertex_span starting at crossing 0 
-	   and not excluding any edges.  If we cannot reach every crossing, the code cannot be
-	   realized by a connected immersion.
-	*/
-	int crossing_span = vertex_span(code_data,0).size();
-	if (crossing_span != num_crossings)
-	{		
-if (debug_control::DEBUG >= debug_control::DETAIL)
-{
-    debug << "realizable_code_data: vertex span is only " << crossing_span
-         << " crossings, code cannot be realized by a connected immersion" << endl;
-}   
-		return false;
-	}
-	else
-	{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "realizable_code_data: vertex span includes all the crossings, code can be realized by a connected immersion" << endl;
-	}
-	
-	/* now calculate the turning cycles, this includes additional checks on the realizable nature of the code */	
+
 	if (!calculate_turning_cycles(code_data, cycle, num_left_cycles, num_cycles))
 		return false;
 
-	/* next check each edge appears once in a left handed
-	   and once in a right handed cycle */
-	   
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "realizable_code_data: check edges appear exactly once in left and right turning cycles" << endl;
-
-	bool realizable = true;
-	for (int i=0; i<num_edges; i++)
-	{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "realizable_code_data:   edge " << i;
-    
-		int count = 0;
-		for (int j=0; j<num_left_cycles; j++)
-		{
-			for (int k=1; k<= cycle[j][0]; k++)
-			{
-				if (abs(cycle[j][k]) == i)
-				{
-					if (++count == 2)
-					{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << " appears twice in left turning cycle " << j << endl;
-						realizable = false;
-						break;
-					}
-				}
-			}
-			if (!realizable)
-				break;
-		}
-		
-		if (!count)
-		{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << " does not appear at all in left turning cycles";
-			realizable = false;
-		}
-
-		if (!realizable)
-		{
-			break;
-		}
-		else
-		{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << " appears exactly once in left turning cycles";
-		}
-
-		/* we're only still here if count = 1, so now check the right
-		   turning cycles */
-
-		count = 0;
-		for (int j=num_left_cycles; j<num_cycles; j++)
-		{
-			for (int k=1; k<= cycle[j][0]; k++)
-			{
-				if (abs(cycle[j][k]) == i)
-				{
-					if (++count == 2)
-					{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << " but twice in right turning cycle " << j << endl;
-						realizable = false;
-						break;
-					}
-				}
-			}
-			if (!realizable)
-				break;
-		}
-		
-		if (!count)
-		{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << " but not at all in right turning cycles";
-			realizable = false;
-		}
-
-		if (!realizable)
-		{
-			break;
-		}
-		else
-		{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << " and in right turning cycles" << endl;
-		}
-	}
-
-	/* Now check that the number of cycles is equal to num_crossings+2 */
 	if (num_cycles != num_crossings+2)
-	{
-		realizable = false;
-
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "realizable_code_data: number of cycles != num_crossings+2" << endl;
-	}
+		return false;
 	
-	if (realizable)
-	{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "realizable_code_data: code is able to be realized by a connected immersion" << endl;
-	}
-	else
-	{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "realizable_code_data: code cannot be realized by a connected immersion" << endl;
-	}
-	
-	return realizable;
+	return true;
 }
-
 
 /* The generic code data code table and crossing number identify a valid knotoid if the
    specified crossing is the start of a shortcut.  A shortcut from the head
@@ -4577,5 +4577,510 @@ int amalgamate_zig_zag_counts(int a, int b)
 	}
 	
 	return result;
+}
+
+
+/* read_dowker_code creates a labelled peer code string corresponding to the Dowker-Thistlethwaite code of a prime knot, based on the conventions used by knotscape, where 
+   the first Dowker-Thistlethwaite label (label 1) is assigned to an over-arc. That means that for alternating knots all the terms of the Dowker-Thistlethwaite code are 
+   positive, since the even labels are always allocated to under-arcs at a crossing.  Since Dowker-Thistlethwaite codes are invariant under reflection in a line in the 
+   plane disjoint from the diagram, knotscape fixes the TYPE of the crossing involving label 1 and evaluates the other crossings' TYPE using an algorithm based on 
+   chess-board colouring that is reproduced here.
+   
+   Dowker-Thistlethwaite codes as used by knotscape allocate odd and even labels to shadow crossings but for the purposes of evaluating regions (i.e turning cycles)
+   the labels are considered to be allocated to the originating semi-arcs at the crossing, rather than at the terminating semi-arcs as in the case of a peer code.
+
+   The Dowker-Thistlethwaite code specifies the even label corresponding to odd labels 1, 3, 5,... in a sequence of terms that we consider numbered from zero; that is the i-th
+   term is the even label associated with odd label 2*1+1.  Thus, we "decrement and shift backwards by one"; that is, subtract one from each Dowker-Thistlethwaite label 
+   corresponding to the i-th term of a Dowker-Thistlethwaite code and consider the label to number the preceeding terminating edge at that crossing.  Thus, we obtain valid 
+   peer-code labels for crossing i as numbered by labelled peer codes.   
+*/
+string read_dowker_code (string input_string)
+{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_dowker_code: presented with input_string " << input_string << endl;
+	
+	istringstream iss(input_string);
+	vector<int> dowker_code;
+	int term;
+	int num_crossings = 0;
+	
+	while(iss >> term)
+	{
+		dowker_code.push_back(term);
+		num_crossings++;
+	}
+	
+	int num_edges = 2*num_crossings;
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code: num_crossings = " << num_crossings << ", num_edges = " << num_edges << endl;
+	debug << "read_dowker_code: dowker_code: ";
+	for (int i=0; i< num_crossings; i++)
+		debug << dowker_code[i] << ' ';
+	debug << endl;
+}	
+
+	/* Knowing the dowker code we may identify the peer of each edge, which we store in a single vector, since we are not building generic code data */
+	vector<int> peer(num_edges);
+	for (int i=0; i< num_crossings; i++)
+	{
+		peer[2*i] = abs(dowker_code[i])-1;
+		peer[peer[2*i]] = 2*i;
+	}
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code: peer: ";
+	for (int i=0; i< num_edges; i++)
+		debug << peer[i] << ' ';
+	debug << endl;
+}	
+
+	/* Dowker-Thistlethwaite codes number semi-arcs from 1 and record the even peers of odd edges, so if a dowker_code term is negative
+	   it indicates that the even dowker-edge is an over-arc.  That in turn means that the corresponding odd peer-label is an over-arc and 
+	   therefore that the even peer code naming-edge is an under-arc.
+	*/
+	vector<int> crossing_label(num_crossings);
+	for (int i=0; i< num_crossings; i++)
+	{
+		if (dowker_code[i] < 0)
+		{
+			crossing_label[i] = generic_code_data::label::NEGATIVE;
+			dowker_code[i] *= -1;
+		}
+		else
+		{
+			crossing_label[i] = generic_code_data::label::POSITIVE;
+		}
+	}
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code: crossing_label: ";
+	for (int i=0; i< num_crossings; i++)
+		debug << crossing_label[i] << ' ';
+	debug << endl;
+}	
+
+	/* To determine the crossing types we follow the approach used by knotscape where we successively consider sub-paths in the underlying immersion that trace the 
+	   diagram from a 'base point' crossing back to the same crossing.  We leave the base point crossing on the odd originating edge and return on the odd terminating 
+	   edge.
+	   	   
+	   The sub-path corresponding to a base point crossing may be a simple closed curve or may have self intersections.  However, if we consider the sub-diagram 
+	   comprised of the sub-path and its self intersections only, ignoring any crossings with edges not in the sub-path, we have a diagram that may be chess-board 
+	   coloured black and white. 
+	   
+	   With respect to this chess-board colouring, tracing around the sub-path from the base point we create a record of the whether the region to the right of the 
+	   edge is black or white, which we refer to as the 'polarity' of the edge.  For the 'remaining' edges of the original diagram we can then identify whether they 
+	   lie within a black or white region of the coloured sub-diagram and, again, refer to this as the polarity of the edge.  This yields four possibilities as 
+	   indicated below, where the vertical edges represent (part of) an edge of the sub-path and the horizontal edge represents a pair of edges in the original diagram 
+	   that intersect the vertical edge in a crossing of the original diagram that is not a self-intersection of the sub-path.  From polarity shown at the arrow heads 
+	   it can be seen that for the ingress edges at the central crossing, the vertical edges lie adjacent in a clockwise direction around the crossing from the horizontal 
+	   edge when the ingress horizontal and vertical polarity are the same (cases b and d) and anti-clockwise if they differ (cases a and c).  
+	        
+
+            a)                         b)                        c)                       d)
+	                +                          +                         -                        -
+	            B   ^   W                   B  ^  W                   W  ^  B                  W  ^  B
+	                |                          |                         |                        |
+	                |                          |                         |                        |
+	        - ----->+------> +         - <-----+<----- +         + ----->+------> -       + <-----+<----- -  
+	                ^                          ^                         ^                        ^
+	                |                          |                         |                        |
+	            B   |   W                   B  |  W                   W  |  B                  W  |  B
+	   
+	                +                          +                         -                        -
+
+       The clockwise or anti-clockwise relationship between the ingress edges is used to set the crossing TYPE relative to the TYPE of the base point crossing.  Since the 
+       Dowker-Thistlethwaite code is invariant under reflection in a line of the plane, we may start by setting the TYPE of crossing zero arbitrarily, ase described in more 
+       detail below.  Note that in the above diagrams, for a sub-path edge, + indicates a black region lies to the left and - indicates white lies to the left.  For the remaining 
+       edges + indicates that the edge lies in a white region and - that it lies in a black region.   We could have considered the colours to be reversed (+ meaning white to 
+       the left of the subpath etc.), we would still have different cases describing the configuration of the crossing relative to the initial conditions.  In practice the
+       convention used is determined by the base point crossing, as described below.
+
+	   We record the polarity for each edge of the original diagram, so that successive edges in the subpath between self-intersections of the sub-path have the same 
+	   polarity.  That is, the polarity of successive edges in the sub-path changes only if we encounter a crossing that is a self intersection of the sub-path.  Similarly
+	   the polarity of successive remaining edges does not change until we encounter a crossing whose transverse strand lies in the sub-path.
+	   
+	   On arriving at a crossing on an ingress edge, we identify the transverse strand that we encounter as being part of the sub-path by testing whether the peer ingress 
+	   edge lies in the sub-path.  That means (as can be seen from the diagrams below) that when we arrive back at the base point crossing at the end of the sub-path, given 
+	   that the peer ingress edge is not part of the sub-path the first remaining edge will have the same polarity as the last sub-path edge.  Moreover, since we set the 
+	   polarity of the sub_path_start_edge to + to initialize the algorithm, we do not test the peer of the even terminating edge at the base-point crossing that preceeds the 
+	   sub_path_start_edge.  That means that terminating edge and the sub_path_start edge are assigned the same polarity, though the meaning of that polarity is different for 
+	   these edges, as described above.
+	   	   
+       As noted above, at the base-point crossing, we consider the sub-path starting on the odd originating edge and terminating on the odd terminating edge.  We assume the 
+       quadrant bounded by the start and end edges is coloured C, as shown below and initialize the polarity of the sub-path start edge as + (the upper vertical edge in the 
+       diagrams below), establishing the polarity convention for this sub-path.  Clearly, the end edge of the sub_path_end_edge will have the same + polarity (the ingress 
+       horizontal edges).
+                           
+	                +                                          +          
+	                ^ start                                    ^  start
+	            C   |                                          |  C       
+	                |                                          |          
+	   2j-1 + ----->+------> +                         + <-----+<----- + 2j-1 
+	        end     ^                                          ^       end    
+	                |                                          |          
+	                |                                          |          
+                    +  2i                                  2i  +    
+
+              
+       The base-point diagrams above show a TYPE1 crossing on the left and a TYPE2 crossing on the right.  We set the type of crossing zero arbitrarily, thereby determining 
+       which of the mirror images descibed by the Dowker-Thistlethwaite code the resulting peer code will describe, and start setting the other crossings' TYPE using the 
+       subpath starting at edge 1.  Once the type of crossing zero is set, the initialization of the polarity from the base point crossing means that the four cases a) through 
+       d) above determine the type of crossing relative to that of the base point crossings.       
+	*/
+	
+	vector<int> crossing_type(num_crossings,generic_code_data::type::UNKNOWN);
+	crossing_type[0] = generic_code_data::type::TYPE2;
+
+	vector<int> candidate_base_point(num_crossings);
+	
+	int base_point = 0;
+	
+	bool finished = false;
+	
+	do
+	{
+		int sub_path_start_edge = 2*base_point+1;
+		int sub_path_end_edge = peer[2*base_point]; 
+		
+		vector<int> sub_path(num_edges);
+		sub_path[sub_path_start_edge] = 1;
+		
+		for (int i=0; i< num_edges; i++)
+		{
+			int edge = (sub_path_start_edge+i)%num_edges;
+			sub_path[edge] = 1;
+			
+			if (edge == sub_path_end_edge)
+				break;
+		}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:   sub_path: ";
+	for (int i=0; i< num_edges; i++)
+		debug << sub_path[i] << ' ';
+	debug << endl;
+}	
+						
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_dowker_code: next base_point crossing = " << base_point << ", sub_path_start_edge = " << sub_path_start_edge << ", sub_path_end_edge = " << sub_path_end_edge << endl;		
+		
+		vector<int> polarity(num_edges);
+		polarity[sub_path_start_edge] = 1;
+		
+		/* identify the polarity of the edges in the subpath and remaining edges */
+		for (int i=0; i < num_edges-1; i++)
+		{
+			int edge = (sub_path_start_edge+i)%num_edges;
+			int peer_edge = peer[edge];
+			int succeeding_edge = (edge+1)%num_edges;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_dowker_code:   i = " << i << ", edge = " << edge << ", peer_edge = " << peer_edge << ", succeeding_edge = " << succeeding_edge << endl;		
+			
+			if (sub_path[peer_edge] == 1)
+			{
+				polarity[succeeding_edge] = polarity[edge]*-1;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:     peer_edge " << peer_edge << " lies on the sub-path from " << sub_path_start_edge << " to " << sub_path_end_edge 
+	      << ", polarity[" << succeeding_edge << "] = " << polarity[succeeding_edge] << endl;		
+}	      
+			}
+			else
+			{
+				polarity[succeeding_edge] = polarity[edge];
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:     peer_edge " << peer_edge << " does not lie on the sub-path from " << sub_path_start_edge << " to " << sub_path_end_edge 
+	      << ", polarity[" << succeeding_edge << "] = " << polarity[succeeding_edge] << endl;		
+}	      
+			}
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:   polarity: ";
+	for (int i=0; i< num_edges; i++)
+		debug << polarity[i] << ' ';
+	debug << endl;
+}	
+		
+		/* we set as many crossing types as we can based on the sub-path by considering the non-sub-path edges in turn. */				
+		for (int i=0; i < num_edges; i++)
+		{
+			if (sub_path[i] == 1)
+				continue;
+				
+			int preceding_edge = (i-1+num_edges)%num_edges;
+			int peer_edge = peer[i];
+			
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_dowker_code:   edge " << i << ", preceding_edge = " << preceding_edge << ", peer_edge = " << peer_edge << endl;
+
+			if (sub_path[peer_edge] == 1)
+			{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:     peer_edge " << peer_edge << " lies on the sub-path from " << sub_path_start_edge << " to " << sub_path_end_edge 
+	      << ", polarity[" << i << "] = " << polarity[i] << ", polarity[" << peer_edge << "] = " << polarity[peer_edge] << endl;
+}	      
+				int crossing = (i%2==0? i/2: peer_edge/2);
+				
+				if (crossing_type[crossing] == 0)
+				{
+					int local_type_polarity =  polarity[i]*polarity[peer_edge];
+					if ( (local_type_polarity == 1  && i%2 == 0) || (local_type_polarity == -1  && i%2 == 1) )
+						crossing_type[crossing] = crossing_type[base_point];
+					else
+						crossing_type[crossing] = (crossing_type[base_point] == generic_code_data::type::TYPE1? generic_code_data::type::TYPE2 : generic_code_data::type::TYPE1);
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:     local_type_polarity = " << local_type_polarity << " crossing_type[" << crossing << "] set to " 
+	      << (crossing_type[crossing] == generic_code_data::type::TYPE1? "TYPE1" : "TYPE2") << endl;
+}	      
+
+					/* If the peer of the preceeding edge is the preceeding edge of the peer, then we learn nothing new by considering the sub-path from crossing 
+					   since, other than this edge and its peer, the subpath from crossing comprises the remaining edges for the subpath of the crossing involving 
+					   the preceeding edge and its peer.  That means we have already set all of the crossing types that we could on the sub-path from crossing.
+					*/
+					if (abs(peer[preceding_edge] - peer_edge) != 1 && abs(peer[preceding_edge] - peer_edge) != num_edges-1)
+					{
+						candidate_base_point[crossing] = 1;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "read_dowker_code:     set candidate_base_point[" << crossing << "] to 1" << endl;
+					}
+				}
+				else
+				{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:     crossing_type[ " << crossing << "] already set to " 
+	      << (crossing_type[crossing] == generic_code_data::type::TYPE1? "TYPE1" : "TYPE2") << endl;
+}	      
+				}
+			}
+			else
+			{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code:     peer_edge " << peer_edge << " does not lie on the sub-path from " << sub_path_start_edge << " to " << sub_path_end_edge 
+	      << ", polarity[" << i << "] = " << polarity[i] << ", polarity[" << peer_edge << "] = " << polarity[peer_edge] << endl;
+}	      
+			}
+		}
+				
+		candidate_base_point[base_point] = 0;
+		
+		finished = true;
+		for (int i=0; i<num_crossings; i++)
+		{
+			if (candidate_base_point[i] !=0)
+			{
+				base_point = i;
+				finished = false;
+				break;
+			}
+		}		
+	} while(!finished);
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "read_dowker_code: crossing_type: ";
+	for (int i=0; i< num_crossings; i++)
+		debug << crossing_type[i] << ' ';
+	debug << endl;
+}	
+	
+	ostringstream oss;
+	oss << '[';
+	for (int i=0; i< num_crossings; i++)
+	{
+		if (crossing_type[i] == generic_code_data::type::TYPE1)
+			oss << '-';
+		oss << dowker_code[i] -1 ;
+		
+		if (i < num_crossings-1)
+			oss << ' ';				
+	}
+
+	oss << "]/";
+	for (int i=0; i< num_crossings; i++)
+	{
+		if (crossing_label[i] == generic_code_data::label::POSITIVE)
+			oss << '+';
+		else
+			oss << '-';
+			
+		if (i < num_crossings-1)
+			oss << ' ';				
+	}
+	
+	return oss.str();
+}
+
+/* An immersion diagram D  that does not contain any Reidemeister I loops is non-prime if there exist two edges e1 and e2 that are both members 
+   of the same two turning cycles c1 and c2.  To see this let v1 and v2 be points in the in the interior of e1 and e2 respectively and let R1 
+   and R2 be the regions of the immersion's complement bounded by c1 and c2.  Choose the point at infinity so that R1 is the infinite region.  
+   We may join v1 and v2 by paths p1 and p2 in the regions R1 and R2 so that p1 \cap D = p2 \cap D = v1 \cup v2.  Thus p1 \cup p2 is a simple 
+   closed curve that separates the crossings of D into two non-empty subsets, so that e1 and e2 realize D as a connected sum.   
+   
+   A Reidemeister I loop in a semi-arc creates two edges either side of the Reidemeister I crossing in the same two turning cycles.  Hence the 
+   requirement that there are no Reidemeister I loops.
+   
+   For doodles and flat knots we can look for crossing connected sums, when there may be a simple closed curve intersecting the diagram in two
+   crossings.  If crossing_test is true, the function looks for a pair of crossings in the same two turning cycles, such that the terminating 
+   and originating edges are distinct.  This ensures that we identify crossings where the two regions in whihc the simple closed curve may be 
+   constructed are opposite each other at the crossings and not adjacent (the Borromean rings is not prime but has two 'adjacent' crossings 
+   in the same two regions.)  
+*/
+bool non_prime_immersion(generic_code_data& code_data, bool crossing_test)
+{
+
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+{
+	debug << "non_prime_immersion: code = ";
+	write_peer_code (debug, code_data);
+	debug << endl;
+	debug << "non_prime_immersion: code_data:" << endl;
+	print_code_data(debug, code_data, "non_prime_immersion: ");
+	debug << "non_prime_immersion: crossing_test = " << crossing_test << endl;
+}
+	int num_crossings = code_data.num_crossings;
+	int num_edges = 2*num_crossings;
+	int num_left_cycles=0;
+	int num_cycles=0;
+
+	matrix<int> cycle (num_crossings+2, num_edges+1);
+	calculate_turning_cycles(code_data, cycle, num_left_cycles, num_cycles);
+
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+{
+    debug << "non_prime_immersion: number of turning cycles = " << num_cycles;
+	for (int i=0; i<num_cycles; i++)
+	{
+		debug << "\nnon_prime_immersion: cycle " << i << " length = " << cycle[i][0] << ": ";
+		for (int j=1; j<=cycle[i][0]; j++)
+			debug << cycle[i][j] << " "	;
+	}
+	debug << endl;
+}
+
+	for (int i=0; i< num_cycles; i++)
+	{
+
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+	debug << "non_prime_immersion: turning cycle " << i << " length = " << cycle[i][0] << endl;
+	
+		vector<int> common_flag(cycle[i][0]);
+			
+		for (int j=0; j< num_cycles; j++)
+		{					
+			if (j==i)
+				continue;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "non_prime_immersion:   turning cycle " << j << endl;
+								
+			for (int k=0; k< cycle[i][0]; k++)
+				common_flag[k] = 0;
+
+			/* look for each edge of cycle i in cycle j */
+			for (int k=1; k<= cycle[i][0]; k++)
+			{
+				/* crossing_i and subseequent_i are only used when crossing_test is true */
+				int crossing_i;
+				int subsequent_i;  // the next edge in the turning cycle
+				if (cycle[i][k] < 0)
+					crossing_i = code_data.orig_crossing[abs(cycle[i][k])];
+				else
+					crossing_i = code_data.term_crossing[cycle[i][k]];
+				subsequent_i = (k==cycle[i][0]? cycle[i][1]: cycle[i][k+1]);
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "non_prime_immersion:     edge_i " << cycle[i][k] << ", crossing_i = " << crossing_i << ", subsequent_i = " << subsequent_i << endl;
+				
+				for (int l=1; l<= cycle[j][0]; l++)
+				{
+//					if (cycle[i][k] == cycle[j][l])
+					if (crossing_test)
+					{
+						int crossing_j;
+						int subsequent_j;
+						if (cycle[j][l] < 0)
+							crossing_j = code_data.orig_crossing[abs(cycle[j][l])];
+						else
+							crossing_j = code_data.term_crossing[cycle[j][l]];
+						subsequent_j = (l==cycle[j][0]? cycle[j][1]: cycle[j][l+1]);
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "non_prime_immersion:       edge_j " << cycle[j][l] << ", crossing_j = " << crossing_j << ", subsequent_j = " << subsequent_j << endl;
+						
+						if (crossing_i == crossing_j)
+						{
+							/* check whether the terminating and originating edges are all different */
+							vector<int> edge_flag(2*code_data.num_crossings);
+							edge_flag[abs(cycle[i][k])] = 1;
+							edge_flag[abs(subsequent_i)] = 1;
+							edge_flag[abs(cycle[j][l])] = 1;
+							edge_flag[abs(subsequent_j)] = 1;
+							int count=0;
+							for (int f=0; f< 2*code_data.num_crossings; f++)
+								count += edge_flag[f];
+								
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "non_prime_immersion:       found common crossing, edge_flag = ";
+	for (int f=0; f< 2*code_data.num_crossings; f++)
+		debug << edge_flag[f] << ' ';
+	debug << "count = " << count << endl;
+}
+
+							if (count == 4)
+							{
+								common_flag[k-1] = 1;  
+								break;
+							}
+						}
+					} 
+					else if (cycle[i][k] == cycle[j][l])
+					{
+						common_flag[k-1] = 1;
+						break;
+					}					
+				}
+			}
+				
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+{
+	debug << "non_prime_immersion:   turning cycle " << j << " common_flag: ";
+	for (int k=0; k< cycle[i][0]; k++)
+		debug << common_flag[k] << ' ';
+	debug << endl;
+}
+
+			int count = 0;
+			for (int k=0; k< cycle[i][0]; k++)
+				count += common_flag[k];
+				
+			if (count >= 2)
+			{
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+	debug << "non_prime_immersion: found region realizing a connected sum" << endl;
+				return true;
+			}								
+		}			
+	}
+
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
+	debug << "non_prime_immersion: no region realizing a connected sum found" << endl;
+
+	return false;
 }
 

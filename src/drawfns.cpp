@@ -292,7 +292,7 @@ void write_metapost(ofstream& os, generic_code_data& code_data, string title, me
 {
 	int num_crossings = code_data.num_crossings;
 	int num_components = code_data.num_components;
-	int head = code_data.head;
+//	int head = code_data.head;
 	int num_edges = 2*num_crossings;
 	int num_type12_vertices = num_edges+num_crossings;	
 	int temp; // used for reading integers from triangulation_output_file and circlepack_output_file
@@ -373,16 +373,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << endl;
 }
 
-	int semi_arc;
-	if (head != -1)
+	int semi_arc = -1;
+	if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1)
 	{
-		if (code_table[LABEL][head] == generic_code_data::POSITIVE)
-			semi_arc = code_table[OPEER][head];
-		else if (code_table[LABEL][head] == generic_code_data::NEGATIVE)
-			semi_arc = 2*head;
+		if (code_table[LABEL][code_data.head] == generic_code_data::POSITIVE)
+			semi_arc = code_table[OPEER][code_data.head];
+		else if (code_table[LABEL][code_data.head] == generic_code_data::NEGATIVE)
+			semi_arc = 2*code_data.head;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "write_metapost: head " << head << " lies on semi-arc " << semi_arc << endl;
+	debug << "write_metapost: head " << code_data.head << " lies on semi-arc " << semi_arc << endl;
 	
 	}
 	else
@@ -426,12 +426,12 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 		istringstream iss(next_line);
 		do { iss >> c; } while (c != ':');
 		iss >> temp; // alpha, always 1, the first vertex
-		iss >> temp; // beta, the first boundary (type 4) vertex
+		iss >> temp; // beta, the first boundary (type 5) vertex
 		num_type1234_vertices = temp-1;
 		iss >> num_Reidemeister_I_loops; //gamma
 			
 if (debug_control::DEBUG >= debug_control::BASIC)
-	debug << "write_metapost: number of type 1,2 & 3 vertices = " << num_type1234_vertices << " number of Reidemeister I loops = " << num_Reidemeister_I_loops << endl;
+	debug << "write_metapost: number of type 1,2,3 & 4 vertices = " << num_type1234_vertices << " number of Reidemeister I loops = " << num_Reidemeister_I_loops << endl;
 	}
 
 	vector<int> Reidemeister_I_loop_edges(num_Reidemeister_I_loops);
@@ -759,6 +759,24 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		os << endl;
 	}
 	
+	/* scale relative to a fixed size if the scale option has been provided */
+	if (mp_control.scale)
+	{
+		os << "% x-size = " << (maxx - minx)*mp_control.unit_size/100 << ", y-size = " << (maxy-miny)*mp_control.unit_size/100 << endl;
+		float x_size = (maxx - minx)*mp_control.unit_size/100;
+		float y_size = (maxy-miny)*mp_control.unit_size/100;
+		float diag_size = sqrt(x_size*x_size +y_size*y_size);
+		float fixed_factor = mp_control.scale*100/diag_size;
+		
+		for (int i=0; i< 2*num_vertices; i++)
+		{
+			for (int j=0; j< 2; j++)
+				vcoords[i][j] *= fixed_factor;
+		}
+		for (int i=0; i< num_vertices; i++)
+			vertex_radius[i] *= fixed_factor;
+	}
+	
 	/* controls for coordinate output */
 	int num_decimal_points = 3;
 	int output_field_width = 12;
@@ -876,17 +894,18 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		
 	}
 	
-	/* since we have T4 vertices on Reidemeister I loop edges, we need to record the offset of each edge the metapost path
-	   to which it belongs, so we can calculate the subpaths required to draw crossing features
+	/* since we have T4 vertices on Reidemeister I loop edges, we need to record the offset of each edge in the metapost 
+	   path to which it belongs, so we can calculate the subpaths required to draw crossing features.  That is, we record the offset of 
+	   the T2 vertex of each edge in the corresponding path.  We also note the number of R1 loops on each component.
 	*/
 	vector<int> edge_path_offset(num_edges);
+	vector<int> num_R1_loops(num_components);
 	
 	if (mp_control.one_metapost_path)
 	{
 		/*  This approach can produce inflexion points that are difficult to remove */
 		for (int i=0; i< num_components; i++)
-		{
-			
+		{			
 			os << "p" << i+1 << " = ";
 			bool first_edge_Reidemeister_I_loop = false;
 			int first_edge_first_T4 = -1;
@@ -960,7 +979,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			else
 				os << "..";
 			os << "cycle;" << endl;
-		}
+			
+			num_R1_loops[i] = cumulative_T4_vertex_count/2;
+		}		
 	}
 	else
 	{
@@ -1033,6 +1054,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				os << "z" << first_edge_first_T4 << ";" << endl;
 			else		
 				os << "z" << vertex_sequence[2*first_edge_on_component[i]] << ";" << endl;
+
+			num_R1_loops[i] = cumulative_T4_vertex_count/2;
 		}
 		
 		for (int i=0; i< num_components; i++)
@@ -1107,6 +1130,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_metapost: edge_path_offset: ";
 	for (int i=0; i< num_edges; i++)
 		debug << edge_path_offset[i] << ' ';
+	debug << endl;
+	debug << "write_metapost: num_R1_loops: ";
+	for (int i=0; i< num_components; i++)
+		debug << num_R1_loops[i] << ' ';
 	debug << endl;
 }
 	
@@ -1411,97 +1438,70 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	/* draw the immersion */
 	if (mp_control.draw_immersion)
 	{
-		if (head == -1)
+		os << "ahlength := " << mp_control.arrowhead_bp_size << "bp;" << endl;
+
+		if (code_data.immersion != generic_code_data::character::KNOTOID && code_data.immersion != generic_code_data::character::PURE_KNOTOID && code_data.immersion != generic_code_data::character::MULTI_LINKOID)
 		{
 			for (int i=0; i< num_components; i++)
 			{
+				int path_number = (mp_control.one_metapost_path? i+1: 2*i+2);
+
 				if (mp_control.draw_oriented)
-				{
-					os << "ahlength := " << mp_control.arrowhead_bp_size << "bp;" << endl;
-					if (mp_control.one_metapost_path)
-						os << "drawarrow subpath(0,0.5) of p" << i+1 << ";" << endl;
-					else
-						os << "drawarrow subpath(0,0.5) of p" << 2*i+2 << ";" << endl;
-				}
+					os << "drawarrow subpath(0,0.5) of p" << path_number << ";" << endl;
 				
-				if (mp_control.one_metapost_path)
-				{
-					os << "draw p" << i+1;
-					if (mp_control.colour && mp_control.singlecolour.length() != 0)
-						os << " withcolor " << mp_control.singlecolour;
-					else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[i];
-					os << ';' << endl;
-				}
-				else
-				{
-					os << "draw p" << 2*i+2;
-					if (mp_control.colour && mp_control.singlecolour.length() != 0)
-						os << " withcolor " << mp_control.singlecolour;
-					else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[i];
-					os << ';' << endl;
-				}
+				os << "draw p" << path_number;
+				if (mp_control.colour && mp_control.singlecolour.length() != 0)
+					os << " withcolor " << mp_control.singlecolour;
+				else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
+					os << " withcolor " << mp_control.draw_colour[i];
+				os << ';' << endl;
 			}
 		}
-		else
-		{	
-			if (mp_control.one_metapost_path)
+		else if (code_data.immersion == generic_code_data::character::KNOTOID || code_data.immersion == generic_code_data::character::PURE_KNOTOID)
+		{
+				
+//			int component_end_point = (code_data.immersion == generic_code_data::character::KNOTOID? 2*num_component_edges[0]: 2*semi_arc-1);
+			int component_end_point = (code_data.immersion == generic_code_data::character::KNOTOID? 2*(num_component_edges[0]+num_R1_loops[0]): 2*(semi_arc+num_R1_loops[0])-1);
+			int path_number = (mp_control.one_metapost_path? 1: 2);
+
+			os << "drawarrow subpath(0.5,0.75) of p" << path_number;  
+			if (mp_control.colour && mp_control.singlecolour.length() != 0)
+				os << " withcolor " << mp_control.singlecolour;
+			else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+				os << " withcolor " << mp_control.draw_colour[0];
+			os << ';' << endl;
+			os << "draw subpath(0.75," << component_end_point << ".5) of p" << path_number;
+			if (mp_control.colour && mp_control.singlecolour.length() != 0)
+				os << " withcolor " << mp_control.singlecolour;
+			else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+				os << " withcolor " << mp_control.draw_colour[0];
+			os << ';' << endl;
+			
+			if (code_data.immersion == generic_code_data::character::KNOTOID)
 			{
-				os << "drawarrow subpath(0,0.75) of p1";
-				if (mp_control.colour && mp_control.singlecolour.length() != 0)
-					os << " withcolor " << mp_control.singlecolour;
-				else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-					os << " withcolor " << mp_control.draw_colour[0];
-				os << ';' << endl;
-				os << "draw subpath(0.75," << 2*semi_arc-1 << ".5) of p1";
+				os << "draw subpath(0,0.25) of p" << path_number;				
 				if (mp_control.colour && mp_control.singlecolour.length() != 0)
 					os << " withcolor " << mp_control.singlecolour;
 				else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
 					os << " withcolor " << mp_control.draw_colour[0];
 				os << ';' << endl;
 			}
-			else
-			{
-				os << "drawarrow subpath(0,0.75) of p2";
-				if (mp_control.colour && mp_control.singlecolour.length() != 0)
-					os << " withcolor " << mp_control.singlecolour;
-				else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-					os << " withcolor " << mp_control.draw_colour[0];
-				os << ';' << endl;
-				os << "draw subpath(0.75," << 2*semi_arc-1 << ".5) of p2";
-				if (mp_control.colour && mp_control.singlecolour.length() != 0)
-					os << " withcolor " << mp_control.singlecolour;
-				else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-					os << " withcolor " << mp_control.draw_colour[0];
-				os << ';' << endl;
-			}
-	
 			
 			if (mp_control.draw_shortcut)
 			{
-				if (mp_control.one_metapost_path)
+				if (code_data.immersion == generic_code_data::character::KNOTOID)
 				{
-					os << "draw subpath(0,0.5) of p1 dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");
+					os << "draw subpath(0.25,0.5) of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");
 					
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
 						os << " withcolor " << mp_control.draw_colour[0];
-					os << ';' << endl;
-					
-					os << "draw subpath(" << 2*semi_arc-1 << ".5," << 2*num_component_edges[0]+1 << ") of p1 dashed " 
-					   << (mp_control.dash_with_dots? "withdots" : "evenly");
-					   
-					if (mp_control.colour && mp_control.singlecolour.length() != 0)
-						os << " withcolor " << mp_control.singlecolour;
-					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
-					os << ';' << endl;
+					os << ';' << endl;				
 				}
 				else
 				{
-					os << "draw subpath(0,0.5) of p2 dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");
+					os << "draw subpath(0,0.5) of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");
 					
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
@@ -1509,7 +1509,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						os << " withcolor " << mp_control.draw_colour[0];
 					os << ';' << endl;
 					
-					os << "draw subpath(" << 2*semi_arc-1 << ".5," << 2*num_component_edges[0]+1 << ") of p2 dashed " 
+//					os << "draw subpath(" << 2*semi_arc-1 << ".5," << 2*num_component_edges[0]+1 << ") of p" << path_number << " dashed " 
+					os << "draw subpath(" << 2*(semi_arc+num_R1_loops[0])-1 << ".5," << 2*(num_component_edges[0]+num_R1_loops[0])+1 << ") of p" << path_number << " dashed " 
 					   << (mp_control.dash_with_dots? "withdots" : "evenly");
 					   
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
@@ -1522,34 +1523,54 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	
 			for (int i=1; i< num_components; i++)
 			{
+				path_number = (mp_control.one_metapost_path? i+1: 2*i+2);
+
 				if (mp_control.draw_oriented)
 				{
-					os << "ahlength := " << mp_control.arrowhead_bp_size << "bp;" << endl;
-					if (mp_control.one_metapost_path)
-					{
-						os << "drawarrow subpath(0,0.5) of p" << i+1;
+					os << "drawarrow subpath(0,0.5) of p" << path_number;
 						
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
 						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;						
-					}
-					else
+				}
+				
+				os << "draw p" << path_number;
+				
+				if (mp_control.colour && mp_control.singlecolour.length() != 0)
+					os << " withcolor " << mp_control.singlecolour;
+				else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
+					os << " withcolor " << mp_control.draw_colour[i];
+				os << ';' << endl;					
+			}
+		}
+		else if (code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+		{
+			
+			for (int i=0; i< num_components; i++)
+			{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_metapost: immersion for component " << i << endl;
+	
+				int path_number = (mp_control.one_metapost_path? i+1: 2*i+2);
+				
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_metapost:   path_number " << path_number << endl;
+
+				if (code_data.component_type[i].type == component_character::CLOSED)
+				{
+					if (mp_control.draw_oriented)
 					{
-						os << "drawarrow subpath(0,0.5) of p" << 2*i+2;
-						
+						os << "drawarrow subpath(0,0.5) of p" << path_number;						
 						if (mp_control.colour && mp_control.singlecolour.length() != 0)
 							os << " withcolor " << mp_control.singlecolour;
 						else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
 							os << " withcolor " << mp_control.draw_colour[i];
 						os << ';' << endl;						
 					}
-				}
-				
-				if (mp_control.one_metapost_path)
-				{
-					os << "draw p" << i+1;
+					
+					os << "draw p" << path_number;
 					
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
@@ -1557,15 +1578,117 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;					
 				}
-				else
+				else if (code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG || code_data.component_type[i].type == component_character::KNOT_TYPE_END_LEG)
 				{
-					os << "draw p" << 2*i+2;
-					
+//					int leg_point = (code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG? 0: 2*(code_data.num_component_edges[i]-1));
+					int leg_point = (code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG? 0: 2*(code_data.num_component_edges[i]+num_R1_loops[i]-1));
+					int main_path_start_point = (code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG? 2: 0);
+//					int component_end_point = (code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG? 2*num_component_edges[i]: 2*num_component_edges[i]-2);
+					int component_end_point = (code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG? 2*(num_component_edges[i]+num_R1_loops[i]): 2*(num_component_edges[i]+num_R1_loops[i])-2);
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_metapost:   leg_point = " << leg_point << ", main_path_start_point = " << main_path_start_point << ", component_end_point = " << component_end_point << endl;
+
+					os << "drawarrow subpath(" << leg_point << ".5," << leg_point << ".75) of p" << path_number;
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
-					else if (mp_control.colour && i < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[i];
-					os << ';' << endl;					
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;
+
+					/* this is the end of the path in the case KNOT_TYPE_END_LEG */
+					os << "draw subpath(" << leg_point << ".75," << leg_point+2 << ") of p" << path_number;
+					if (mp_control.colour && mp_control.singlecolour.length() != 0)
+						os << " withcolor " << mp_control.singlecolour;
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;						
+
+//					os << "draw subpath(" << main_path_start_point << ',' << component_end_point << ".5) of p" << path_number;
+					os << "draw subpath(" << main_path_start_point << ',' << component_end_point << ") of p" << path_number;
+					if (mp_control.colour && mp_control.singlecolour.length() != 0)
+						os << " withcolor " << mp_control.singlecolour;
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;
+
+					os << "draw subpath(" << leg_point << ',' << leg_point << ".25) of p" << path_number;					
+					if (mp_control.colour && mp_control.singlecolour.length() != 0)
+						os << " withcolor " << mp_control.singlecolour;
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;
+
+					if (mp_control.draw_shortcut)
+					{
+						os << "draw subpath(" << leg_point << ".25," << leg_point << ".5) of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");						
+						if (mp_control.colour && mp_control.singlecolour.length() != 0)
+							os << " withcolor " << mp_control.singlecolour;
+						else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+							os << " withcolor " << mp_control.draw_colour[0];
+						os << ';' << endl;
+					}
+
+				}
+				else if (code_data.component_type[i].type == component_character::PURE_START_LEG || code_data.component_type[i].type == component_character::PURE_END_LEG)
+				{
+					int component_head = code_data.component_type[i].head;
+					if (code_table[LABEL][component_head] == generic_code_data::POSITIVE)
+						semi_arc = code_table[OPEER][component_head];
+					else if (code_table[LABEL][component_head] == generic_code_data::NEGATIVE)
+						semi_arc = 2*component_head;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_metapost:   head, " << component_head << ", lies on semi-arc " << semi_arc << endl;
+	
+//					int leg_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 0: 2*(code_data.num_component_edges[i]-1));
+					int leg_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 0: 2*(code_data.num_component_edges[i]+num_R1_loops[i]-1));
+					int main_path_start_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 2: 0);
+//					int head_point = 2*(semi_arc - code_data.first_edge_on_component[i])-1;
+					int head_point = 2*(semi_arc +num_R1_loops[i]- code_data.first_edge_on_component[i])-1;
+//					int shortcut_end_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 2*num_component_edges[i]+1: 2*num_component_edges[i]-1);
+					int shortcut_end_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 2*(num_component_edges[i]+num_R1_loops[i])+1: 2*(num_component_edges[i]+num_R1_loops[i])-1);
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_metapost:   leg_point = " << leg_point << ", main_path_start_point = " << main_path_start_point << ", head_point = " << head_point << ", shortcut_end_point = " << shortcut_end_point << endl;
+					
+					os << "drawarrow subpath(" << leg_point << ',' << leg_point << ".75) of p" << path_number;
+					if (mp_control.colour && mp_control.singlecolour.length() != 0)
+						os << " withcolor " << mp_control.singlecolour;
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;
+
+					os << "draw subpath(" << leg_point << ".75," << leg_point+2 << ") of p" << path_number;
+					if (mp_control.colour && mp_control.singlecolour.length() != 0)
+						os << " withcolor " << mp_control.singlecolour;
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;						
+
+					os << "draw subpath(" << main_path_start_point << ',' << head_point << ".5) of p" << path_number;
+					if (mp_control.colour && mp_control.singlecolour.length() != 0)
+						os << " withcolor " << mp_control.singlecolour;
+					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+						os << " withcolor " << mp_control.draw_colour[0];
+					os << ';' << endl;
+					
+					if (mp_control.draw_shortcut)
+					{
+						os << "draw subpath(" << leg_point << ',' << leg_point << ".5) of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");						
+						if (mp_control.colour && mp_control.singlecolour.length() != 0)
+							os << " withcolor " << mp_control.singlecolour;
+						else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+							os << " withcolor " << mp_control.draw_colour[0];
+						os << ';' << endl;
+						
+						os << "draw subpath(" << head_point << ".5," << shortcut_end_point << ") of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");						   
+						if (mp_control.colour && mp_control.singlecolour.length() != 0)
+							os << " withcolor " << mp_control.singlecolour;
+						else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
+							os << " withcolor " << mp_control.draw_colour[0];
+						os << ';' << endl;					   
+					}		
 				}
 			}
 		}
@@ -1712,8 +1835,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 						os << "draw z" << 2*num_vertices+4*i << "--z" << 2*num_vertices+4*i+1 << ";" << endl;
 						os << "draw z" << 2*num_vertices+4*i+2 << "--z" << 2*num_vertices+4*i+3 << ";" << endl;						
 						
-						os << "fill fullcircle scaled 0." << mp_control.cusp_disc_size << "*0.1d shifted 0.5[z" << 2*num_vertices+4*i << ",z" << 2*num_vertices+4*i+1 << "];" << endl;
-						os << "fill fullcircle scaled 0." << mp_control.cusp_disc_size << "*0.1d shifted 0.5[z"  << 2*num_vertices+4*i+2 << ",z" << 2*num_vertices+4*i+3 << "];" << endl;
+						os << "fill fullcircle scaled (" << mp_control.cusp_disc_size << "*0.1d) shifted 0.5[z" << 2*num_vertices+4*i << ",z" << 2*num_vertices+4*i+1 << "];" << endl;
+						os << "fill fullcircle scaled (" << mp_control.cusp_disc_size << "*0.1d) shifted 0.5[z"  << 2*num_vertices+4*i+2 << ",z" << 2*num_vertices+4*i+3 << "];" << endl;
 					}
 					state_place++;
 				}

@@ -41,8 +41,6 @@ extern ofstream     debug;
 
 
 #include <util.h>
-#include <quaternion-scalar.h>
-#include <polynomial.h>
 #include <matrix.h>
 #include <generic-code.h>
 #include <debug-control.h>

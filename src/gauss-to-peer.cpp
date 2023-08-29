@@ -15,6 +15,7 @@ void assign_gauss_arc_direction(int arc_1, int arc_2, matrix<int>& gauss_code_ta
 string direction_to_string(int edge, vector<int>& gauss_arc_direction)
 void remove_fringe_edge(int edge, vector<int>& current_fringe)
 bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data)
+bool classical_gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data)
 ********************************************************************************************************/
 #include <fstream>
 #include <iostream>
@@ -34,8 +35,6 @@ extern ofstream     output;
 extern ifstream     input;
 
 #include <util.h>
-#include <quaternion-scalar.h>
-#include <polynomial.h>
 #include <matrix.h>
 #include <generic-code.h>
 #include <debug-control.h>
@@ -474,12 +473,21 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					*/
 					
 					int precedence=0;
-								    
+
+/*							
+if (match_count == 1 && PD_data[i][last_PD_index] == 0 && gauss_code_data.immersion == generic_code_data::character::KNOTOID)
+{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "gauss_to_peer_code:   don't want to match directly onto leg of knotoid, precedence incremented to 4" << endl;
+	
+	precedence = 4;
+}
+*/
 					/*  Are the matching edges contiguous in the fringe and in the correct order?  If they are, then moving from right 
 					    to left along the fringe the edges must appear in the corresponding order when moving anti-clockwise around 
 					    the crossing.  That is, from the last_fringe_index moving backwards and the last_PD_index moving forwards.  
 					    If this is not the case, increment the precedence to 1,
-					*/				
+					*/												
 		
 					for (int j = 0; j < match_count; j++)
 					{
@@ -1986,7 +1994,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	   
 	   To ensure that we don't enter an infinite loop of shifting component numbering, we shall consider each component in
 	   the order in which we first encounter them, rather than the order determined by the numbering of the gauss code.   
-	*/		
+	*/	
+	vector<bool> component_cycled(num_components); // initializes to false
+	
 	if (num_components > 1)
 	{
 		list<int> next_component;
@@ -2034,6 +2044,19 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					if (immersion_crossing_peers[j][0] == edge)
 					{
 						peer_edge = immersion_crossing_peers[j][1];
+						peer_component = 0;
+						for (int j=1; j< num_components; j++)
+						{
+							if (peer_edge >= first_immersion_edge_on_component[j])
+								peer_component++;
+							else
+								break;
+						}
+						next_component.push_back(peer_component);
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "gauss_to_peer_code:       peer component " << peer_component << endl;
+
 						if (peer_edge % 2 == edge % 2)
 						{
 							/* both the first and second visits to this crossing have the same parity, so cycle the
@@ -2043,8 +2066,14 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     immersion_crossing_peers shows the peer of " << edge << " is " << peer_edge 
 	      << ", cycle component containing " << peer_edge << endl;
 	                        cycle_gauss_code_labels(immersion_crossing_peers,num_immersion_component_edges,first_immersion_edge_on_component,num_immersion_crossings,num_components,peer_edge);
+	                        component_cycled[peer_component] = true;
 						}
-						
+																						
+						break;
+					}
+					else if (immersion_crossing_peers[j][1] == edge)
+					{
+						peer_edge = immersion_crossing_peers[j][0];
 						peer_component = 0;
 						for (int j=1; j< num_components; j++)
 						{
@@ -2057,12 +2086,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 						
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:       peer component " << peer_component << endl;
-										
-						break;
-					}
-					else if (immersion_crossing_peers[j][1] == edge)
-					{
-						peer_edge = immersion_crossing_peers[j][0];
+
 						if (peer_edge % 2 == edge % 2)
 						{
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -2070,21 +2094,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	      << ", cycle component containing " << peer_edge << endl;
 		
 	                        cycle_gauss_code_labels(immersion_crossing_peers,num_immersion_component_edges,first_immersion_edge_on_component,num_immersion_crossings,num_components,peer_edge);
+	                        component_cycled[peer_component] = true;
 						}
-						
-						peer_component = 0;
-						for (int j=1; j< num_components; j++)
-						{
-							if (peer_edge >= first_immersion_edge_on_component[j])
-								peer_component++;
-							else
-								break;
-						}
-						next_component.push_back(peer_component);
-						
-if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "gauss_to_peer_code:       peer component " << peer_component << endl;
-						
+												
 						break;
 					}
 				}
@@ -2634,6 +2646,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	}
 	
 	peer_code_data.type = generic_code_data::peer_code;
+	peer_code_data.num_open_components = gauss_code_data.num_open_components;
+	peer_code_data.component_type = vector<component_character>(num_components);
 	peer_code_data.head = -1;
 	peer_code_data.head_zig_zag_count = gauss_code_data.head_zig_zag_count;
 	peer_code_data.immersion = gauss_code_data.immersion;
@@ -2647,27 +2661,32 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
-	debug << "gauss_to_peer_code: peer code data produced from gauss code:" << endl;
+	debug << "gauss_to_peer_code: peer code data produced from gauss code: ";
+	write_peer_code(debug,peer_code_data);
+	debug << endl;
 	print_code_data(debug,peer_code_data,"gauss_to_peer_code: ");	
 }
+
+	bool component_zero_odd_shift = false;
 	
-	if (peer_code_data.immersion == generic_code_data::character::KNOTOID && num_virtual_crossings_on_gauss_arc[0] != 0)
+	if ((peer_code_data.immersion == generic_code_data::character::KNOTOID || peer_code_data.immersion == generic_code_data::character::MULTI_LINKOID) && num_virtual_crossings_on_gauss_arc[0] != 0)
 	{
-		/* If the Gauss code is that of a KNOTOID and we have added virtual crossings to Gauss arc zero, then we have 
+		/* If the Gauss code is that of a KNOTOID or a MULTI_LINKOID and we have added virtual crossings to Gauss arc zero, then we have 
 		   produced the peer code of the virtual closure of the knotoid.  In this case we renumber the peer code so that 
-		   edge zero is the leg of the knotoid and adjust the immersion character to be PURE_KNOTOID.  
+		   edge zero is the leg of the knotoid and, if we are dealing with a KNOTOID, adjust the immersion character to be PURE_KNOTOID.  
 		   
 		   Since the leg is always on component zero, and we adjust the components other than zero to be consistent 
 		   with the numbering of component zero.  The shift for the renumbering required is the number of virtual 
 		   crossings on Gauss arc zero.
 		   
 		   If the Gauss code is that of a KNOTOID but no virtual crossings have been added to Gauss arc zero, then we have
-		   the peer code of a knot-type knotoid and so do not need to adjust the peer code.
+		   the peer code of a knot-type knotoid and so do not need to adjust the peer code. 
 		*/
 		vector<int> shift_vector(num_components);
 		shift_vector[0] = num_virtual_crossings_on_gauss_arc[0];
 		if (num_virtual_crossings_on_gauss_arc[0]%2 == 1)
 		{
+			component_zero_odd_shift = true;
 			for (int i=1; i< num_components; i++)
 				shift_vector[i] = 1;
 		}
@@ -2681,29 +2700,41 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 }
 		renumber_peer_code(peer_code_data,shift_vector);
 
-		/* set the head crossing */
 		int terminating_edge_at_head = peer_code_data.num_component_edges[0] - num_virtual_crossings_on_gauss_arc[0];
 		int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
-		peer_code_data.head = head_naming_edge/2;
-		peer_code_data.immersion = generic_code_data::character::PURE_KNOTOID;
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "gauss_to_peer_code: terminating_edge_at_head = " << terminating_edge_at_head << ", head_naming_edge = " << head_naming_edge << endl;
+	debug << "gauss_to_peer_code: terminating_edge_at_head of component zero = " << terminating_edge_at_head << ", head_naming_edge = " << head_naming_edge << endl;
+
+		/* set the head crossing */
+		if (peer_code_data.immersion == generic_code_data::character::KNOTOID)
+		{
+			peer_code_data.head = head_naming_edge/2;
+			peer_code_data.immersion = generic_code_data::character::PURE_KNOTOID;
+		}
+		else if (peer_code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+		{
+			peer_code_data.component_type[0].type = component_character::PURE_START_LEG;
+			peer_code_data.component_type[0].head = head_naming_edge/2;
+		}
 	
 		for (int i = terminating_edge_at_head; i < peer_code_data.num_component_edges[0]; i++)
 		{
-//if (debug_control::DEBUG >= debug_control::DETAIL)
-//	debug << "gauss_to_peer_code: shortcut edge " << i;
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "gauss_to_peer_code: shortcut edge " << i;
 	
 			if (i%2 == 0)
 			{
 				peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
-//if (debug_control::DEBUG >= debug_control::DETAIL)
-//	debug << " crossing " << i/2;
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << " crossing " << i/2 << " becomes NEGATIVE" << endl;
 			}
 			else
 			{
 				peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << " crossing " << peer_code_data.code_table[EPEER][(i-1)/2]/2 << " becomes POSITIVE" << endl;
 			}
 		}
 	
@@ -2712,6 +2743,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code: adjusted peer code data for knotoid gauss code:" << endl;
 	print_code_data(debug,peer_code_data,"gauss_to_peer_code: ");	
 }
+
 		/* update the immersion_crossing_peers for the Gauss crossings so we determine the correct gauss_crossing_map */
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "gauss_to_peer_code: update immersion_crossing_peers to accommodate shift vector:" << endl;
@@ -2748,6 +2780,222 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	print(immersion_crossing_peers, debug, 4, "gauss_to_peer_code: ");
 }	
 	}
+	
+	/* If we are dealing with a multi-linkoid, we may have other open components to handle.  The immersion labels have been assigned to components starting
+	   with any virtual crossings added to the first Gauss arc.  Each component's immersion labels begin with an even label but to ensure that each crossing
+	   has a odd and an even terminating edge, components other than the zero-th component may have been cycled by moving the start of the numbering backwards 
+	   by one edge.  The boolean vector component_cycled records which components have been cycled.
+	   
+	   In the peer code we are creating, open components should have the leg on either the first (even) immersion edge or the last (odd) immersion edge, so we
+	   have to shift subsequent components to ensure this is the case.  Since conponent zero has already been considered, and possibly shifted, we may already 
+	   have adjusted the other components accordingly.  That means we only want to shift subsequent components by an even number of edges in order to retain the
+	   odd and even terminating edges at a crossing.  The boolean component_zero_odd_shift tells us whether component zero has had an odd shift, in which case 
+	   the subsequent components have all been shifted forwards by one edge.  Thus, some components have nbeen shifted back when the labels were fist allocated 
+	   and then forwards if component_zero_odd_shift is true.  This results in multiple cases to consider when shifting the subsequent open components to ensure
+	   that the leg is correctly positioned.  We record the character of the open components in the component_type vector of the generic_code_data.	   
+	*/
+	if (peer_code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+	{
+		for (int i=1; i< peer_code_data.num_open_components; i++)
+		{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "gauss_to_peer_code: multi-knotoid open component " << i << ':' << endl;
+			
+			vector<int> shift_vector(num_components);
+			int num_virtual_crossings_on_first_gauss_arc = num_virtual_crossings_on_gauss_arc[gauss_code_data.first_edge_on_component[i]];
+			int terminating_edge_at_head=-1;
+			int last_shortcut_edge=-1;
+			
+			if (component_cycled[i]) // component start moved back by one
+			{
+				if (component_zero_odd_shift) // component start moved forwards by one
+				{
+					if (num_virtual_crossings_on_first_gauss_arc == 0)
+					{
+						/* knot-like component, leg is the first edge no further shift required */
+						peer_code_data.component_type[i].type = component_character::KNOT_TYPE_START_LEG;
+					}
+					else if (num_virtual_crossings_on_first_gauss_arc % 2 == 1)
+					{ 
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc + 1, so that leg lies on last edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc+1;
+						peer_code_data.component_type[i].type = component_character::PURE_END_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc-1;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-1;
+					}
+					else
+					{						
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc, so that leg lies on first edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc;
+						peer_code_data.component_type[i].type = component_character::PURE_START_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i];
+					}
+				}
+				else
+				{
+					if (num_virtual_crossings_on_first_gauss_arc == 0)
+					{
+						/* knot-like component, shift forwards by 2 so the leg is the last edge*/
+						shift_vector[i] = 2;
+						peer_code_data.component_type[i].type = component_character::KNOT_TYPE_END_LEG;
+					}
+					else if (num_virtual_crossings_on_first_gauss_arc % 2 == 1)
+					{ 
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc + 1, so that leg lies on first edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc+1;
+						peer_code_data.component_type[i].type = component_character::PURE_START_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i];
+					}
+					else
+					{						
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc + 2, so that leg lies on last edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc+2;
+						peer_code_data.component_type[i].type = component_character::PURE_END_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc-1;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-1;
+					}
+				}
+			}
+			else
+			{
+				if (component_zero_odd_shift) // component start moved forwards by one
+				{
+					if (num_virtual_crossings_on_first_gauss_arc == 0)
+					{
+						/* knot-like component, leg is the last edge no further shift required */
+						peer_code_data.component_type[i].type = component_character::KNOT_TYPE_END_LEG;
+					}
+					else if (num_virtual_crossings_on_first_gauss_arc % 2 == 1)
+					{ 
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc - 1, so that leg lies on first edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc-1;
+						peer_code_data.component_type[i].type = component_character::PURE_START_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i];
+					}
+					else
+					{						
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc, so that leg lies on last edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc;
+						peer_code_data.component_type[i].type = component_character::PURE_END_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc-1;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-1;
+					}
+				}
+				else
+				{
+					if (num_virtual_crossings_on_first_gauss_arc == 0)
+					{
+						/* knot-like component, leg is the first edge no further shift required */
+						peer_code_data.component_type[i].type = component_character::KNOT_TYPE_START_LEG;
+					}
+					else if (num_virtual_crossings_on_first_gauss_arc % 2 == 1)
+					{ 
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc + 1, so that leg lies on last edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc+1;
+						peer_code_data.component_type[i].type = component_character::PURE_END_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc-1;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-1;
+					}
+					else
+					{						
+						/* shift numbering start forwards by num_virtual_crossings_on_first_gauss_arc, so that leg lies on first edge */
+						shift_vector[i] = num_virtual_crossings_on_first_gauss_arc;
+						peer_code_data.component_type[i].type = component_character::PURE_START_LEG;
+
+						terminating_edge_at_head = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i]-num_virtual_crossings_on_first_gauss_arc;
+						last_shortcut_edge = peer_code_data.first_edge_on_component[i]+peer_code_data.num_component_edges[i];
+					}
+				}
+			}
+			
+			/* set the component head for pure knotoid components */
+			if (terminating_edge_at_head != -1)
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "gauss_to_peer_code:   terminating_edge_at_head = " << terminating_edge_at_head << ", last_shortcut_edge = " << last_shortcut_edge << endl;
+	
+				int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
+				
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "gauss_to_peer_code:   head_naming_edge = " << head_naming_edge << endl;
+
+				peer_code_data.component_type[i].head = head_naming_edge/2;
+			}
+
+			renumber_peer_code(peer_code_data,shift_vector);
+
+			/* change any shortcut virtual crossings to be under-crossings */
+
+			for (int i = terminating_edge_at_head; i < last_shortcut_edge; i++)
+			{
+//if (debug_control::DEBUG >= debug_control::DETAIL)
+//	debug << "gauss_to_peer_code: shortcut edge " << i;
+	
+				if (i%2 == 0)
+				{
+					peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
+//if (debug_control::DEBUG >= debug_control::DETAIL)
+//	debug << " crossing " << i/2;
+				}
+				else
+				{
+					peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
+				}
+			}
+	
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "gauss_to_peer_code:   adjusted peer code data for knotoid gauss code:" << endl;
+	print_code_data(debug,peer_code_data,"gauss_to_peer_code:   ");	
+}
+		
+			/* update the immersion_crossing_peers for the Gauss crossings so we determine the correct gauss_crossing_map */
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:   update immersion_crossing_peers to accommodate shift vector:" << endl;
+		
+			for (int i=0; i< num_gauss_crossings; i++)
+			{
+				for (int j=0; j < 2; j++)
+				{
+					int old_label = immersion_crossing_peers[i][j];
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:     Gauss crossing " << i << " label " << j << " = " << old_label << endl;
+	
+					int component = 0;
+					while (old_label >= peer_code_data.first_edge_on_component[component]+peer_code_data.num_component_edges[component])
+						component++;
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:     component " << component << endl;
+						
+					int new_label = (old_label - peer_code_data.first_edge_on_component[component] - shift_vector[component] + peer_code_data.num_component_edges[component])%
+			                peer_code_data.num_component_edges[component] + peer_code_data.first_edge_on_component[component];
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "gauss_to_peer_code:     new label = " << new_label << endl;
+	
+					immersion_crossing_peers[i][j] = new_label;
+				}
+			}	
+					
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "gauss_to_peer_code: updated immersion_crossing_peers:   " << endl;
+	print(immersion_crossing_peers, debug, 4, "gauss_to_peer_code:   ");
+}	
+		}		
+	}
 
 	if (evaluate_gauss_crossing_perm)
 	{
@@ -2767,4 +3015,3 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
     return true;	
 }
-

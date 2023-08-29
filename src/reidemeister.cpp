@@ -21,6 +21,7 @@ Reidemeister_III_return Reidemeister_III_present (generic_code_data code_data)
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 #include <valarray>
 #include <list>
 #include <iomanip>
@@ -36,8 +37,6 @@ extern ofstream     output;
 extern ifstream     input;
 
 #include <util.h>
-#include <quaternion-scalar.h>
-#include <polynomial.h>
 #include <matrix.h>
 #include <generic-code.h>
 #include <debug-control.h>
@@ -4523,7 +4522,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					int index = 0;
 					for (int i=0; i< num_initial_start_virtual_crossings; i++)
 					{
-						edge = start+1+i;
+						edge = (start+1+i - first_edge_on_component[start_component])%num_component_edges[start_component] + first_edge_on_component[start_component];
 						
 						/* check that this edge terminates at a crossing that remains on the start detour when the peer
 						   detour has moved.  If the peer detour intersects the start detour, we may lose crossings from
@@ -4839,11 +4838,11 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	}
 	else
 	{
-if (debug_control::DEBUG >= debug_control::DETAIL)
+if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "remove_Reidemeister_II: no Reidemeister II moves detected." << endl;	
 	}
 
-if (debug_control::DEBUG >= debug_control::DETAIL)
+if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "remove_Reidemeister_II: returning num_components_removed = " << num_components_removed << endl;	
 	
 	return 	num_components_removed;	
@@ -5053,8 +5052,8 @@ void clear_component_flag(int component, vector<int>& component_flags)
 	   |     |                 |     |                 |     |                 |     |
 	                           v                             v                 v     v
 							   
-	Note that in the above diagrams the strand through crossing_a at the left_a_crossing or right_crossing 
-	is on an under-arc.
+	Note that in the above diagrams the strand through crossing_a at the left_a_crossing or right_a_crossing 
+	is the under-arc at crossing c.
 	
 	Note also that the sign of the crossings are as follows, when m3=1:
 	
@@ -5075,25 +5074,34 @@ void clear_component_flag(int component, vector<int>& component_flags)
 	                                 v                 v                       v     v
 
    Note that in the above diagrams we still have that the strand through crossing_a at the left_a_crossing 
-   or right_crossing is on an under-arc.
+   or right_a_crossing is the under-arc at crossing c.
    
    The signs in these diagrams are then given by the same relations as above but with m3 = -1
    
    The fact that the strand through crossing_a is the under-arc at crossing_c is important, since non-Reidemeister III
    configurations do not have this property, even if all other conditions are matched.  An example of this is given by
    1 2 -1 3 -2 -3 / + + - , where the signs match for the over-arc at terms 1 and 2 checking for the right_a_index=3 
-   but the term at index 3 is th eover-arc not the under-arc.
+   but the term at index 3 is the over-arc not the under-arc.
    
-   The function returns a set of indices to the first crossing on each of the thre arcs involved in the configuration,
-   consistent with the orientation determined by the code numbering.  We return indices to avoid ambiguities such as in the
-   case of -1 2 -3 4 1 3 -4 -2/+ - + +, where the over-arc 4 1 and crossing 3 form a Reidemeister III configuration but it
-   is not clear from the code which of the -2 or 2 crossing either side of the under crossing -1 is part of the same arc.
+   The function returns a set of integer vectors of length 6 <3 indices><3 crossing numbers>.  The indices are the indices 
+   into the Gauss code (i.e the ortientation matrix or classical_gauss_data in gauss_orientation_data) of the first crossing 
+   on each of the thre arcs involved in the configuration, consistent with the orientation determined by the code numbering.  
+   The crossing numbers are the crossings of the over-arc followed by the dominated crossing. These crossing numbers are taken 
+   from the classical_gauss_data and, as such, are numbered from 1.
+   
+   We return indices to avoid ambiguities such as in the case of -1 2 -3 4 1 3 -4 -2/+ - + +, where the over-arc 4 1 and 
+   crossing 3 form a Reidemeister III configuration but it is not clear from the code which of the -2 or 2 crossing either 
+   side of the under crossing -1 is part of the same arc.  The crossing numbers are for human convenience when comparing
+   debug or programme output with diagrams.
+   
+   Note that, being indices, the return values are numbered from zero, so although the indices correspond to Gauss edges in a diagram, 
+   the Gauss edges are generally numbered from 1.
    
 */
 Reidemeister_III_return Reidemeister_III_present (generic_code_data code_data)
 {
 
-if (debug_control::DEBUG >= debug_control::SUMMARY)
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 {
 	debug << "Reidemeister_III_present: presented with code data ";
 	write_code_data(debug,code_data);	
@@ -5336,7 +5344,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 	if (_return.Reidemeister_III_found)
 	{
-if (debug_control::DEBUG >= debug_control::SUMMARY)
+if (debug_control::DEBUG >= debug_control::INTERMEDIATE)
 	debug << "Reidemeister_III_present: found " << Reidemeister_III_list.size() << " Reidemeister III configurations" << endl;
 		matrix<int> R3_configuration(Reidemeister_III_list.size(),6);
 		

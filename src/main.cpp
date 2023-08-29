@@ -85,13 +85,16 @@ to vertices joined by an edge of the triangulation.
    Version 11:   added region shrinking placement, rearranged and improved the use of long and short
                  programme options, coding started 25-10-18
    Version 12:   added the ability to the draw smoothed states for a given knot, link knotoid or multi-knotoid diagram
-   Version 13:   added lace drawing capability and the ability to draw diagrams with colour
+   Version 13:   added lace drawing capability and the ability to draw diagrams with colour, added support for diagrams containing Reidemeister I loops (December 2021)
    Version 14:   added the ability to draw knots from Gauss codes and added the smallarrowheads option  (December 2021)
    Version 15:   added ability to label Gauss-arcs rather than immersion edges (January 2022)
    Version 16:   added the ability to draw a single smoothed state rather than all of them (February 2022)
    Version 17:   added planar diagram support and optimized the Gauss to peer code conversion (March 2022)
    Version 17.1: added automatic sizing of smoothed crossings and the ability to shift smoothed crossings labels to one side (March 2022)
    Version 18:   added labelling of Gauss crossings, as specified by Gauss code or planar diagram input, or calculated from peer code input (October 2022)
+   Version 18.1  code tidy-up, moved to initialize.h
+   Version 19:   added the ability to draw multi-linkoids, added shorcuts to knot-type knoid drawings.  
+                 aded scale option to re-size diagrams so they become  proportionate to a fixed diagonal size
 **************************************************************************/
 using namespace std;
 
@@ -110,7 +113,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "18";
+string 		version  = "19";
    
 
 extern ofstream    debug;
@@ -191,6 +194,7 @@ char const* triangulation_shrink_file = "__shrink.out";
 
 	
 /********************* Function prototypes ***********************/
+void dual_graph_placement(metapost_control& mp_control, generic_code_data& code_data, string title);
 void force_directed_placement(metapost_control& mp_control, generic_code_data& code_data, int num_iterations, string title);				
 void centre_of_gravity_placement(metapost_control& mp_control, generic_code_data& code_data, int num_iterations, string title);
 void region_shrinking_placement(metapost_control& mp_control, generic_code_data& code_data, matrix<int>& cycle, int num_cycles, 
@@ -256,6 +260,13 @@ double badness_threshold = 100;
 int minimum_infinite_cycle_length = 3;
 
 
+
+
+int dual_graph_index = 1;
+namespace util
+{
+	string itos(long n);
+}
 
 /******************* Main Function ************************/
 int main (int argc, char* argv[])
@@ -508,38 +519,29 @@ try {
 		int infinite_region;
 		matrix<int> cycle(0,0);
 		
-		string::size_type pos = input_string.find('X');
-		if (pos != string::npos)
+		if (input_string.find('X') != string::npos)
 		{
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-    debug << "draw::main: identified input_string as a planar diagram" << endl;
 				planar_diagram_input = true;		
 				gauss_code_input = true;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << "draw::main: identified input_string as a planar diagram" << endl;
+		}
+		else if (input_string.find('[') != string::npos)
+		{		
+			peer_code_input = true;		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << "draw::main: identified input_string as a peer code" << endl;
+		}
+		else if (input_string.find('(') != string::npos && input_string.find("K(") == string::npos) // indicates input is a lace
+		{
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+    debug << "draw::main: identified input_string " << input_string << " as a lace code" << endl;
 		}
 		else
 		{
-			string::size_type pos = input_string.find('[');
-			if (pos != string::npos)
-			{		
+			gauss_code_input = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-    debug << "draw::main: identified input_string as a peer code" << endl;
-				peer_code_input = true;		
-			}
-			else
-			{
-				string::size_type pos = input_string.find('('); // indicates input is a lace
-				if (pos == string::npos) //Gauss code
-				{
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-    debug << "draw::main: identified input_string as a Gauss code" << endl;				
-					gauss_code_input = true;
-				}
-				else  
-				{
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-    debug << "draw::main: identified input_string as a lace code" << endl;
-				}				
-			}
+    debug << "draw::main: identified input_string " << input_string << " as a Gauss code" << endl;				
 		}
 		
 		if (peer_code_input || gauss_code_input)
@@ -1846,6 +1848,25 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.rotation_degrees << endl;
 }	
 	}
+	else if (!strcmp(loc_buf,"scale"))
+	{
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: setting odd_parity_disc_size as a result of " << source << " option" << endl;
+
+		if (*c1 == '=')
+		{
+			get_number(mp_control.scale,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify a scale size if you use the scale option, e.g. 'scale=1, or scale=2.5'" << endl;
+			exit(0);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: scale read from " << source << ", scale = " << mp_control.scale << endl;
+	}
 	else if (!strcmp(loc_buf,"script-labels"))
 	{
     	mp_control.script_labels = true;
@@ -2706,6 +2727,7 @@ void help_info(bool exit_after_help)
 	cout << "  odd-parity-disc-size=<n>: set the odd parity disc size multiplier to determine the size of the odd parity crossing indicator, n*0.2*disc-size (default n=6)\n";
 	cout << "  plot=<divisions>: set the number of divisions for the histogram in edge distribution placement (default 20)\n";
 	cout << "  parity: show crossings with odd parity in smoothed states\n";
+	cout << "  scale=<float>: override other size settings and scale diagram to the specified multiple of a standard size\n";
 	cout << "  script-labels: label vertices using TeX's script size font\n";
 	cout << "  scriptscript-labels: label vertices using TeX's scriptscript size font\n";
 	cout << "  show-shrink: draw the effect of shrinking the triangulation when using region shrinking placement\n";
@@ -2833,6 +2855,11 @@ void set_main_debug_option_parameter(char* pptr, string option)
 			{
 				debug_control::DEBUG = debug_control::DETAIL;
 				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::DETAIL\n";		
+			}
+			else if (!strcmp(pptr,"exhaustive") || !strcmp(pptr,"5"))
+			{
+				debug_control::DEBUG = debug_control::EXHAUSTIVE;
+				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::EXHAUSTIVE\n";		
 			}
 		}
 	}
