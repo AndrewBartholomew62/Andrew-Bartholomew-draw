@@ -1,40 +1,56 @@
+<!DOCTYPE html>
 <html>
 <head>
-<meta name="description" content="Drawing metapost diagrams for knots, links, and knotoids"> 
-<meta name="keywords" content="metapost, drawing, knots, diagrams, knotoids"> 
+<meta name="description" content="Drawing metapost diagrams for knots, links, knotoids, multi-linkoids and doodles"> 
+<meta name="keywords" content="metapost, drawing, knots, diagrams, knotoids, multi-linkoids"> 
 <title>draw programme</title>
 </head>
 
 <body>
 
-<h2 align="center"><a name="_top">Draw programme version 18<a></h2>
-<p align="center">Last modified 9th October, 2022</p>
+<h2 align="center"> <a name="_top"> Draw programme version 19 </a> </h2>
+<p align="center">Last modified 28<sup>th</sup> August, 2023.</p>
 
 <P align="center"><IMG SRC="images/bigelow.jpg" height="400"></P>
 
 <h2>1. Introduction</h2>
 
 <p>The draw programme generates metapost code to draw diagrams from labelled peer codes, Gauss codes or planar diagrams.  It is currently able to 
-draw a variety of knots and links: classical, virtual, welded and flat, (multi-)knotoids (the original motivation) and doodles.  The programme can 
+draw a variety of knots and links: classical, virtual, welded and flat, (multi-)knotoids (the original motivation), multi-linkoids and doodles described by a range 
+of <a href="#Input-codes">input codes</a>.  The programme can 
 also draw smoothed states for a given diagram, as used by various invariants based on state sums, including those based on Gaussian parity ([2]).</p>
 
-<p>In addition to these primary use cases, the programme contains support for drawing laces.  This is the topic of ongoing research and is not 
+<p>Individual diagrams may be produced by specifying an input code in response to a prompt, or multiple codes may be presented to the programme in an input file.  If required,
+each entry in an input file may include additional, code-specific parameters.</p>
+
+<p>Tasks such as changing the size of the diagram, choosing the line thickness, adding edge or crossing labels and adding colour are all supported using simple command
+line switches or by adding per-code instructions in an input file.
+</p>
+
+<p>In addition to the primary use cases, the programme contains support for drawing laces.  This is the topic of ongoing research and is not 
 discussed further.  Similarly, the programme contains support for a number of experimental drawing techniques but,again, we do not go into 
 details.  These alternative drawing techniques have been developed in an attempt to address the shortcomings of the primary drawing algorithm
 but none have been found to produce better results for the majority of diagrams.
 </p>
 
-<p> This page contains the following sections:</p> 
+<p> The remainder of this page contains the following sections:</p> 
 <ol START=2>
 <li><p><a href="#Overall-Description">Overall description</a></p>
     <p style="margin-left: 1cm"><a href="#Programme-control">Controlling programme behaviour</a></p>
 <li><p><a href="#Running-draw">Running the software</a></p>
     <p style="margin-left: 1cm"><a href="#Software">The draw programme software</a></p>
 <li><p><a href="#Input-codes">Supported input codes</a></p>
-    <p style="margin-left: 1cm"><a href="#Knotoid-codes">Labelled peer codes for knotoids</a></p>
-    <p style="margin-left: 1cm"><a href="#Gauss-code-input">Gauss codes for knots, links and knotoids</a></p>
+    <p style="margin-left: 1cm"><a href="#Labelled-peer-code">Labelled peer codes</a></p>
+    <p style="margin-left: 1cm"><a href="#Knotoid-peer-codes">Labelled peer codes for knotoids</a></p>
+    <p style="margin-left: 1cm"><a href="#Multi-linkoid-peer-codes">Labelled peer codes for multi-linkoids</a></p>
+    <p style="margin-left: 1cm"><a href="#Doodle-peer-codes">Labelled peer codes for doodles</a></p>
+    <p style="margin-left: 1cm"><a href="#Gauss-code-input">Gauss codes</a></p>
+    <p style="margin-left: 1cm"><a href="#Knotoid-Gauss-codes">Gauss codes for knotoids</a></p>
+    <p style="margin-left: 1cm"><a href="#Multi-linkoid-Gauss-codes">Gauss codes for multi-linkoids</a></p>
+    <p style="margin-left: 1cm"><a href="#Doodle-Gauss-codes">Gauss codes for doodles</a></p>
     <p style="margin-left: 1cm"><a href="#Planar-diagram-input">Planar digram format for knots, links and knotoids</a></p>
 <li><p><a href="#usage">Draw programme command syntax</a></p>
+    <p style="margin-left: 1cm"><a href="#Sizing">Controlling the image size</a></p>
     <p style="margin-left: 1cm"><a href="#Input-file">Input file format</a></p>
 <li><p><a href="#Example-diagrams">Example diagrams</a></p>
     <p style="margin-left: 1cm">Adding orientation indicators<br>
@@ -101,6 +117,8 @@ domain and fully acknowledge all rights they may have in that code and it's meth
 	of the point at infinity explicitly.</li>
 
 </ol>
+
+<p>
 	In addition to the above, wherever the Knotscape original modules call auxiliary functions
 	I have written corresponding functions in support of my versions.  These are also 
 	acknowledged effectively to have been taken directly from Knotscape.
@@ -126,9 +144,11 @@ options available to adjust things like the overall size of the diagram, rotatin
 included in an input file, or added to individual input codes, as required.  The <a href="#usage">draw programme command syntax</a> is described below and examples provided for the more important drawing and control options.  A description of the <a href="#Input-file">input file format</a> is also provided.
 </p>
 
+<p>Simple help information is available by starting the programme with the command "<kbd>draw -h</kbd>", a full list of options may be seen by starting the programme with the command "<kbd>draw -H!</kbd>"</p>
+
 <h3><a NAME="Software"></a>The draw programme software</h3>
 
-<p>The file <a href="../download/draw-17.1-src.tar">draw-17.1-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+<p>The file <a href="../download/draw-18-src.tar">draw-18-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
 
 <p>See the section <a href="#Version-history">Version history</a> for a summary of what's new in this version.</p>
 
@@ -195,6 +215,30 @@ follows:</p>
 
 <p>Note that the <kbd>^</kbd> character uniquely identifies the head since there is a unique edge entering each crossing as part of the under-arc.</p>
 
+<h4><a NAME="Multi-linkoid-peer-codes"></a>Labelled peer codes for multi-linkoids</h4>
+
+<p>A knotoid having multiple open (segment) components, also referred to as a multi-linkoid, is similarly represented with shortcuts comprised of under-crossings but requires the additional syntax 
+defined by an <a href="../download/labelled-peer-code.pdf">extended labelled peer code</a>.</p>
+
+<ul>
+  <li>A '^' symbol placed after an odd peer indicates that the corresponding component is open and the first edge of the component (an even edge) is the leg.</li>
+  <li>A '$' symbol placed after an odd peer indicates that the corresponding component is open and the last edge of the component (an odd edge) is the leg.</li>
+  <li>A '@' symbol placed before the first odd peer of a component indicates that the component is knot-like open and that the leg and head occur within the first (even) edge of the component.</li>
+  <li>A '@' symbol placed after the last odd peer of a component indicates that the component is knot-like open and that the leg and head occur within the last (odd) edge of the component.</li>
+</ul>
+   
+<p>Note that the above syntax requires that the peer labels assigned to a multi-knotoid diagram with shortcuts added are such that, if the the leg of an open component lies on an even edge then it is the
+first edge of the component and if it lies on an odd edge, then it is the last edge of the component.  The component of a multi-knotoid containing label zero must be an open component (as in the case of knotoids)
+but the other components may be numbered in any order that allows the odd and even terminating edge numbering to be extended across the diagram.</p>
+   
+<p>The following multi-linkoid diagram is described by the labelled peer code <kbd>[9 -15^, -11 13$, @3 17 -19 21 -1 5 -7]/+ - - - + - - + + - -</kbd>.</p>
+
+<p style="margin-left: 2cm"><IMG SRC="images/multi-linkoid-peer.png"></p>
+
+<p>The extended peer code allows any diagram to be described, including ones containing Reidemeister I loops, or ones in which the first or last crossing of an open segment is virtual.  However, for many 
+simple multi-linkoid diagrams it is convenient to use the Gauss code syntax for multi-knotoids described below and let the draw programme determine the extended peer code automatically.  Note that the
+metapost output file produced by the draw programme includes the labelled peer code in the comment section before each figure, so it is available for modification, if required.</p>
+
 <h4><a NAME="Doodle-peer-codes"></a>Labelled peer codes for doodles</h4>
 
 <p>A doodle, or virtual doodle, may be described by a labelled peer code by designating the crossing label as flat, using the <kbd>#</kbd> character.  The following is an example of
@@ -220,20 +264,35 @@ following a '<kbd>/</kbd>' character.  Thus an example Gauss code for a classica
 <p>Note that the sign used in Gauss codes is the standard notion of a positive or negative crossing in classical knot theory.  This is not the same as the use of signs in 
 labelled peer codes.</p>
 
-<p>Alternatively, Gauss codes may be specified as a sequence of terms of the form (O|U)&ltcrossing-num&gt&ltcrossing-sign&gt, e.g. O1-O2+U1-O3+O4+U2+U3+U4+<p>
+<p>Alternatively, Gauss codes may be specified as a sequence of terms of the form (O|U)&lt;crossing-num&gt;&lt;crossing-sign&gt;, e.g. O1-O2+U1-O3+O4+U2+U3+U4+<p>
 
 <p>The same under and over format may be used for virtual links by separating the crossing terms belonging to each component with a comma.  An example of the Gauss code 
 for a virtual link using the under and over format is U1+U2-,O3-,O1+O2-U3-.</p>
 
-<h4><a NAME="Knotoid-gauss-codes"></a>Gauss codes for knotoids</h4>
+<h4><a NAME="Knotoid-Gauss-codes"></a>Gauss codes for knotoids</h4>
 
 <p>Gauss codes may also be used to draw knotoids, or multi-knotoids.  The Gauss code must describe the segment component of a knotoid first and must start at the leg of the
 knotoid.  Moreover, in order to tell the programme that the Gauss code should be treated as a knotoid and not a virtual knot, the code must be preceded by "K:".  An example 
 of a multi-knotoid with four components described by a Gauss code is:</p>
 
 <p style="margin-left: 1cm"><kbd>K:1 -2 10 -12, 4 -5 6 -7 8 -1 -3, 5 -8 2 3 -4, -13 9 -10 -11 14, -14 11 12 -9 7 -6 13 / - + + + + + + + - - - - - -</kbd></p>
+
+<h4><a NAME="Multi-linkoid-Gauss-codes"></a>Gauss codes for multi-linkoids</h4>
+
+<p>Multi-linkoids are described by Gauss codes by requiring that the open components are listed first and by indicating the number of open segments in parentheses, as in the following example:</p>
  
-<h4><a NAME="Doodle-gauss-codes"></a>Gauss codes for doodles</h4> 
+<p style="margin-left: 1cm"><kbd>K(2):7 -8 5,-2 3, 1 -3 4 -7 6 -5 -1 2 -4 -6 8/+ - + - + + - -</kbd></p>
+
+<p style="margin-left: 2cm"><IMG SRC="images/multi-linkoid-gauss.png"></p>
+ 
+<p>Here, there are two open components, one whose leg is the ingress over-arc at crossing 7 and whose head is the egress over-arc at crossing 5.  The other open segment leg is the ingress under arc at crossing
+2 and the head is the egress over arc at crossing 3.</p>
+
+
+<p>The draw programme automatically converts muti-linkoid Gauss codes into labelled peer codes and draws then draws the corresponding immersion.  The intermediate labelled peer code is recorded in the output file
+as part of the comment section before the metapost code for the diagram.</p>
+
+<h4><a NAME="Doodle-Gauss-codes"></a>Gauss codes for doodles</h4> 
 
 <p>The Gauss code of a doodle or flat link diagram similarly numbers the crossings of the diagram and follows each 
 component from an arbitrary staring point.  Since in these cases there are no over of under crossings in these cases, we begin by assigning an orientation to every component and respecting that choice as trace the diagram.  Then, as we traverse a crossing the code records whether the other strand crosses our path from left to right or from right to left, according to the given orientation.  Crossing types are then labelled with the "flat" decoration <kbd>#</kbd> </p>
@@ -272,6 +331,7 @@ diagram:</p>
 
 <p style="margin-left: 1cm"><kbd>K:X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1]</kbd></p>
 
+<p>Note, planar diagrams are not suitable for describing multi-linkoids, since they contain no implicit ordering of components, so it is not possible to specify which are to be regarded as open and which closed.</p>
 
 <h2><a NAME="usage"></a>5. Draw programme command syntax</h2>
 
@@ -295,7 +355,7 @@ diagram in &lt;outfile>, or in the file draw.out if no &lt;outfile> is provided.
 <pre>
 
 &lt;programme-option>
-  convex: draw the convex, straight line triangulation of a disc
+  convex-disc: draw the convex, straight line triangulation of a disc
   edge[=&lt;max-iterations>] default 200: use edge distribution placement
   force[=&lt;max-iterations>] default 200: use Plestenjak force directed placement
   gravity[=&lt;max-iterations>] default 200: use centre of gravity placement
@@ -351,7 +411,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
 <pre>
   colour: draw different components with colours rather than just black lines
   colour-map=&lt;filename>: use the colours in &lt;filename> rather than the default colours
-  cusp_disc_size=<n>: set the cusp disc size multiplier to determine the size of the non-Seifert-smoothed cusp indicator discs, n/10*disc-size (default n=7)
+  cusp_disc_size=&lt;n>: set the cusp disc size multiplier to determine the size of the non-Seifert-smoothed cusp indicator discs, n/10*disc-size (default n=7)
   edge-factor=&lt;float> default 0.5: amount by which vertices are moved towards the COG in edge distribution placement
   first-gap: always use the first gap as the active gap in edge distribution placement
   frame-corners: show frame corners when tracking placement iteration
@@ -359,12 +419,13 @@ input files as global options or as qualifiers (see the section <a href="#Input-
   gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1 
   grid[=&lt;grid-size>]: draw a grid to assist with using the translate option (default 10)
   hyperbolic: drawing diagram in the hyperbolic plane
-  label-shift=<n>: set the number of units u by which the labels of small smoothed crossings should be moved (default n=50)  
+  label-shift=&lt;n>: set the number of units u by which the labels of small smoothed crossings should be moved (default n=50)  
   no-vertex-axes: do not show the axes when labelling the vertices of a diagram
   no-show-displacement: do not show the triangulation displacement when tracking placement iteration
+  odd-parity-disc-size=&lt;n>: set the odd parity disc size multiplier to determine the size of the odd parity crossing indicator, n/10*disc-size (default n=12)
   parity: show crossings with odd parity in smoothed states  
-  odd-parity-disc-size=<n>: set the odd parity disc size multiplier to determine the size of the odd parity crossing indicator, n/10*disc-size (default n=12)
   plot[=&lt;divisions>]: set the number of divisions for the histogram in edge distribution placement (default 20)
+  scale=&lt;float>: override other size settings and scale diagram to the specified multiple of a standard size  
   script-labels: label vertices using TeX's script size font
   scriptscript-labels: label vertices using TeX's scriptscript size font
   show-shrink: draw the effect of shrinking the triangulation when using region shrinking placement
@@ -375,9 +436,9 @@ input files as global options or as qualifiers (see the section <a href="#Input-
                                                regions have an area within this factor of their average area
   smoothed-disc-size: set the smoothed state disc size multiplier to determine the size of smoothed 
                       crossings n*disc-size (default n=6)  
-  smoothed-disc-threshold=<n>: set the diameter in units u of the smoothed crossing disc below which the label of the crossings should be moved (default n=30)
+  smoothed-disc-threshold=&lt;n>: set the diameter in units u of the smoothed crossing disc below which the label of the crossings should be moved (default n=30)
   state: specify the smoothed state that you wish to draw as a string of A and B characters corresponding to the Gauss crossings of the diagram
-  tranlsate=&lttranslation-list>: specify a list of vertices together with a translation in the form UxPyR:VxQyS... where U and V 
+  tranlsate=&lt;translation-list>: specify a list of vertices together with a translation in the form UxPyR:VxQyS... where U and V 
                                are vertex numbers and P,Q,R,S percentages of the diagram width and height e.g. 10x8y-33 indicates 
                                shifting vertex 10 +8% to the right -3% up
   tension: set the metapost path tension, default value 1.0, i.e. the metapost ".." default
@@ -415,6 +476,8 @@ input files as global options or as qualifiers (see the section <a href="#Input-
 for setting programme defaults from the command line as well as an intuitive approach to creating
 input files (see below)</p>
 
+<h3><a NAME="Sizing"></a>Controlling the image size</h3>
+
 <p>By default the draw programme produces metapost code based on the following metapost parameters</p>
 
 <ul>
@@ -423,17 +486,22 @@ input files (see below)</p>
 <li>pen-size = 1, giving pencirlce scale 0.5 pt</li>
 </ul>
 
-<p>The metapost code produces by the programme expresses dimensions as multiples of a unit paramater, u, whose default value is shown above.  The overall size
-of a diagram may therefore be modified by adjusting the unit size.  For large diagrams, metapost can sometimes complain that a quntity is too large, in which case
-reducing the unit size will typically solve the problem.</p>
+<p>The metapost code produced by the programme expresses dimensions as multiples of a unit parameter, u, whose default value is shown above.  The overall size
+of a diagram may therefore be modified by adjusting the unit size.</p>  
+
+<p>For large diagrams, metapost can sometimes complain that a quantity is too large, in which case reducing the unit size will typically solve the problem.
+If the diagram coordinates are still too large, the metapost_coordinate_scale_factor may be adjusted using the <kbd>M</kbd> option.  This scale factor is dependent on the 
+drawing algorithm and is used to adjust coordinate values produced by the algorithm so they are more readily handled by metapost.</p>   
+
+<p>There is also a <kbd>scale=&lt;float></kbd> option that adjusts the size of a diagram so that the range of x and y coordinates determine a rectangle whose diagonal is the given floating point 
+multiple of 100 pts (about 35mm).  The <kbd>scale</kbd> option was added so that an <a href="#Input-file">input file</a> that would normally produce different sized diagrams may be scaled automatically
+so that all the diagrams are roughly the same size.  This is particularly useful for displaying several diagrams in a paper or on a website.</p>
 
 <p>To represent crossings, the metpost code places a disc at a crossing vertex and then draws an over-arc, or creates a virtual crossing glyph as required by the diagram.
 The size of these disc is controlled by the disc-size (or the short d) option.  As can be seen from the default value shown above, increasing the unit size also increases the disc size,
 so it is sometimes useful to control the two quantities separately.</p>
 
 <p>The pen-size determines the thickness of the lines in the resulting diagram, by controlling the size of pencircle used by metapost.</p>
-
-<p>If the diagram results in metapost coordinates that are too large, the metapost_coordinate_scale_factor used by the programme may be adjusted using the <kbd>M</kbd> option.  Simple help information is available by starting the programme with the command "<kbd>draw -h</kbd>", a full list of options may be seen by starting the programme with the command "<kbd>draw -H!</kbd>"</p>
 
 <p>The section <a href="#Example-diagrams">Example diagrams</a> below provides a description and some examples of the most common drawing options.</p>
 
@@ -597,10 +665,10 @@ produces the following immersion diagram
 <h2><a NAME="Adding-Colour"></a>7. Adding colour</h2>
 
 <p>By default the draw programme produces black and white diagrams but it is possible to create coloured drawings using the <a href="#usage">command line options </a> <kbd>colour</kbd> and <kbd>colour-map</kbd>.  The programme makes use of the metapost mpcolornames package and can draw an entire diagram with a different colour using the option
-<kbd>colour=&ltcolourname&gt</kbd>, or it can draw each component of the diagram with a different colour by using the option <kbd>colour</kbd> without specifying a particular colour.  
+<kbd>colour=&lt;colourname&gt;</kbd>, or it can draw each component of the diagram with a different colour by using the option <kbd>colour</kbd> without specifying a particular colour.  
 By default, this results in the components being coloured in the order "red","blue","ForestGreen","Brown","DarkViolet",and "Orange".  Any subsequent components are drawn black. </p>
 
-<p>Additional colours, the colour selection, or the order in which colours are used may be changed by using the <kbd>colour-map=&ltcolour-map&gt</kbd> option, which
+<p>Additional colours, the colour selection, or the order in which colours are used may be changed by using the <kbd>colour-map=&lt;colour-map&gt;</kbd> option, which
 takes a colour-map file name as a parameter, see section <a href="#usage">Draw programme command syntax</a> below.  A colour-map file is just a list 
 of the colours to be used in order, one per line.  If there are more diagram components that there are colours specified in the colour-map file, then
 subsequent components are drawn black.</p>
@@ -625,7 +693,7 @@ y-direction, moves <kbd>z2</kbd> -3 steps in the x-direction and 4 in the y-dire
 
 <p>In most cases the <kbd>translate</kbd> option is most usefuly added as an <a href="#Input-file" >qualifier</a> to an input code within an input file.</p>
 
-</p>The <kbd>grid</kbd> option may also be used to draw a grid based on the minimum and maximum coordinate values to assist with the use of the <kbd>translate</kbd> 
+<p>The <kbd>grid</kbd> option may also be used to draw a grid based on the minimum and maximum coordinate values to assist with the use of the <kbd>translate</kbd> 
 option.  By default the grid size is ten percent of the difference between the maximum and minimum coordinates of the corresponding dimension.  If required, the grid
 size may be set by appending a value to the option: <kbd>grid=&lt;grid-size></kbd>, specifying the desired percentage.</p> 
 
@@ -698,7 +766,7 @@ The option may also be used with the <kbd>state</kbd> option as described below.
 
 <h3><a NAME="Single-state"></a>Drawing individual smoothed states</h3>
 
-<p>You can draw an individual smoothed state using the <kbd>state=&ltstate-string&gt</kbd> option, where the <kbd>&ltstate-string&gt</kbd>
+<p>You can draw an individual smoothed state using the <kbd>state=&lt;state-string&gt;</kbd> option, where the <kbd>&lt;state-string&gt;</kbd>
 is a sequence of A and B characters identifying whether a crossing should be A-smoothed or B-smoothed.</p>
 
 <p>Crossing designations as either A or B are required for each crossing in a diagram that is smoothed. Thus, for Gauss code input and planar diagram input a designation is required for
@@ -758,7 +826,7 @@ having two edges in the infinite turning cycle. </p>
 
 <p>Version 12: added the ability to the draw smoothed states for a given knot, link knotoid or multi-knotoid diagram.</p>
 
-<p>Version 13: added lace drawing capability and the ability to draw diagrams with colour.</p>
+<p>Version 13: (December 2021) added lace drawing capability, the ability to draw diagrams with colour and support for diagrams containing Reidemeister I loops.</p>
 
 <p>Version 14 (December 2021) added the ability to draw knots from Gauss codes and added the smallarrowheads option.</p>
 
@@ -772,12 +840,15 @@ having two edges in the infinite turning cycle. </p>
 
 <p>Version 18 (October 2022) added labelling of Gauss crossings, as specified by Gauss code or planar diagram input, or calculated from peer code input.</p>
 
-<h2><a NAME="References"></a>11. References</h2></p>
+<p>Version 19 (August 2023) added the ability to draw multi-linkoids, added shorcuts to knot-type knoid drawings, added the scale option to re-size diagrams 
+   so they become  proportional to a fixed diagonal size
+</p>
+
+<h2><a NAME="References"></a>11. References</h2>
 
 <P>[1] Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
 <p>[2] Parity in knot theory, (Russian), V. O. Manturov.  Mat. Sb., 201, (2010), no.5, 65-110; translation in Sb. Math., 201, (2010), no. 5, 693-733</p>
 
-<p><a href="../index.htm">back to maths homepage</a><p>
 
 </body>
 </html>
