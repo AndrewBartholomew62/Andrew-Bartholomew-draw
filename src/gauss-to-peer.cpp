@@ -84,12 +84,12 @@ void assign_gauss_arc_direction(int arc_1, int arc_2, matrix<int>& gauss_code_ta
 if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 {
 	debug << "assign_gauss_arc_direction: crossing = " << crossing << ", arc_1 = " << arc_1 << ", arc_2 = " << arc_2 << endl;
-	debug << "assign_gauss_arc_direction: gauss_code_table[ODD_TERMINATING][crossing] = " << gauss_code_table[ODD_TERMINATING][crossing] 
-	      << " gauss_code_table[EVEN_TERMINATING][crossing] = " << gauss_code_table[EVEN_TERMINATING][crossing] << endl;
+	debug << "assign_gauss_arc_direction: gauss_code_table[generic_code_data::table::ODD_TERMINATING][crossing] = " << gauss_code_table[generic_code_data::table::ODD_TERMINATING][crossing] 
+	      << " gauss_code_table[generic_code_data::table::EVEN_TERMINATING][crossing] = " << gauss_code_table[generic_code_data::table::EVEN_TERMINATING][crossing] << endl;
 }
 
-		if ( (gauss_code_table[ODD_TERMINATING][crossing] == arc_1 && gauss_code_table[EVEN_ORIGINATING][crossing] == arc_2) 
-		    || (gauss_code_table[EVEN_TERMINATING][crossing] == arc_1 && gauss_code_table[ODD_ORIGINATING][crossing] == arc_2))
+		if ( (gauss_code_table[generic_code_data::table::ODD_TERMINATING][crossing] == arc_1 && gauss_code_table[generic_code_data::table::EVEN_ORIGINATING][crossing] == arc_2) 
+		    || (gauss_code_table[generic_code_data::table::EVEN_TERMINATING][crossing] == arc_1 && gauss_code_table[generic_code_data::table::ODD_ORIGINATING][crossing] == arc_2))
 		{		
 			gauss_arc_direction[arc_1] = gc_pc_xlabels::direction::UPWARDS;
 			gauss_arc_direction[arc_2] = gc_pc_xlabels::direction::DOWNWARDS;
@@ -181,7 +181,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 	for (int i=0; i< num_gauss_crossings; i++)
 	{
-	    if (gauss_code_table[LABEL][i] != generic_code_data::POSITIVE  && gauss_code_table[LABEL][i] != generic_code_data::NEGATIVE && gauss_code_table[LABEL][i] != generic_code_data::FLAT)
+	    if (gauss_code_table[generic_code_data::table::LABEL][i] != generic_code_data::POSITIVE  && gauss_code_table[generic_code_data::table::LABEL][i] != generic_code_data::NEGATIVE && gauss_code_table[generic_code_data::table::LABEL][i] != generic_code_data::FLAT)
 		{
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
@@ -218,38 +218,38 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	
 	for (int i=0; i< num_gauss_crossings; i++)
 	{
-		if (gauss_code_table[LABEL][i] == generic_code_data::POSITIVE)
+		if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::POSITIVE)
 		{
-			PD_data[i][0] = gauss_code_table[ODD_TERMINATING][i];
+			PD_data[i][0] = gauss_code_table[generic_code_data::table::ODD_TERMINATING][i];
 
-			if (gauss_code_table[TYPE][i] == generic_code_data::TYPE1)
+			if (gauss_code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
 			{
-				PD_data[i][1] = gauss_code_table[EVEN_TERMINATING][i];
-				PD_data[i][2] = gauss_code_table[EVEN_ORIGINATING][i];
-				PD_data[i][3] = gauss_code_table[ODD_ORIGINATING][i];
+				PD_data[i][1] = gauss_code_table[generic_code_data::table::EVEN_TERMINATING][i];
+				PD_data[i][2] = gauss_code_table[generic_code_data::table::EVEN_ORIGINATING][i];
+				PD_data[i][3] = gauss_code_table[generic_code_data::table::ODD_ORIGINATING][i];
 			}
 			else
 			{
-				PD_data[i][1] = gauss_code_table[ODD_ORIGINATING][i];
-				PD_data[i][2] = gauss_code_table[EVEN_ORIGINATING][i];
-				PD_data[i][3] = gauss_code_table[EVEN_TERMINATING][i];
+				PD_data[i][1] = gauss_code_table[generic_code_data::table::ODD_ORIGINATING][i];
+				PD_data[i][2] = gauss_code_table[generic_code_data::table::EVEN_ORIGINATING][i];
+				PD_data[i][3] = gauss_code_table[generic_code_data::table::EVEN_TERMINATING][i];
 			}			
 		}
 		else // generic_code_data::NEGAITIVE or generic_code_data::FLAT
 		{
-			PD_data[i][0] = gauss_code_table[EVEN_TERMINATING][i];
+			PD_data[i][0] = gauss_code_table[generic_code_data::table::EVEN_TERMINATING][i];
 
-			if (gauss_code_table[TYPE][i] == generic_code_data::TYPE1)
+			if (gauss_code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
 			{
-				PD_data[i][1] = gauss_code_table[EVEN_ORIGINATING][i];
-				PD_data[i][2] = gauss_code_table[ODD_ORIGINATING][i];
-				PD_data[i][3] = gauss_code_table[ODD_TERMINATING][i];
+				PD_data[i][1] = gauss_code_table[generic_code_data::table::EVEN_ORIGINATING][i];
+				PD_data[i][2] = gauss_code_table[generic_code_data::table::ODD_ORIGINATING][i];
+				PD_data[i][3] = gauss_code_table[generic_code_data::table::ODD_TERMINATING][i];
 			}
 			else
 			{
-				PD_data[i][1] = gauss_code_table[ODD_TERMINATING][i];
-				PD_data[i][2] = gauss_code_table[ODD_ORIGINATING][i];
-				PD_data[i][3] = gauss_code_table[EVEN_ORIGINATING][i];
+				PD_data[i][1] = gauss_code_table[generic_code_data::table::ODD_TERMINATING][i];
+				PD_data[i][2] = gauss_code_table[generic_code_data::table::ODD_ORIGINATING][i];
+				PD_data[i][3] = gauss_code_table[generic_code_data::table::EVEN_ORIGINATING][i];
 			}			
 		}
 	}
@@ -1917,18 +1917,18 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 		for (int j=0; j< num_gauss_crossings; j++)
 		{
-			if(gauss_code_table[EVEN_TERMINATING][j] == i)
+			if(gauss_code_table[generic_code_data::table::EVEN_TERMINATING][j] == i)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "gauss_to_peer_code:   found arc as EVEN_TERMINATING at Gauss crossing " << j << ", allocating immersion edge label " << next_immersion_arc << endl;
+	debug << "gauss_to_peer_code:   found arc as generic_code_data::table::EVEN_TERMINATING at Gauss crossing " << j << ", allocating immersion edge label " << next_immersion_arc << endl;
 	
 				immersion_crossing_peers[j][0] = next_immersion_arc++;
 				break;
 			}
-			else if(gauss_code_table[ODD_TERMINATING][j] == i)
+			else if(gauss_code_table[generic_code_data::table::ODD_TERMINATING][j] == i)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "gauss_to_peer_code:   found arc as ODD_TERMINATING at Gauss crossing " << j << ", allocating immersion edge label " << next_immersion_arc << endl;
+	debug << "gauss_to_peer_code:   found arc as generic_code_data::table::ODD_TERMINATING at Gauss crossing " << j << ", allocating immersion edge label " << next_immersion_arc << endl;
 	
 				immersion_crossing_peers[j][1] = next_immersion_arc++;
 				break;
@@ -2110,9 +2110,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	print(immersion_crossing_peers, debug, 4, "gauss_to_peer_code: ");
 }	
 
-	matrix<int> peer_code_table(CODE_TABLE_SIZE,num_immersion_crossings);
+	matrix<int> peer_code_table(generic_code_data::table::CODE_TABLE_SIZE,num_immersion_crossings);
 
-	/* write the COMPONENT data into a code table for the peer code */
+	/* write the generic_code_data::table::COMPONENT data into a code table for the peer code */
 	for (int i=0; i< num_immersion_crossings; i++)
 	{
 		int component = 0;
@@ -2123,7 +2123,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			else
 				break;
 		}
-		peer_code_table[COMPONENT][i] = component;
+		peer_code_table[generic_code_data::table::COMPONENT][i] = component;
 	}
 	
 	/* write the ODD and EVEN peers to peer_code_table */
@@ -2152,23 +2152,23 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " even immersion edge = " << even_edge << ", odd immersion edge = " << odd_edge << endl;
 
-		peer_code_table[OPEER][even_edge/2] = odd_edge;
-		peer_code_table[EPEER][(odd_edge-1)/2] = even_edge;
+		peer_code_table[generic_code_data::table::OPEER][even_edge/2] = odd_edge;
+		peer_code_table[generic_code_data::table::EPEER][(odd_edge-1)/2] = even_edge;
 	}
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "gauss_to_peer_code: imersion EPEERs: ";
 	for (int i=0; i< num_immersion_crossings; i++)
-		debug << peer_code_table[EPEER][i] << ' ';
+		debug << peer_code_table[generic_code_data::table::EPEER][i] << ' ';
 	debug << endl;
 	debug << "gauss_to_peer_code: imersion OPEERs: ";
 	for (int i=0; i< num_immersion_crossings; i++)
-		debug << peer_code_table[OPEER][i] << ' ';
+		debug << peer_code_table[generic_code_data::table::OPEER][i] << ' ';
 	debug << endl;
 }				
 
-	/* write the crossing TYPE data to peer_code_table. In a gauss code, the type of crossing is assigned based on the relative 
+	/* write the crossing generic_code_data::table::TYPE data to peer_code_table. In a gauss code, the type of crossing is assigned based on the relative 
 	   orientation of the first and second visits as follows:
 		   
 		1st \ /              2nd \ /         
@@ -2230,21 +2230,21 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to second visit to Gauss crossing " << i;
 	
-				peer_code_table[TYPE][even_peer/2] = gauss_code_table[TYPE][i];
+				peer_code_table[generic_code_data::table::TYPE][even_peer/2] = gauss_code_table[generic_code_data::table::TYPE][i];
 			}
 			else // even label corresponds to first visit to Gauss crossing
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to first visit to Gauss crossing " << i;
 
-				if (gauss_code_table[TYPE][i] == generic_code_data::type::TYPE1)
-					peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;
+				if (gauss_code_table[generic_code_data::table::TYPE][i] == generic_code_data::type::TYPE1)
+					peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;
 				else 
-					peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;
+					peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;
 			}
 			
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << " crossing is (peer) " << (peer_code_table[TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
+	debug << " crossing is (peer) " << (peer_code_table[generic_code_data::table::TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
 		}
 		else
 		{
@@ -2328,7 +2328,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     sideways_second_visit to gauss_crossing " << gauss_crossing << " " << sideways_second_visit << endl;
 				
-				int gauss_crossing_type = gauss_code_table[TYPE][gauss_crossing];
+				int gauss_crossing_type = gauss_code_table[generic_code_data::table::TYPE][gauss_crossing];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     gauss_crossing " << gauss_crossing << " is (Gauss) " << (gauss_crossing_type == generic_code_data::TYPE1? "TYPE1": "TYPE2") << endl;
@@ -2349,7 +2349,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				int non_sideways_component_even_edge = gauss_crossing_non_sideways_immersion_label;
 				if (non_sideways_component_even_edge %2)
 					non_sideways_component_even_edge = virtual_crossing_non_sideways_immersion_label;
-				int non_sideways_component = peer_code_table[COMPONENT][non_sideways_component_even_edge/2];
+				int non_sideways_component = peer_code_table[generic_code_data::table::COMPONENT][non_sideways_component_even_edge/2];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     non_sideways_component = " << non_sideways_component << endl;
@@ -2425,20 +2425,20 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			       )
 			    {
 					if (even_peer_in_place_zero)
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
 					else
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
 				}
 				else
 			    {
 					if (even_peer_in_place_zero)
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
 					else
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
 				}
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << "gauss_to_peer_code:     immersion crossing " << even_peer/2 << " is " << (peer_code_table[TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
+	debug << "gauss_to_peer_code:     immersion crossing " << even_peer/2 << " is " << (peer_code_table[generic_code_data::table::TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
 				
 			}
 			else if (diametric_virtual_crossing[i-num_gauss_crossings])
@@ -2469,12 +2469,12 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				   first_fringe_edge_direction is upwards and second_fringe_edge_direction is upwards; or
                    first_fringe_edge_direction is downwards and second_fringe_edge_direction is downwards
                    
-						even_peer_in_place_zero => TYPE II   !even_peer_in_place_zero => TYPE I
+						even_peer_in_place_zero => generic_code_data::table::TYPE II   !even_peer_in_place_zero => generic_code_data::table::TYPE I
 				         
 				   first_fringe_edge_direction is upwards and second_fringe_edge_direction is downwards; or
                    first_fringe_edge_direction is downwards and second_fringe_edge_direction is upwards
                    
-						even_peer_in_place_zero => TYPE I   !even_peer_in_place_zero => TYPE II
+						even_peer_in_place_zero => generic_code_data::table::TYPE I   !even_peer_in_place_zero => generic_code_data::table::TYPE II
 				   				
 				*/
 				if ((first_fringe_edge_direction == gc_pc_xlabels::direction::UPWARDS && second_fringe_edge_direction == gc_pc_xlabels::direction::UPWARDS) ||
@@ -2489,14 +2489,14 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to first matching fringe Gauss arc,";
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
 					}
 					else
 					{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to second matching fringe Gauss arc,";
 	
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
 					}
 				}
 				else
@@ -2508,17 +2508,17 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to first matching fringe Gauss arc,";
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;				
 					}
 					else
 					{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to second matching fringe Gauss arc,";
-						peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
+						peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;				
 					}
 				}
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << " crossing is (peer) " << (peer_code_table[TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
+	debug << " crossing is (peer) " << (peer_code_table[generic_code_data::table::TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
 			}
 			else if ((first_fringe_edge_direction == gc_pc_xlabels::direction::DOWNWARDS && second_fringe_edge_direction == gc_pc_xlabels::direction::DOWNWARDS) ||
 			    (first_fringe_edge_direction == gc_pc_xlabels::direction::UPWARDS && second_fringe_edge_direction == gc_pc_xlabels::direction::UPWARDS)
@@ -2531,17 +2531,17 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to left fringe Gauss arc of the virtual crossing " << i-num_gauss_crossings;
 	
-					peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;
+					peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;
 				}
 				else
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to right fringe Gauss arc of the virtual crossing " << i-num_gauss_crossings;
 	
-					peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;
+					peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;
 				}
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << " crossing is (peer) " << (peer_code_table[TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
+	debug << " crossing is (peer) " << (peer_code_table[generic_code_data::table::TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
 			}
 			else
 			{
@@ -2552,22 +2552,22 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to left fringe Gauss arc of the virtual crossing " << i-num_gauss_crossings;
 	
-					peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE2;
+					peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE2;
 				}
 				else
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:     even_peer assigned to right fringe Gauss arc of the virtual crossing " << i-num_gauss_crossings;
 	
-					peer_code_table[TYPE][even_peer/2] = generic_code_data::type::TYPE1;
+					peer_code_table[generic_code_data::table::TYPE][even_peer/2] = generic_code_data::type::TYPE1;
 				}
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << " crossing is (peer) " << (peer_code_table[TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
+	debug << " crossing is (peer) " << (peer_code_table[generic_code_data::table::TYPE][even_peer/2] == generic_code_data::type::TYPE1? "TYPE1": "TYPE2") << endl;
 			}
 		}
 	}
 		
-	/* write the crossing LABEL data to peer_code_table */
+	/* write the crossing generic_code_data::table::LABEL data to peer_code_table */
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code: write crossing labels:" << endl;
 	
@@ -2597,26 +2597,26 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		{
 			if (even_peer_in_place_zero)  // even label corresponds to second visit to Gauss crossing
 			{
-				if (gauss_code_table[LABEL][i] == generic_code_data::label::POSITIVE)  //second visit to Gauss crossing goes over
-					peer_code_table[LABEL][even_peer/2] = generic_code_data::label::POSITIVE;
-				else if (gauss_code_table[LABEL][i] == generic_code_data::label::NEGATIVE)  //second visit to Gauss crossing goes under
-					peer_code_table[LABEL][even_peer/2] = generic_code_data::label::NEGATIVE;
-				else if (gauss_code_table[LABEL][i] == generic_code_data::label::FLAT)
-					peer_code_table[LABEL][even_peer/2] = generic_code_data::label::FLAT;
+				if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::label::POSITIVE)  //second visit to Gauss crossing goes over
+					peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::POSITIVE;
+				else if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::label::NEGATIVE)  //second visit to Gauss crossing goes under
+					peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::NEGATIVE;
+				else if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::label::FLAT)
+					peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::FLAT;
 			}
 			else // even label corresponds to first visit to Gauss crossing
 			{
-				if (gauss_code_table[LABEL][i] == generic_code_data::label::POSITIVE)  //second visit to Gauss crossing goes over
-					peer_code_table[LABEL][even_peer/2] = generic_code_data::label::NEGATIVE;
-				else if (gauss_code_table[LABEL][i] == generic_code_data::label::NEGATIVE)  //second visit to Gauss crossing goes under
-					peer_code_table[LABEL][even_peer/2] = generic_code_data::label::POSITIVE;
-				else if (gauss_code_table[LABEL][i] == generic_code_data::label::FLAT)
-					peer_code_table[LABEL][even_peer/2] = generic_code_data::label::FLAT;
+				if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::label::POSITIVE)  //second visit to Gauss crossing goes over
+					peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::NEGATIVE;
+				else if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::label::NEGATIVE)  //second visit to Gauss crossing goes under
+					peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::POSITIVE;
+				else if (gauss_code_table[generic_code_data::table::LABEL][i] == generic_code_data::label::FLAT)
+					peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::FLAT;
 			}
 		}
 		else
 		{
-			peer_code_table[LABEL][even_peer/2] = generic_code_data::label::VIRTUAL;
+			peer_code_table[generic_code_data::table::LABEL][even_peer/2] = generic_code_data::label::VIRTUAL;
 		}
 	}
 		
@@ -2628,10 +2628,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	{
 		term_crossing[2*i] = i;
 		orig_crossing[2*i+1] = i;
-		term_crossing[peer_code_table[OPEER][i]] = i;
+		term_crossing[peer_code_table[generic_code_data::table::OPEER][i]] = i;
 		
-		int component = peer_code_table[COMPONENT][(peer_code_table[OPEER][i]-1)/2];
-		int peer_successor = (peer_code_table[OPEER][i]+1 - first_immersion_edge_on_component[component])%
+		int component = peer_code_table[generic_code_data::table::COMPONENT][(peer_code_table[generic_code_data::table::OPEER][i]-1)/2];
+		int peer_successor = (peer_code_table[generic_code_data::table::OPEER][i]+1 - first_immersion_edge_on_component[component])%
 		                     num_immersion_component_edges[component] + first_immersion_edge_on_component[component];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -2639,10 +2639,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 		orig_crossing[peer_successor] = i;
 		
-		peer_code_table[EVEN_TERMINATING][i] = 2*i;
-		peer_code_table[ODD_ORIGINATING][i] = 2*i+1;
-		peer_code_table[ODD_TERMINATING][i] = peer_code_table[OPEER][i];
-		peer_code_table[EVEN_ORIGINATING][i] = peer_successor;
+		peer_code_table[generic_code_data::table::EVEN_TERMINATING][i] = 2*i;
+		peer_code_table[generic_code_data::table::ODD_ORIGINATING][i] = 2*i+1;
+		peer_code_table[generic_code_data::table::ODD_TERMINATING][i] = peer_code_table[generic_code_data::table::OPEER][i];
+		peer_code_table[generic_code_data::table::EVEN_ORIGINATING][i] = peer_successor;
 	}
 	
 	peer_code_data.type = generic_code_data::peer_code;
@@ -2701,7 +2701,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		renumber_peer_code(peer_code_data,shift_vector);
 
 		int terminating_edge_at_head = peer_code_data.num_component_edges[0] - num_virtual_crossings_on_gauss_arc[0];
-		int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
+		int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[generic_code_data::table::EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code: terminating_edge_at_head of component zero = " << terminating_edge_at_head << ", head_naming_edge = " << head_naming_edge << endl;
@@ -2725,16 +2725,16 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	
 			if (i%2 == 0)
 			{
-				peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
+				peer_code_data.code_table[generic_code_data::table::LABEL][i/2] = generic_code_data::NEGATIVE;
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " crossing " << i/2 << " becomes NEGATIVE" << endl;
 			}
 			else
 			{
-				peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
+				peer_code_data.code_table[generic_code_data::table::LABEL][peer_code_data.code_table[generic_code_data::table::EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
-	debug << " crossing " << peer_code_data.code_table[EPEER][(i-1)/2]/2 << " becomes POSITIVE" << endl;
+	debug << " crossing " << peer_code_data.code_table[generic_code_data::table::EPEER][(i-1)/2]/2 << " becomes POSITIVE" << endl;
 			}
 		}
 	
@@ -2924,7 +2924,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:   terminating_edge_at_head = " << terminating_edge_at_head << ", last_shortcut_edge = " << last_shortcut_edge << endl;
 	
-				int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
+				int head_naming_edge = (terminating_edge_at_head%2?peer_code_data.code_table[generic_code_data::table::EPEER][(terminating_edge_at_head-1)/2]:terminating_edge_at_head);
 				
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "gauss_to_peer_code:   head_naming_edge = " << head_naming_edge << endl;
@@ -2943,13 +2943,13 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	
 				if (i%2 == 0)
 				{
-					peer_code_data.code_table[LABEL][i/2] = generic_code_data::NEGATIVE;
+					peer_code_data.code_table[generic_code_data::table::LABEL][i/2] = generic_code_data::NEGATIVE;
 //if (debug_control::DEBUG >= debug_control::DETAIL)
 //	debug << " crossing " << i/2;
 				}
 				else
 				{
-					peer_code_data.code_table[LABEL][peer_code_data.code_table[EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
+					peer_code_data.code_table[generic_code_data::table::LABEL][peer_code_data.code_table[generic_code_data::table::EPEER][(i-1)/2]/2] = generic_code_data::POSITIVE;
 				}
 			}
 	

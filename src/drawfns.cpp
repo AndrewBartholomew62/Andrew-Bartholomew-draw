@@ -285,8 +285,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	return first;
 }
 
-/* The auxiliary_data parameter in write_metapost is used to convey a specific smoothed state if a single state is to be drawn, or to convey the gauss_crossing map when a Gauss_code (or PD data)
-   is being drawn, for use with the gauss-crossings option.
+/* The auxiliary_data parameter in write_metapost is used to convey:
+     - A specific smoothed state if a single state is to be drawn, or 
+     - The gauss_crossing map when a Gauss_code (or PD data) is being drawn, for use with the gauss-crossings option, or
+     - An edge list for a Hamiltonian circuit, for use with the mp_control.hamiltonians option
 */
 void write_metapost(ofstream& os, generic_code_data& code_data, string title, metapost_control& mp_control, matrix<double> vcoords, vector<double> vertex_radius, vector<int>* auxiliary_data=0)
 {
@@ -756,6 +758,15 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		os << "% state:  ";
 		for (unsigned int i=0; i< state.size(); i++)
 			os << state[i] << " ";
+		os << endl;
+	}
+	
+	if (mp_control.hamiltonians && auxiliary_data->size() > 1)
+	{
+		vector<int>& circuit = *auxiliary_data;
+		os << "% hamiltonian edge circuit: ";
+		for (size_t i=0; i< circuit.size(); i++)
+			os << circuit[i] << " ";
 		os << endl;
 	}
 	
@@ -1456,6 +1467,37 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					os << " withcolor " << mp_control.draw_colour[i];
 				os << ';' << endl;
 			}
+
+			if (mp_control.hamiltonians)
+			{
+				/* auxiliary data is the list of edges corresponding to a Hamiltonian circuit, which we hightlight in green */
+				vector<int>& circuit = *auxiliary_data;
+				
+				for (size_t i=0; i< circuit.size(); i++)
+				{
+					int edge = circuit[i];
+					int component = 0;
+					for (int j=1; j< num_components; j++)
+					{
+						if (edge >= first_edge_on_component[j])
+							component++;
+						else
+							break;
+					}
+					
+					int path_number = (mp_control.one_metapost_path? component+1: 2*component+2);
+					
+					if (edge_path_offset[edge] !=0)
+					{
+						os << "draw subpath(" << edge_path_offset[edge]-1 << ',' << edge_path_offset[edge]+1 << ") of p" << path_number << " withcolor "<< mp_control.hamiltonian_colour <<" ;" << endl;						
+					}
+					else
+					{						
+						os << "draw subpath(0,1) of p" << path_number << " withcolor "<< mp_control.hamiltonian_colour << ";" << endl;						
+						os << "draw subpath(" << 2*num_component_edges[component]-1 << ',' << 2*num_component_edges[component] << ") of p" << path_number << " withcolor "<< mp_control.hamiltonian_colour << ";" << endl;						
+					}
+				}
+			}								
 		}
 		else if (code_data.immersion == generic_code_data::character::KNOTOID || code_data.immersion == generic_code_data::character::PURE_KNOTOID)
 		{
@@ -1728,7 +1770,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				bool A_crossing;
 				bool seifert_smoothed;
 				
-				if (mp_control.state_smoothed && auxiliary_data != 0 && !(ignore_shortcut && shortcut_crossing[i]))
+				if ( (mp_control.seifert_circles || (mp_control.state_smoothed && auxiliary_data != 0)) && !(ignore_shortcut && shortcut_crossing[i]))
 				{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is smoothed" << endl;
@@ -1811,13 +1853,16 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_metapost:   negative crossing " << i << " state_place = " << state_place << " A_crossing = " << A_crossing << " seifert_smoothed = " << seifert_smoothed << endl;
 					}
 					
-					os << "label (btex "; 
-					if (mp_control.scriptscript_labels)
-						os << "\\fiverm ";
-					else if (mp_control.script_labels)
-						os << "\\sevenrm ";
-				    os << (A_crossing?"A":"B") << " etex, z" << i << "+if(r< " << mp_control.smoothed_disc_threshold << "u):("
-				       << mp_control.label_shift << "u*cosd theta, " << mp_control.label_shift << "u*sind theta) else:(0,0) fi);" << endl;				    
+					if (!mp_control.seifert_circles)
+					{
+						os << "label (btex "; 
+						if (mp_control.scriptscript_labels)
+							os << "\\fiverm ";
+						else if (mp_control.script_labels)
+							os << "\\sevenrm ";
+					    os << (A_crossing?"A":"B") << " etex, z" << i << "+if(r< " << mp_control.smoothed_disc_threshold << "u):("
+					       << mp_control.label_shift << "u*cosd theta, " << mp_control.label_shift << "u*sind theta) else:(0,0) fi);" << endl;				    
+					}
 											
 					os << "z" << 2*num_vertices+4*i << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point-1<< "," << et_point << ") of p" << et_path << ";" << endl;
 					os << "z" << 2*num_vertices+4*i+1 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point-1 << "," << ot_point <<  ") of p" << ot_path << ";" << endl;
@@ -1902,6 +1947,54 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is flat " << endl;
+
+				if (mp_control.seifert_circles)
+				{
+					/* identify the components and corresponding paths of the even terminating and odd terminating edges */
+					int et_edge = code_table[EVEN_TERMINATING][i];
+					int ot_edge = code_table[ODD_TERMINATING][i];
+					int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
+					int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
+					int et_path = 2 * (et_component+1);
+					int ot_path = 2 * (ot_component+1);
+					int et_point = edge_path_offset[code_table[EVEN_TERMINATING][i]]+1;
+					int ot_point = edge_path_offset[code_table[ODD_TERMINATING][i]]+1;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
+	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
+}					
+					if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
+						et_point++; // move et_point past the second type 4 vertex
+					else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
+						ot_point++; // move ot_point past the second type 4 vertex
+
+					if (mp_control.uniform_smoothed_discs)
+					{
+						os << "p" << 2*num_components+i+1 << " = fullcircle scaled " << mp_control.smoothed_state_disc_size << "d shifted z" << i << ";" << endl;
+					}
+					else
+					{
+						os << "r:= min(arclength (z" << i << "--(point " << et_point-1 << ".5 of p" << et_path << ")),";
+						os <<         "arclength (z" << i << "--(point " << ot_point-1 << ".5 of p" << ot_path << ")),";
+						os <<         "arclength (z" << i << "--(point " << et_point << ".5 of p" << et_path << ")),";
+						os <<         "arclength (z" << i << "--(point " << ot_point << ".5 of p" << ot_path << ")));" << endl;
+
+						os << "p" << 2*num_components+i+1 << " = fullcircle scaled min(2r," << mp_control.smoothed_state_disc_size << "d) shifted z" << i << ";" << endl;
+						os << "theta := angle((direction " << et_point << " of p" << et_path << ")+(direction " << ot_point << " of p" << ot_path << "))-90;" << endl;
+					}
+										
+					os << "fill p" << 2*num_components+i+1 << " withcolor 1white;" << endl;
+																
+					os << "z" << 2*num_vertices+4*i << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point-1<< "," << et_point << ") of p" << et_path << ";" << endl;
+					os << "z" << 2*num_vertices+4*i+1 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point-1 << "," << ot_point <<  ") of p" << ot_path << ";" << endl;
+					os << "z" << 2*num_vertices+4*i+2 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point << "," << et_point+1 << ") of p" << et_path << ";" << endl;
+					os << "z" << 2*num_vertices+4*i+3 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point << "," << ot_point+1 << ") of p" << ot_path << ";" << endl;
+					
+					os << "draw z" << 2*num_vertices+4*i << "--z" << 2*num_vertices+4*i+3 << ";" << endl;
+					os << "draw z" << 2*num_vertices+4*i+1 << "--z" << 2*num_vertices+4*i+2 << ";" << endl;
+				}
 			}
 		}
 	}
@@ -2110,11 +2203,14 @@ void print (metapost_control& mp_control, ostream& os, string prefix)
 	os << prefix << "label_edges_from_one = " << (mp_control.label_edges_from_one? "true": "false") << endl;
 	os << prefix << "draw_oriented = " << (mp_control.draw_oriented? "true": "false") << endl;
 	os << prefix << "draw_shortcut = " << (mp_control.draw_shortcut? "true": "false") << endl;
+	os << prefix << "hamiltonians = " << (mp_control.hamiltonians? "true": "false") << endl;
 	os << prefix << "label_vertices = " << (mp_control.label_vertices? "true": "false") << endl;
 	os << prefix << "script_labels = " << (mp_control.script_labels? "true": "false") << endl;
 	os << prefix << "scriptscript_labels = " << (mp_control.scriptscript_labels? "true": "false") << endl;
+	os << prefix << "seifert_circles = " << (mp_control.seifert_circles? "true": "false") << endl;
 	os << prefix << "show_vertex_axes = " << (mp_control.show_vertex_axes? "true": "false") << endl;
 	os << prefix << "state = " << mp_control.state << endl;
+	os << prefix << "state_smoothed = " << (mp_control.state_smoothed? "true": "false") << endl;
 	os << prefix << "circle_packing = " << (mp_control.circle_packing? "true": "false") << endl;
 	os << prefix << "draw_shrink_effect = " << (mp_control.draw_shrink_effect? "true": "false") << endl;
 	os << prefix << "highlight_small_edges = " << (mp_control.highlight_small_edges? "true": "false") << endl;
@@ -2143,6 +2239,10 @@ void print (metapost_control& mp_control, ostream& os, string prefix)
 	os << prefix << "translations = ";
 	for (unsigned int i=0; i< mp_control.translations.size(); i++)
 		os << get<0>(mp_control.translations[i]) << '(' << get<1>(mp_control.translations[i]) << ',' << get<1>(mp_control.translations[i]) << ") ";
+	os << endl;
+	os << prefix << "hamiltonian-circuit = ";
+	for (unsigned int i=0; i< mp_control.hamiltonian_circuit.size(); i++)
+		os << mp_control.hamiltonian_circuit[i] << ' ' ;
 	os << endl;
 }
 

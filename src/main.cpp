@@ -94,7 +94,8 @@ to vertices joined by an edge of the triangulation.
    Version 18:   added labelling of Gauss crossings, as specified by Gauss code or planar diagram input, or calculated from peer code input (October 2022)
    Version 18.1  code tidy-up, moved to initialize.h
    Version 19:   added the ability to draw multi-linkoids, added shorcuts to knot-type knoid drawings.  
-                 aded scale option to re-size diagrams so they become  proportionate to a fixed diagonal size
+                 added scale option to re-size diagrams so they become  proportionate to a fixed diagonal size (August 2023)
+   Version 20:   added the ability to draw Seifert circles and Hamiltonian circuits (October 2023)
 **************************************************************************/
 using namespace std;
 
@@ -113,7 +114,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "19";
+string 		version  = "20";
    
 
 extern ofstream    debug;
@@ -229,6 +230,7 @@ void draw_convex_triangulation (metapost_control& mp_control, const char* filena
 void draw_lace (metapost_control& mp_control, string input_string);
 bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal=true, vector<int>* gauss_crossing_map=0, bool evaluate_gauss_crossing_perm=false);
 vector<int> identify_gauss_crossings(generic_code_data& code_data);
+list<vector<int> > hamiltonian_circuit(generic_code_data& code_data, bool list_all_circuits, bool count_circuits_only, bool edge_circuit);
 
 void sigfpe_handler (int sig) 
 {
@@ -952,7 +954,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 //				bool draw_shortcut = mp_control.draw_shortcut;
 //				mp_control.draw_labels = true;
 //				mp_control.draw_shortcut = true;
-				if (mp_control.state.length() == 0)  // drawing all states not just one specific state
+				if (!mp_control.seifert_circles && mp_control.state.length() == 0)  // drawing all states not just one specific state
 					write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile);	
 //				mp_control.draw_labels = draw_labels;
 //				mp_control.draw_shortcut = draw_shortcut;
@@ -1003,10 +1005,10 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 					    3 = B=smoothed
 				 
 				*/
-				if  (mp_control.state.length() != 0)
+				if  (mp_control.seifert_circles || mp_control.state.length() != 0)
 				{
 
-					if (mp_control.state.length() != num_state_crossings)
+					if (!mp_control.seifert_circles && mp_control.state.length() != num_state_crossings)
 					{
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
@@ -1019,7 +1021,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						exit(0);
 					}
 					
-					if (peer_code_input)
+					if (mp_control.seifert_circles)
+					{
+						for (unsigned int i=0; i< num_state_crossings; i++)
+							state[i] = metapost_control::smoothed::SEIFERT_SMOOTHED;
+					}
+					else if (peer_code_input)
 					{
 						int place = 0;
 						for (unsigned int i=0; i< mp_control.state.length(); i++)
@@ -1134,7 +1141,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						
 					/* increment state */
 					int place = num_state_crossings-1;
-					if (num_state_crossings > 0 && mp_control.state.length() == 0)
+					if (!mp_control.seifert_circles && num_state_crossings > 0 && mp_control.state.length() == 0)
 					{
 						do
 						{
@@ -1160,6 +1167,39 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				mp_control.draw_labels = draw_labels;
 				mp_control.draw_shortcut = draw_shortcut;
 				
+			}
+			else if (mp_control.hamiltonians)
+			{
+				list<vector<int> > circuit_list;
+				
+				if (mp_control.hamiltonian_circuit.size() == 1)
+				{
+					circuit_list = hamiltonian_circuit(code_data, false, false, true); //list_all_circuits = false, count_circuits_only = false, edge_circuit = true;
+				}
+				else
+				{
+					circuit_list = hamiltonian_circuit(code_data, true, false, true); //list_all_circuits = true, count_circuits_only = false, edge_circuit = true;
+				}
+				
+				if (mp_control.hamiltonian_circuit.size() > 1)
+				{
+					write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile,&mp_control.hamiltonian_circuit);		
+				}
+				else
+				{
+					list<vector<int> >::iterator lptr = circuit_list.begin();
+					
+					while (lptr != circuit_list.end())
+					{
+						write_metapost(output, code_data, title, mp_control, circlepack_output_file, circlepack_output_savefile,&(*lptr));		
+						lptr++;
+					}
+					
+					if (circuit_list.size() == 0)
+						cout << "No Hamiltonian circuit found" << endl;
+					else
+						cout << "Written " << circuit_list.size() << " Hamiltonian " << (circuit_list.size()>1? "circuits": "circuit") << endl;
+				}
 			}
 			else
 			{
@@ -1548,6 +1588,72 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: mp_control.draw_grid read from " << source << ", grid size = " << mp_control.grid_size << endl;
 
 	}
+	else if (!strcmp(loc_buf,"hamiltonians"))
+	{
+
+		mp_control.hamiltonians = true;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: mp_control.hamiltonians read from " << source << endl;
+
+	}
+	else if (!strcmp(loc_buf,"hamiltonian-circuit"))
+	{
+		mp_control.hamiltonians = true;
+		if (*c1 == '=')
+		{			
+			istringstream iss(++c1);
+			int edge;
+			while (iss >> edge)
+				mp_control.hamiltonian_circuit.push_back(edge);
+
+/*			
+			char ch = ' ';
+			iss >> ch; // the '{'
+			do 
+			{
+				int edge;
+				iss >> edge;
+				mp_control.hamiltonian_circuit.push_back(edge);
+				iss >> ch;
+			} while (ch != '}');
+*/
+		}
+		else
+		{
+			mp_control.hamiltonian_circuit = vector<int>(1);
+		}
+		
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "set_programme_long_option: hamiltonian-circuit read from " << source;
+	if (mp_control.hamiltonian_circuit.size() != 0)
+	{
+		debug << ", circuit = ";
+		for (size_t i=0; i< mp_control.hamiltonian_circuit.size(); i++)
+		 debug << mp_control.hamiltonian_circuit[i] << ' ';
+	}
+	debug << endl;
+		
+	debug << "set programme long_option: mp_control.hamiltonians set as a result of receiving hamiltonian_circuit option from " << source << endl;
+}
+	}
+	else if (!strcmp(loc_buf,"hamiltonian-colour"))
+	{
+		if (*c1 == '=')
+		{
+			mp_control.hamiltonian_colour = ++c1;
+		}
+		else
+		{
+			cout << "\nYou must specify a colour if you use the hamiltonian-colour option, e.g. 'hamiltonian-colour=blue'" << endl;
+			exit(0);
+		}
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_short_option: set hamiltonian-colour = " << mp_control.hamiltonian_colour << endl;
+
+	}
 	else if (!strcmp(loc_buf,"h-units"))
 	{
 		if (*c1 == '=')
@@ -1872,6 +1978,13 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
     	mp_control.script_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: script_labels read from " << source << endl;
+	}
+	else if (!strcmp(loc_buf,"seifert-circles"))
+	{
+    	mp_control.seifert_circles = true;
+    	mp_control.state_smoothed = true;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: seifert_circles read from " << source << endl;
 	}
 	else if (!strcmp(loc_buf,"scriptscript-labels"))
 	{
@@ -2422,7 +2535,10 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		mp_control.draw_labels = true;
 
 	if (strchr(cptr, 'L'))
+	{
+		mp_control.draw_labels = true;
 		mp_control.label_edges_from_one = true;
+	}
 
     c1 = strchr(cptr, 'M');
 	if (c1)
@@ -2653,7 +2769,10 @@ void help_info(bool exit_after_help)
 	cout << "  convex-disc: draw the convex, straight line triangulation of a disc\n";
 	cout << "  edge[=<max-iterations>] default 200: use edge distribution placement\n";
 	cout << "  force[=<max-iterations>] default 200: use Plestenjak force directed placement\n";
-	cout << "  gravity[=<max-iterations>] default 200: use centre of gravity placement\n";
+	cout << "  gravity[=<max-iterations>] default 200: use centre of gravity placement\n";	
+	cout << "  hamiltonians: draw all Hamiltonian circuits for a given diagram\n";	
+	cout << "  hamiltonian_circuit[=e_1 ... e_n]: draw a single Hamiltonian edge circuit for a given diagram,\n";
+	cout << "  if no explicit edge circuit is given, draw any Hamiltonian circuit\n";	
 	cout << "  laces: draw lace diagrams from the programme input\n";
 	cout << "  magnify[=<percentage>] default 0: magnify small circles in circle packing by specified percentage\n";
 	cout << "  shrink[=<max-iterations>] default 200: use region shrinking placement after circle packing\n";
@@ -2712,6 +2831,7 @@ void help_info(bool exit_after_help)
 	cout << "  gauss-crossings: show labels for the Gauss crossings, as specified by Gauss code or planar diagram input, or calculated from peer code input\n";
 	cout << "  gauss-labels: show labels for Gauss arcs, not immersion arcs: gauss-labels are numbered from 1\n";
 	cout << "  grid=<grid-size>: draw a grid to assist with using the translate option, default 10 (percent of diagram width or height)\n";
+	cout << "  hamiltonian_colour=<string>: the colour used for Hamiltonian circuits, default green\n";
 	cout << "  h-units: size of horizontal spacing for laces, in multiples of unit\n";
 	cout << "  hyperbolic: drawing diagram in the hyperbolic plane\n";
 	cout << "  label-shift=<n>: set the number of units u by which the labels of small smoothed crossings or Gauss crossings should be moved (default n=50)\n";
