@@ -2,7 +2,8 @@
 OBJFILES = util.o debug.o main.o drawfns.o class-control.o input.o \
            triangulate.o circle_pack.o KS_circle_pack.o generic-code-util.o gauss-to-peer.o \
            force_direction.o magnify.o convex.o shrink_regions.o edge_distribution.o plot.o \
-           gauss-orientation.o reidemeister.o laces.o
+           gauss-orientation.o reidemeister.o laces.o hamiltonian.o
+
 DEPS     = ./include/* 
 
 COMPILE  = g++ -Wall -Wno-misleading-indentation -std=c++11 -I ./include -g -c $< -o $@ 
@@ -29,6 +30,9 @@ generic-code-util.o: ./src/generic-code-util.cpp $(DEPS)
 	$(COMPILE)
 
 gauss-orientation.o: ./src/gauss-orientation.cpp $(DEPS)
+	$(COMPILE)
+
+hamiltonian.o: ./src/hamiltonian.cpp $(DEPS)
 	$(COMPILE)
 
 reidemeister.o: ./src/reidemeister.cpp $(DEPS)
