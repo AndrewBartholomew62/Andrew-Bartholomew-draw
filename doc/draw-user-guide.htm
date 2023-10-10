@@ -8,8 +8,8 @@
 
 <body>
 
-<h2 align="center"> <a name="_top"> Draw programme version 19 </a> </h2>
-<p align="center">Last modified 28<sup>th</sup> August, 2023.</p>
+<h2 align="center"> <a name="_top"> Draw programme version 20 </a> </h2>
+<p align="center">Last modified 10<sup>th</sup> October, 2023.</p>
 
 <P align="center"><IMG SRC="images/bigelow.jpg" height="400"></P>
 
@@ -64,7 +64,9 @@ but none have been found to produce better results for the majority of diagrams.
 <li><p><a href="#Smoothed-states">Smoothed states</a></p>
     <p style="margin-left: 1cm"><a href="#Parity">Parity and smoothed states</a></p>
     <p style="margin-left: 1cm"><a href="#Single-state">Drawing individual smoothed states</a></p>
-<li><p><a href="#Version-history">Version history</a></p>
+    <p style="margin-left: 1cm"><a href="#Seifert-circles">Drawing Seifert circles</a></p>
+<li><p><a href="#Hamiltonian-circuits">Hamiltonian circuits</a></p>
+<li><p><a<li><p><a href="#Version-history">Version history</a></p>
 <li><p><a href="#References">References</a></p>
 </ol>
 
@@ -148,7 +150,7 @@ included in an input file, or added to individual input codes, as required.  The
 
 <h3><a NAME="Software"></a>The draw programme software</h3>
 
-<p>The file <a href="../download/draw-18-src.tar">draw-18-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+<p>The file <a href="http://www.layer8.co.uk/maths/download/draw-20-src.tar">draw-20-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
 
 <p>See the section <a href="#Version-history">Version history</a> for a summary of what's new in this version.</p>
 
@@ -159,7 +161,7 @@ included in an input file, or added to individual input codes, as required.  The
 
 <h3><a NAME="Labelled-peer-code"></a>Labelled peer codes</h3>
 
-<p>Full details of labelled peer codes are provided in the paper <A HREF="../download/labelled-peer-code.pdf">labelled-peer-code.pdf</A>.  Here we provide only a brief description.</p>
+<p>Full details of labelled peer codes are provided in the paper <A HREF="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</A>.  Here we provide only a brief description.</p>
 
 <p>A labelled peer code for a virtual (or classical) link (knot) diagram is obtained from the underlying immersion by choosing an arbitary starting component and semi-arc and numbering each semi-arc of that component consecutively from zero as we trace around the component.  When we return to the starting semi-arc we move onto another component and continue the numbering.  
 
@@ -218,7 +220,7 @@ follows:</p>
 <h4><a NAME="Multi-linkoid-peer-codes"></a>Labelled peer codes for multi-linkoids</h4>
 
 <p>A knotoid having multiple open (segment) components, also referred to as a multi-linkoid, is similarly represented with shortcuts comprised of under-crossings but requires the additional syntax 
-defined by an <a href="../download/labelled-peer-code.pdf">extended labelled peer code</a>.</p>
+defined by an <a href="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">extended labelled peer code</a>.</p>
 
 <ul>
   <li>A '^' symbol placed after an odd peer indicates that the corresponding component is open and the first edge of the component (an even edge) is the leg.</li>
@@ -633,7 +635,7 @@ boundary of the regions making up the diagram's complement.  An example of this 
 % infinite turning cycle = 4
 </kbd></p>
 
-<p>See <A HREF="../download/labelled-peer-code.pdf">labelled-peer-code.pdf</A> for an explanation of 
+<p>See <A HREF="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</A> for an explanation of 
 the minus signs in this output.</p>
 
 From this information it is possible to select a particular turning cycle if required.  For example, the peer code
@@ -794,11 +796,41 @@ X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1] {parity,
 
 <p>the right hand image was generated using the options <kbd>{state=AB,parity}</kbd>, as shown above.</p>
 
-<p><IMG SRC="images/parity.png" style="transform:rotate(90deg);"> <IMG SRC="images/parity-state.png" style="transform:rotate(90deg);"></p>
+<p style="margin-left: 1cm"><IMG SRC="images/parity.png" style="transform:rotate(90deg);"> <IMG SRC="images/parity-state.png" style="transform:rotate(90deg);"></p>
 
 <p>I am grateful to Maciej Borodzik for suggesting adding the capability to draw a single state.</p>
 
-<h2><a NAME="Version-history"></a>10. Version history</h2>
+<h3><a NAME="Seifert-circles"></a>Drawing Seifert circles</h3>
+
+<p>A common smoothed state for a diagram is where each crossing is Seifert-smoothed to yield a set of Seifert circles for the diagram.  This smoothed state is supported directly with the
+<kbd>seifert-circles</kbd> option.  Using this option draws only the Seifert circles, not any of the smoothed crossing state information.  
+</p>
+
+<p>When drawing Seifert circles, the <kbd>smoothed-disc-size</kbd> and <kbd>uniform-smoothed-disc</kbd> options can be useful to produce more aesthetic diagrams.  For example:</p>
+
+<p style="margin-left: 1cm"><IMG SRC="images/seifert-1.png"> <IMG SRC="images/seifert-2.png"> <IMG SRC="images/seifert-3.png"></p>
+
+<p>Here, the middle diagram was drawn using the default options and the right hand diagram used <kbd>--uniform-smoothed-discs --smoothed-disc-size=3 </kbd>.</p>
+
+<p>Note that whilst smoothed states A and B are only defined for classical crossings, Seifert circles are supported for flat crossings as well, so the programme can draw Seifert circles for doodle diagrams.</p>
+
+<h2><a NAME="Hamiltonian-circuits"></a>10. Hamiltonian circuits</h2>
+
+<p>The draw programme has the ability to look for Hamiltonian circuits in a diagram involving only classical or flat crossings.  It can draw every Hamiltonian circuit, or just the first Hamiltonian it finds, or
+you can draw a specific circuit, specified as a sequence of edge labels (see the <kbd>--labels</kbd> option above).  The <kbd>hamiltonians</kbd> option produces a set of all possible Hamiltonian circuits, whereas
+the <kbd>hamiltonian-circuit</kbd> option produces a single diagram of the first Hamiltonian found by the search algorithm.  If you specify a sequence of edge labels as in 
+<kbd>hamiltonian-circuit=0 5 10 9 3 2 7 12 </kbd>, then the programme draws the given circuit.</p>
+
+<p>By default, the programme highlights the Hamiltonian circuit in green, as in the following diagram</p>
+
+<p style="margin-left: 1cm"><IMG SRC="images/hamiltonian-1.png"></p>
+
+<p>You can control the colour used for the Hamiltonian circuit using the <kbd>hamiltonian-colour</kbd> option, which can be used in conjunction with the colour options described in the section 
+<a href="#Adding-Colour">Adding colour</a>.  For example, the following diagram was produced using the options <kbd>--colour --hamiltonian-colour=black</kbd>.</p>
+
+<p style="margin-left: 1cm"><IMG SRC="images/hamiltonian-2.png"></p>
+
+<h2><a NAME="Version-history"></a>11. Version history</h2>
 
 <p>Version 1: support for Knotoids; identified by extending peer codes and immersion codes to allow a '^'
               character following a crossing number to indicate the first shortcut crossing.</p>
@@ -844,11 +876,14 @@ having two edges in the infinite turning cycle. </p>
    so they become  proportional to a fixed diagonal size
 </p>
 
+<p>Version 20 (October 2023) added the ability to draw Seifert circles and Hamiltonian circuits 
+</p>
+
+
 <h2><a NAME="References"></a>11. References</h2>
 
 <P>[1] Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
 <p>[2] Parity in knot theory, (Russian), V. O. Manturov.  Mat. Sb., 201, (2010), no.5, 65-110; translation in Sb. Math., 201, (2010), no. 5, 693-733</p>
-
 
 </body>
 </html>
