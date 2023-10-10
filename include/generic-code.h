@@ -4,23 +4,16 @@
    supports Gauss codes described as Planar Diagram data.  The code is capable of describing knots and links, and knotoids.
    
    The original version of generic_code_data supported only knotoids and multiknotoids involving a single open segment but in April 2023 support 
-   was introduced for multi-linkoids that support multiple open segments.  As in the original version, open segments are stored along with a 
+   was introduced for multi-linkoids that supportmultiple open segments.  As in the original version, open segments are stored along with a 
    shortcut that passes everywhere under the diagram.  With only one open component the requirement was for the segment component to be numbered 
    first and the head crossing was indicated with a ^ character.  The head crossing was set to -1 when the generic code had no head crossing and 
    head was consequently used as a flag to indicate pure knotoids, or as a check that the code data was consistent with the immersion character
    had been set correctly.
    
-   The updated version in April 2023 introduced the extended peer code syntax:
-   ^: open component with leg the first edge  
-   $: open component with leg the last edge 
-   @: knot-like open component 
-   
-   In addition, we introduced an integer, num_open_components, initialized to zero and record the head crossing for each non-knot-like open component 
-   in vector<int> head.  We have a vector<component_character> component_type that records the nature of each component and, if necessay, the first 
-   under-crossing of the shortcut on that component.
-   
-   For the extended syntax, the first component should be open and numbering should start from the leg, so that the new code is as close 
-   to the legacy format as possible.
+   In the updated version, the extended peer code syntax  ^: open component with leg the first edge  @: knot-like open component $: open component 
+   with leg the last edge we introduced num_open_components, initialized to zero, which replaced head for the above checks and recorded the head
+   crossing for each non-knot-like open component in vector<int> head.  The first component should be open and numbering should start from the leg, 
+   so that the new code is as close to the legacy format as possible.
    
    
    TO DO
@@ -66,17 +59,6 @@
 #include <list>
 #include <vector>
 
-#define EPEER 				0	
-#define OPEER 				1	
-#define TYPE    			2
-#define LABEL				3
-#define EVEN_TERMINATING 	4
-#define ODD_TERMINATING 	5
-#define EVEN_ORIGINATING 	6
-#define ODD_ORIGINATING 	7
-#define COMPONENT 			8	// the component to which the naming (even) edge belongs
-#define CODE_TABLE_SIZE 	9
-
 class component_character
 {
 public:
@@ -86,8 +68,8 @@ public:
 		CLOSED,
 		PURE_START_LEG, // leg on even edge
 		PURE_END_LEG,   // leg on odd edge
-		KNOT_TYPE_START_LEG, // leg and head on even edge
-		KNOT_TYPE_END_LEG // leg and head on odd edge
+		KNOT_TYPE_START_LEG, // leg and hed on even edge
+		KNOT_TYPE_END_LEG // leg and hed on odd edge
 	};
 
 	int type;
@@ -143,11 +125,25 @@ public:
 		MULTI_LINKOID  // with peer codes, requires use of the extended syntax @: knot-like open component $: open component with leg the last edge not the first
 	};
 	
+	enum table // uses default emum values but included to be explicit and for protection
+	{
+		EPEER =				0,	
+		OPEER =				1,	
+		TYPE =  			2,
+		LABEL =				3,
+		EVEN_TERMINATING =	4,
+		ODD_TERMINATING =	5,
+		EVEN_ORIGINATING =	6,
+		ODD_ORIGINATING =	7,
+		COMPONENT =			8,	// the component to which the naming (even) edge belongs
+		CODE_TABLE_SIZE =	9
+	};
+	
 	int type; // code_type
 	int head; // used for knotoids
 	int num_open_components; 
 	
-	/* component_type is used for multi-linkoids.  If immersion == character::MULTI_LINKOID, component_type is a vector of num_components integers pairs that records the 
+	/* component_type is used for multi-linkoids.  If num_open_components > 0, component_type is a vector of num_components integers pairs that records the 
 	   nature of the component and, if necessary, the first undercrossing in the shortcut corresponding to that component.
 	   - which components are open and which are closed
 	   - whether the component is knot-type open or pure
