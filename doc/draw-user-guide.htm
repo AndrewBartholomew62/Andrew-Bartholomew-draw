@@ -2,22 +2,43 @@
 <html>
 <head>
 <meta name="description" content="Drawing metapost diagrams for knots, links, knotoids, multi-linkoids and doodles"> 
-<meta name="keywords" content="metapost, drawing, knots, diagrams, knotoids, multi-linkoids"> 
+<meta name="keywords" content="metapost, drawing, knots, diagrams, virtual, knotoids, multi-linkoids"> 
 <title>draw programme</title>
+  <style>
+     p{font-size: 1.2em}
+     li{font-size: 1.0em}
+     h1{font-size: 2.25em}
+     h2{font-size: 2.0em}
+     h3{font-size: 1.75em}
+     h4{font-size: 1.5em}
+     h5{font-size: 1.25em}
+   </style>
 </head>
 
 <body>
 
-<h2 align="center"> <a name="_top"> Draw programme version 20 </a> </h2>
-<p align="center">Last modified 10<sup>th</sup> October, 2023.</p>
+<h2 align="center"> <a name="_top"> Draw programme version 22 </a> </h2>
+<p align="center">Last modified 19<sup>th</sup> November, 2024.</p>
 
-<P align="center"><IMG SRC="images/bigelow.jpg" height="400"></P>
+<p align="center"><IMG SRC="images/bigelow.jpg" height="400"></p>
+
+<h2><a NAME="Software"></a><a href="http://www.layer8.co.uk/maths/download/draw-22-src.tar">Programme software</a></h2>
+
+<p>The file <a href="http://www.layer8.co.uk/maths/download/draw-22-src.tar">draw-21-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+
+<p>See the section <a href="#Version-history">Version history</a> for a summary of what's new in this version.</p>
+
 
 <h2>1. Introduction</h2>
 
 <p>The draw programme generates metapost code to draw diagrams from labelled peer codes, Gauss codes or planar diagrams.  It is currently able to 
-draw a variety of knots and links: classical, virtual, welded and flat, (multi-)knotoids (the original motivation), multi-linkoids and doodles described by a range 
-of <a href="#Input-codes">input codes</a>.  The programme can 
+draw a variety of knots and links:</p> 
+<ul style="font-size: 1.25em">
+<li>Classical, virtual, flat, welded crossings in any combination</li>
+<li>Knots, links, knotoids, multi-linkoids, doodles</li>
+</ul>
+
+<p>described by a range of <a href="#Input-codes">input codes</a>.  The programme can 
 also draw smoothed states for a given diagram, as used by various invariants based on state sums, including those based on Gaussian parity ([2]).</p>
 
 <p>Individual diagrams may be produced by specifying an input code in response to a prompt, or multiple codes may be presented to the programme in an input file.  If required,
@@ -43,11 +64,11 @@ but none have been found to produce better results for the majority of diagrams.
     <p style="margin-left: 1cm"><a href="#Labelled-peer-code">Labelled peer codes</a></p>
     <p style="margin-left: 1cm"><a href="#Knotoid-peer-codes">Labelled peer codes for knotoids</a></p>
     <p style="margin-left: 1cm"><a href="#Multi-linkoid-peer-codes">Labelled peer codes for multi-linkoids</a></p>
-    <p style="margin-left: 1cm"><a href="#Doodle-peer-codes">Labelled peer codes for doodles</a></p>
+    <p style="margin-left: 1cm"><a href="#Doodle-peer-codes">Labelled peer codes for doodles and flat knots or links, including the virtual counterparts</a></p>
     <p style="margin-left: 1cm"><a href="#Gauss-code-input">Gauss codes</a></p>
     <p style="margin-left: 1cm"><a href="#Knotoid-Gauss-codes">Gauss codes for knotoids</a></p>
     <p style="margin-left: 1cm"><a href="#Multi-linkoid-Gauss-codes">Gauss codes for multi-linkoids</a></p>
-    <p style="margin-left: 1cm"><a href="#Doodle-Gauss-codes">Gauss codes for doodles</a></p>
+    <p style="margin-left: 1cm"><a href="#Doodle-Gauss-codes">Gauss codes for doodles and flat knots or links, including the virtual counterparts</a></p>
     <p style="margin-left: 1cm"><a href="#Planar-diagram-input">Planar digram format for knots, links and knotoids</a></p>
 <li><p><a href="#usage">Draw programme command syntax</a></p>
     <p style="margin-left: 1cm"><a href="#Sizing">Controlling the image size</a></p>
@@ -148,12 +169,6 @@ included in an input file, or added to individual input codes, as required.  The
 
 <p>Simple help information is available by starting the programme with the command "<kbd>draw -h</kbd>", a full list of options may be seen by starting the programme with the command "<kbd>draw -H!</kbd>"</p>
 
-<h3><a NAME="Software"></a>The draw programme software</h3>
-
-<p>The file <a href="http://www.layer8.co.uk/maths/download/draw-20-src.tar">draw-20-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
-
-<p>See the section <a href="#Version-history">Version history</a> for a summary of what's new in this version.</p>
-
 <h2><a NAME="Input-codes"></a>4. Supported input codes</h2>
 
 <p>The draw programme currently supports knots and links described by a <a href="#Labelled-peer-code">labelled peer code</a>, a 
@@ -161,7 +176,7 @@ included in an input file, or added to individual input codes, as required.  The
 
 <h3><a NAME="Labelled-peer-code"></a>Labelled peer codes</h3>
 
-<p>Full details of labelled peer codes are provided in the paper <A HREF="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</A>.  Here we provide only a brief description.</p>
+<p>Full details of labelled peer codes are provided in the paper <a href="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</a>.  Here we provide only a brief description.</p>
 
 <p>A labelled peer code for a virtual (or classical) link (knot) diagram is obtained from the underlying immersion by choosing an arbitary starting component and semi-arc and numbering each semi-arc of that component consecutively from zero as we trace around the component.  When we return to the starting semi-arc we move onto another component and continue the numbering.  
 
@@ -189,13 +204,22 @@ component of the link.</p>
 
 <p>we refer to this code as a <i>peer code</i>.</p>
 
-<p>The second part of a labelled peer code provides information about the crossings in the diagram.  For classical crossings we assign the label <kbd>+</kbd> if the naming edge forms part of the over-arc of the crossing and the label <kbd>-</kbd>
+<p>The second part of a labelled peer code provides information about the crossings in the diagram.  A variety of crossing types may be indicated in any combination.
+For classical crossings we assign the label <kbd>+</kbd> if the naming edge forms part of the over-arc of the crossing and the label <kbd>-</kbd>
 if it forms part of the under-arc.  For virtual or welded crossings we assign the label <kbd>*</kbd> and for flat crossings we assign the label <kbd>#</kbd>.</p>
+</p>  
+
+<ul style="font-size: 1.25em">
+<li><kbd>+</kbd> classical crossing naming edge forms part of the over-arc of the crossing </li>
+<li><kbd>-</kbd> classical crossing naming edge forms part of the under-arc of the crossing </li>
+<li><kbd>*</kbd> virtual crossing</li>
+<li><kbd>#</kbd> flat crossing</li>
+</ul>
 
 <p>These labels are writen after the list of odd peers separated by a <kbd>/</kbd> character.  They are written in the order determined by the vertex numbering.  Thus continuing the above example if the original link diagram is as 
 follows:</p> 
 
-<P STYLE="margin-left: 2cm"><IMG SRC="images/link-diagram.png"></P>
+<p STYLE="margin-left: 2cm"><IMG SRC="images/link-diagram.png"></p>
 
 <p>then the full labelled peer code is</p>
 
@@ -209,11 +233,11 @@ follows:</p>
 
 <p>To represent a knotoid we draw a shortcut from the head to the leg comprised of under-crossings, whereupon we may obtain an immersion as before.  We then determine the peer code by starting with the edge containing the leg of the knotoid and proceed along the knotoid to the head and then along the shortcut.  We identify the first crossing created by adding the shortcut by writing the <kbd>^</kbd> character <i>after</i> the odd peer at that crossing in the first part of the peer code.  We attach labels to a knotoid's peer code in the same manner as we do with links.</p>
 
-<p>The following is an example of a labelled peer code for a knotoid.</p>
+<p>The following is an example of a labelled peer code for a virtual knotoid.</p>
 
-<P STYLE="margin-left: 1cm"><KBD>
-[-7 13 -11 -1 3 -5 9^ ]/+ + - + + - -
-</KBD></P>
+<p STYLE="margin-left: 1cm"><kbd>
+[-7 13 -11 -1 3 -5 9^ ]/+ + - + * - -
+</kbd></p>
 
 <p>Note that the <kbd>^</kbd> character uniquely identifies the head since there is a unique edge entering each crossing as part of the under-arc.</p>
 
@@ -241,14 +265,22 @@ but the other components may be numbered in any order that allows the odd and ev
 simple multi-linkoid diagrams it is convenient to use the Gauss code syntax for multi-knotoids described below and let the draw programme determine the extended peer code automatically.  Note that the
 metapost output file produced by the draw programme includes the labelled peer code in the comment section before each figure, so it is available for modification, if required.</p>
 
-<h4><a NAME="Doodle-peer-codes"></a>Labelled peer codes for doodles</h4>
+<h4><a NAME="Doodle-peer-codes"></a>Labelled peer codes for doodles and flat knots</h4>
 
-<p>A doodle, or virtual doodle, may be described by a labelled peer code by designating the crossing label as flat, using the <kbd>#</kbd> character.  The following is an example of
+<p>A doodle, or virtual doodle, flat knot or virtual flat knot or link may be described by a labelled peer code by designating the the appropriate crossing labels as flat, 
+using the <kbd>#</kbd> character.  Any virtual crossings are indicated using the <kbd>*</kbd> character.  The following is an example of
 a doodle described by a labelled peer code: </p>
 
-<P STYLE="margin-left: 1cm"><KBD>
+<p STYLE="margin-left: 1cm"><kbd>
 [-15 -5, -1 -9 11, -13 7 -3]/# # # # # # # # 
-</KBD></P>
+</kbd></p>
+
+<p>If we want a virtual doodle, or a virtual flat diagram, simply specify which crossings are virtual using the crossing labels.</p>
+
+<p STYLE="margin-left: 1cm"><kbd>
+[-15 -5, -1 -9 11, -13 7 -3]/# * * # # # # * 
+</kbd></p>
+
 
 <h3><a NAME="Gauss-code-input"></a>Using Gauss codes as input</h3>
 
@@ -294,14 +326,41 @@ of a multi-knotoid with four components described by a Gauss code is:</p>
 <p>The draw programme automatically converts muti-linkoid Gauss codes into labelled peer codes and draws then draws the corresponding immersion.  The intermediate labelled peer code is recorded in the output file
 as part of the comment section before the metapost code for the diagram.</p>
 
-<h4><a NAME="Doodle-Gauss-codes"></a>Gauss codes for doodles</h4> 
+<h4><a NAME="Doodle-Gauss-codes"></a>Gauss codes for doodles and flat knots</h4> 
 
-<p>The Gauss code of a doodle or flat link diagram similarly numbers the crossings of the diagram and follows each 
-component from an arbitrary staring point.  Since in these cases there are no over of under crossings in these cases, we begin by assigning an orientation to every component and respecting that choice as trace the diagram.  Then, as we traverse a crossing the code records whether the other strand crosses our path from left to right or from right to left, according to the given orientation.  Crossing types are then labelled with the "flat" decoration <kbd>#</kbd> </p>
+<p>Diagrammatically, doodles, flat knots and their virtual counterparts are the same.  As with classical or virtual diagrams, to create a Gauss code we number the flat crossings arbitrarily and assign an 
+orientation to each component.  Then, respecting that choice we trace the diagram following each component from an arbitrary staring point, noting the flat crossings encountered sequentially.
+</p>  
+
+<p>Two conventions are supported for specifying the crossing that we encounter as we trace the components.  Following [3], since doodles and flat knots have no over of under crossings, we record whether the 
+other strand crosses our path from left to right or from right to left, according to the given orientation.  Crossing types are then labelled with the "flat" <kbd>#</kbd> decoration.</p>
 
 <p>An example of a Gauss code for a doodle is:</p>
 
 <p style="margin-left: 1cm"><kbd>L1 L2 R1 R2 L3 L4 R3 R4 / # # # #</kbd></p>
+
+<p>The <kbd>#</kbd> labels may seem unnecessary but it allows common code for classical, flat, virtual and flat-virtual diagrams.  Moreover, there is precedent for tautology within Gauss code 
+syntax in the (O|U)-format above, where the sign of each crossing is specified twice.  It therefore seems an acceptable demand that the crossing types are specified explicitly </p>  
+
+<p>The second convention supports the (O|U)-format Gauss codes used by J. Chen's <a href="https://www.flatknotinfo.com/">FlatKnotInfo</a> for specifying flat virtuals.  Here the "O" is a synomym for "R", or "from the right" and "U" a synomym for "L", or "from the left", as in the first syntax.  The difference is that the flat nature of the crossing is assumed, since the Gauss code does not describe virtual crossings. Thus an example Gauss code is simply:</p>  
+
+<p style="margin-left: 1cm"><kbd>O1O2O3U1U3U2</kbd></p>
+
+<p>Internally, the draw programme converts this to the first format</p>
+
+<p style="margin-left: 1cm"><kbd>R1 R2 R3 L1 L3 L2/# # #</kbd></p> 
+
+<p>In both cases the Gauss code is converted automatically to a labelled peer code from which the immersion is drawn.  The intermediate peer code is recorded in the metapost output file.  Here is an example drawn from the input code</p>
+
+<p style="margin-left: 1cm"><kbd>O1O2O3O4O5U1O6U4U6U3U5U2</kbd></p> 
+
+<p STYLE="margin-left: 2cm"><IMG SRC="images/flat-virtual.png"></p>
+ 
+<p>Diagrams with multiple components may be specified with either format, separating the crossing encountered on each component with a comma.  Both of the following example Gauss codes will produce the same output</p>
+
+<p style="margin-left: 1cm"><kbd>L1 L2 L3 R4 R5, L4 R6 R7 R1, L6 R8 R2 L9, L8 R3 R9 L5 L7/# # # # # # # # #</kbd></p> 
+<p style="margin-left: 1cm"><kbd>U1 U2 U3 O4 O5, U4 O6 O7 O1, U6 O8 O2 U9, U8 O3 O9 U5 U7</kbd></p> 
+
 
 <h3><a NAME="Planar-diagram-input"></a>Planar digram format for knots, links and knotoids</h3>
 
@@ -361,7 +420,12 @@ diagram in &lt;outfile>, or in the file draw.out if no &lt;outfile> is provided.
   edge[=&lt;max-iterations>] default 200: use edge distribution placement
   force[=&lt;max-iterations>] default 200: use Plestenjak force directed placement
   gravity[=&lt;max-iterations>] default 200: use centre of gravity placement
+  hamiltonians: draw all Hamiltonian circuits for a given diagram
+  hamiltonian_circuit[=e_1 ... e_n]: draw a single Hamiltonian edge circuit for a given diagram
+                                     if no explicit edge circuit is given, draw any Hamiltonian circuit
+  laces: draw lace diagrams from the programme input
   magnify[=&lt;percentage>] default 0: magnify small circles in circle packing by specified percentage
+  seifert-circles: draw the Seifert circles determined by the label orientation of the given diagram
   shrink[=&lt;max-iterations>] default 200: use region shrinking placement after circle packing
   small-shrink[=&lt;max-iterations>]: use small region shrinking placement after circle packing
   smoothed: draw all of the smoothed states for the given diagram
@@ -430,6 +494,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
   scale=&lt;float>: override other size settings and scale diagram to the specified multiple of a standard size  
   script-labels: label vertices using TeX's script size font
   scriptscript-labels: label vertices using TeX's scriptscript size font
+  seifert-edges: highlight the odd or even immersion edges, so edges belonging to the same Seifert circle have the same colour  
   show-shrink: draw the effect of shrinking the triangulation when using region shrinking placement
   show-small: highlight the small edges of the triangulation when using edge_distribution placement
   shrink-factor=&lt;float> default 0.75: amount by which region shrinking placement retracts trianglulation 
@@ -466,7 +531,7 @@ input files as global options or as qualifiers (see the section <a href="#Input-
   L: start from one when labelling edges
   M=&lt;scale_factor> : set metapost_coordinate_scale_factor: default 2500 with the circle packing
      option, 1000 with force or gravity placement, 600 with the convex-disc option, 25 otherwise
-  O: create metapost with one cycled path for each component
+  O: turn off default one_metapost_path and use two paths for each component with explicit direction, rather than a cycle
   P: draw circle packing
   R=&lt;float>: retract boundary vertices radially towards their centroid by a factor &lt;float> &lt; 1
   T[=&lt;track-step>] default 1: track placement iteration (force, gravity, shrink)
@@ -635,7 +700,7 @@ boundary of the regions making up the diagram's complement.  An example of this 
 % infinite turning cycle = 4
 </kbd></p>
 
-<p>See <A HREF="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</A> for an explanation of 
+<p>See <a href="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</a> for an explanation of 
 the minus signs in this output.</p>
 
 From this information it is possible to select a particular turning cycle if required.  For example, the peer code
@@ -814,6 +879,10 @@ X[4,1,5,2] X[2,6,3,7] X[7,3,8,4] X[5,8,6,9] X[9,11,10,12] X[10,12,11,1] {parity,
 
 <p>Note that whilst smoothed states A and B are only defined for classical crossings, Seifert circles are supported for flat crossings as well, so the programme can draw Seifert circles for doodle diagrams.</p>
 
+<p>There is also a <kbd>seifert-edges[=odd]</kbd> option that highlights the edges of a diagram that belong to the same Seifert circle using colour.  By default, the option causes the edges with an even immersion label to be
+drawin in red and those with an odd immersion label drawn in black.  This results in a diagram with red and black Seifert circles.  If required, the optional <kbd>=odd</kbd> option may be given, which draws the odd labelled
+edges in red and the even edges in black.</p>
+
 <h2><a NAME="Hamiltonian-circuits"></a>10. Hamiltonian circuits</h2>
 
 <p>The draw programme has the ability to look for Hamiltonian circuits in a diagram involving only classical or flat crossings.  It can draw every Hamiltonian circuit, or just the first Hamiltonian it finds, or
@@ -879,11 +948,15 @@ having two edges in the infinite turning cycle. </p>
 <p>Version 20 (October 2023) added the ability to draw Seifert circles and Hamiltonian circuits 
 </p>
 
+<p>Version 21: (November 2023) improved the drawing of multi-linkoids, updated and made default the use of a single metapost path per component added seifert-edges option</p>
+                 
+<p>Version 22: (November 2024) added support for the Gauss code format used by J. Chen's <a href="https://www.flatknotinfo.com/">FlatKnotInfo</a></p>
 
 <h2><a NAME="References"></a>11. References</h2>
 
 <P>[1] Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
 <p>[2] Parity in knot theory, (Russian), V. O. Manturov.  Mat. Sb., 201, (2010), no.5, 65-110; translation in Sb. Math., 201, (2010), no. 5, 693-733</p>
+<p>[3] A. Bartholomew, R. Fenn, N. Kamada, S. Kamada, On Gauss codes of virtual doodles (Journal of Knot Theory and Its Ramifications Vol. 27, No. 11, 1843013 (2018), arXiv:1806.05885).</p>
 
 </body>
 </html>
