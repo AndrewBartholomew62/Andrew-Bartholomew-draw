@@ -96,6 +96,10 @@ to vertices joined by an edge of the triangulation.
    Version 19:   added the ability to draw multi-linkoids, added shorcuts to knot-type knoid drawings.  
                  added scale option to re-size diagrams so they become  proportionate to a fixed diagonal size (August 2023)
    Version 20:   added the ability to draw Seifert circles and Hamiltonian circuits (October 2023)
+   Version 21:   improved the drawing of multi-linkoids, updated and made default the use of a single metapost path per component 
+                 added seifert-edges option (November 2023)
+   Version 22:   added support for the Gauss code format used by J. Chen's https://www.flatknotinfo.com (November 2024)
+
 **************************************************************************/
 using namespace std;
 
@@ -114,7 +118,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "20";
+string 		version  = "22";
    
 
 extern ofstream    debug;
@@ -161,6 +165,7 @@ bool ALLOW_HEAD_HOOKS = false;
 
 int check_inner_hull_vertex = 0;
 
+int figure_count = 1; // used to record fignum in write_metapost
 int max_circle_packing_iterations = 1000;
 int max_placement_iterations = 200;
 int placement_iteration_tracking_step = 1; // 100;
@@ -230,7 +235,7 @@ void draw_convex_triangulation (metapost_control& mp_control, const char* filena
 void draw_lace (metapost_control& mp_control, string input_string);
 bool gauss_to_peer_code(generic_code_data gauss_code_data, generic_code_data& peer_code_data, bool optimal=true, vector<int>* gauss_crossing_map=0, bool evaluate_gauss_crossing_perm=false);
 vector<int> identify_gauss_crossings(generic_code_data& code_data);
-list<vector<int> > hamiltonian_circuit(generic_code_data& code_data, bool list_all_circuits, bool count_circuits_only, bool edge_circuit);
+list<vector<int> > hamiltonian_circuit(generic_code_data& code_data, bool list_all_circuits, bool count_circuits_only, bool edge_circuit, int include_edge);
 
 void sigfpe_handler (int sig) 
 {
@@ -302,6 +307,13 @@ int main (int argc, char* argv[])
 					set_programme_long_option(argv[i], "command line",default_metapost_control);
 				else 
 					set_programme_short_option(argv[i], default_metapost_control);
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+{
+	debug << "draw::main: after argument " << argv[i] << " default_metapost_control:" << endl;
+    print (default_metapost_control, debug, "main:   ");
+}
+					
 			}
 			else if (!input_file.length()) 
 			{
@@ -316,7 +328,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				output_file = argv[i];
 		    	output_file_provided = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "draw::main: input_file " << input_file << " provided" << endl;
+	debug << "draw::main: ouput_file " << output_file << " provided" << endl;
 			}
 			else
 			{
@@ -943,7 +955,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 				for (int i=0; i< num_crossings; i++)
 				{
 					if (crossing_parity[i] == gauss_orientation_data::parity::ODD)		
-						code_data.code_table[LABEL][i] = generic_code_data::ODD;
+						code_data.code_table[generic_code_data::table::LABEL][i] = generic_code_data::ODD;
 				}
 
 			}
@@ -963,7 +975,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 				
 				for (int i=0; i< num_crossings; i++)
 				{
-					if (code_data.code_table[LABEL][i] == generic_code_data::VIRTUAL)
+					if (code_data.code_table[generic_code_data::table::LABEL][i] == generic_code_data::VIRTUAL)
 						num_state_crossings--;
 				}
 				
@@ -981,7 +993,7 @@ if (debug_control::DEBUG >= debug_control::BASIC)
 					for (int i=0; i< num_crossings; i++)
 					{
 						// enum parity {NONE = 0, ODD = 1, EVEN = 2}
-						if (code_data.code_table[LABEL][i] == generic_code_data::ODD)
+						if (code_data.code_table[generic_code_data::table::LABEL][i] == generic_code_data::ODD)
 							num_state_crossings--;
 					}
 				}
@@ -1059,7 +1071,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 							
 							for (unsigned int i=0; i< gauss_crossing_map.size(); i++)
 							{
-								if (code_data.code_table[LABEL][gauss_crossing_map[i]] != generic_code_data::ODD)
+								if (code_data.code_table[generic_code_data::table::LABEL][gauss_crossing_map[i]] != generic_code_data::ODD)
 									gauss_parity_map[place++] = gauss_crossing_map[i];
 							}
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1122,10 +1134,10 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					cout << "number of smoothed states = " << pow(2,num_state_crossings) << endl;
 				}
 				
-				bool draw_labels = mp_control.draw_labels;
-				bool draw_shortcut = mp_control.draw_shortcut;
-				mp_control.draw_labels = false;
-				mp_control.draw_shortcut = false;
+//				bool draw_labels = mp_control.draw_labels;
+//				bool draw_shortcut = mp_control.draw_shortcut;
+//				mp_control.draw_labels = false;
+//				mp_control.draw_shortcut = false;
 				do
 				{
 
@@ -1164,8 +1176,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					}
 							
 				} while (!finished);
-				mp_control.draw_labels = draw_labels;
-				mp_control.draw_shortcut = draw_shortcut;
+//				mp_control.draw_labels = draw_labels;
+//				mp_control.draw_shortcut = draw_shortcut;
 				
 			}
 			else if (mp_control.hamiltonians)
@@ -1174,11 +1186,11 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				
 				if (mp_control.hamiltonian_circuit.size() == 1)
 				{
-					circuit_list = hamiltonian_circuit(code_data, false, false, true); //list_all_circuits = false, count_circuits_only = false, edge_circuit = true;
+					circuit_list = hamiltonian_circuit(code_data, false, false, true, mp_control.HC_include_edge); //list_all_circuits = false, count_circuits_only = false, edge_circuit = true;
 				}
 				else
 				{
-					circuit_list = hamiltonian_circuit(code_data, true, false, true); //list_all_circuits = true, count_circuits_only = false, edge_circuit = true;
+					circuit_list = hamiltonian_circuit(code_data, true, false, true, mp_control.HC_include_edge); //list_all_circuits = true, count_circuits_only = false, edge_circuit = true;
 				}
 				
 				if (mp_control.hamiltonian_circuit.size() > 1)
@@ -1475,7 +1487,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	{
 		mp_control.draw_lace_frame = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set draw_lace_frame true" << endl;
+	debug << "set_programme_long_option: set draw_lace_frame true" << endl;
 	}
 	else if (!strcmp(loc_buf,"edge"))
 	{ 
@@ -1651,8 +1663,22 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set hamiltonian-colour = " << mp_control.hamiltonian_colour << endl;
+	debug << "set_programme_long_option: set hamiltonian-colour = " << mp_control.hamiltonian_colour << endl;
 
+	}
+	else if (!strcmp(loc_buf,"HC-include-edge"))
+	{
+		if (*c1 == '=')
+		{
+			get_number(mp_control.HC_include_edge,++c1);
+		}
+		else
+		{
+			cout << "\nYou must specify an edge to include if you use the HC-include-edge option, e.g. HC-include-edge=12" << endl;
+			exit(0);
+		}
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: read HC-include-edge read from " << source << ", HC-include-edge = " << mp_control.HC_include_edge << endl;
 	}
 	else if (!strcmp(loc_buf,"h-units"))
 	{
@@ -1667,7 +1693,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set horizontal_units = " << mp_control.horizontal_units << endl;
+	debug << "set_programme_long_option: set horizontal_units = " << mp_control.horizontal_units << endl;
 
 	}
 	else if (!strcmp(loc_buf,"hyperbolic"))
@@ -1983,9 +2009,23 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	{
     	mp_control.seifert_circles = true;
     	mp_control.state_smoothed = true;
+    	mp_control.smoothed_state_disc_size = 1;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: seifert_circles read from " << source << endl;
 	}
+	else if (!strcmp(loc_buf,"seifert-edges"))
+	{
+    	mp_control.seifert_edges = 2;
+    	
+		if (*c1 == '=')
+		{
+			/* it can be anything, "odd", "reversed", etc. */
+			mp_control.seifert_edges = 1;
+		}
+    	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_long_option: seifert-edges read from " << source << endl;
+	}	
 	else if (!strcmp(loc_buf,"scriptscript-labels"))
 	{
     	mp_control.scriptscript_labels = true;
@@ -2263,7 +2303,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set vertical_units = " << mp_control.vertical_units << endl;
+	debug << "set_programme_long_option: set vertical_units = " << mp_control.vertical_units << endl;
 
 	}
 	else if (!strcmp(loc_buf,"vertices"))
@@ -2562,7 +2602,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		mp_control.draw_oriented = true;
 
 	if (strchr(cptr, 'O'))
-		mp_control.one_metapost_path = true;
+		mp_control.one_metapost_path = false;
 
 	if (strchr(cptr, 'P'))
 		mp_control.circle_packing = true;
@@ -2772,9 +2812,10 @@ void help_info(bool exit_after_help)
 	cout << "  gravity[=<max-iterations>] default 200: use centre of gravity placement\n";	
 	cout << "  hamiltonians: draw all Hamiltonian circuits for a given diagram\n";	
 	cout << "  hamiltonian_circuit[=e_1 ... e_n]: draw a single Hamiltonian edge circuit for a given diagram,\n";
-	cout << "  if no explicit edge circuit is given, draw any Hamiltonian circuit\n";	
+	cout << "                                     if no explicit edge circuit is given, draw any Hamiltonian circuit\n";	
 	cout << "  laces: draw lace diagrams from the programme input\n";
 	cout << "  magnify[=<percentage>] default 0: magnify small circles in circle packing by specified percentage\n";
+	cout << "  seifert-circles: draw the Seifert circles determined by the label orientation of the given diagram\n";
 	cout << "  shrink[=<max-iterations>] default 200: use region shrinking placement after circle packing\n";
 	cout << "  small-shrink[=<max-iterations>]: use small region shrinking placement after circle packing\n";
 	cout << "  smoothed: draw all of the smoothed states for the given diagram\n";
@@ -2850,6 +2891,7 @@ void help_info(bool exit_after_help)
 	cout << "  scale=<float>: override other size settings and scale diagram to the specified multiple of a standard size\n";
 	cout << "  script-labels: label vertices using TeX's script size font\n";
 	cout << "  scriptscript-labels: label vertices using TeX's scriptscript size font\n";
+	cout << "  seifert-edges: highlight the odd or even immersion edges, so edges belonging to the same Seifert circle have the same colour\n";
 	cout << "  show-shrink: draw the effect of shrinking the triangulation when using region shrinking placement\n";
 	cout << "  show-small: highlight the small edges of the triangulation when using edge_distribution placement\n";
 	cout << "  shrink-factor=<float> default 0.75: amount by which region shrinking placement retracts trianglulation vertices towards the barycentre\n";
@@ -2881,7 +2923,8 @@ void help_info(bool exit_after_help)
 	cout << "  L: start from one when labelling edges\n";
 	cout << "  M=<scale_factor> : set metapost_coordinate_scale_factor: default 2500 with the circle packing\n";
 	cout << "     option, 1000 with force or gravity placement, 600 with the convex-disc option, 25 otherwise\n";			
-	cout << "  O: create metapost with one cycled path for each component\n";
+//	cout << "  O: create metapost with one cycled path for each component\n";
+	cout << "  O: turn off default one_metapost_path and use two paths for each component with explicit direction, rather than a cycle\n";
 	cout << "  P: draw circle packing\n";
 	cout << "  R=<float>: retract boundary vertices radially towards their centroid by a factor <float> < 1\n";
 	cout << "  T[=<track-step>] default 1: track placement iteration (force, gravity, shrink)\n";
@@ -3019,7 +3062,7 @@ bool connected_code_data(generic_code_data& code_data)
 			
 			for (int j=0; j < code_data.num_component_edges[i]/2; j++)
 			{
-				int odd_peer = code_table[OPEER][first_edge/2+j];
+				int odd_peer = code_table[generic_code_data::table::OPEER][first_edge/2+j];
 				if (odd_peer < first_edge || odd_peer > last_edge)
 				{
 					connected = true;

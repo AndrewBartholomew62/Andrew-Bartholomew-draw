@@ -44,6 +44,7 @@ extern char const* triangulation_shrink_file;
 extern double badness_threshold; 
 extern int metapost_coordinate_scale_factor;
 extern int metapost_hyperbolic_scale_factor;
+extern int figure_count;
 extern bool DRAW_IN_HYPERBOLIC_DISC;
 extern bool INCLUDE_BOUNDARY_VERTICES;
 extern bool TRACK_PLACEMENT_ITERATION;
@@ -225,9 +226,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 	bool first;
     
-	int peer_component = code_table[COMPONENT][(code_table[OPEER][crossing]-1)/2];
+	int peer_component = code_table[generic_code_data::table::COMPONENT][(code_table[generic_code_data::table::OPEER][crossing]-1)/2];
 	int successor = 2*crossing+1;
-	int peer_successor = (code_table[OPEER][crossing]-first_edge_on_component[peer_component]+1)%num_component_edges[peer_component]+first_edge_on_component[peer_component];
+	int peer_successor = (code_table[generic_code_data::table::OPEER][crossing]-first_edge_on_component[peer_component]+1)%num_component_edges[peer_component]+first_edge_on_component[peer_component];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "first_occurrence: peer_component = " << peer_component << " peer_successor = " << peer_successor << endl;
@@ -240,25 +241,25 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	switch (position)
 	{
 		case 0: search_edge_1 = 2*crossing; // naming edge
-				search_edge_2 = code_table[OPEER][crossing];
+				search_edge_2 = code_table[generic_code_data::table::OPEER][crossing];
 				break;
-		case 1: if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+		case 1: if (code_table[generic_code_data::table::TYPE][crossing] == generic_code_data::TYPE1)
 		        {
 					search_edge_1 = 2*crossing; // naming edge
 					search_edge_2 = peer_successor;
 				}
 				else
 				{
-					search_edge_1 = code_table[OPEER][crossing];
+					search_edge_1 = code_table[generic_code_data::table::OPEER][crossing];
 					search_edge_2 = successor;
 				}
 				break;
 		case 2: search_edge_1 = successor;
 				search_edge_2 = peer_successor;
 				break;
-		case 3: if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+		case 3: if (code_table[generic_code_data::table::TYPE][crossing] == generic_code_data::TYPE1)
 		        {
-					search_edge_1 = code_table[OPEER][crossing];
+					search_edge_1 = code_table[generic_code_data::table::OPEER][crossing];
 					search_edge_2 = successor;
 				}
 				else
@@ -376,11 +377,11 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 }
 
 	int semi_arc = -1;
-	if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1)
+	if (code_data.immersion_character == generic_code_data::character::PURE_KNOTOID && code_data.head != -1)
 	{
-		if (code_table[LABEL][code_data.head] == generic_code_data::POSITIVE)
-			semi_arc = code_table[OPEER][code_data.head];
-		else if (code_table[LABEL][code_data.head] == generic_code_data::NEGATIVE)
+		if (code_table[generic_code_data::table::LABEL][code_data.head] == generic_code_data::POSITIVE)
+			semi_arc = code_table[generic_code_data::table::OPEER][code_data.head];
+		else if (code_table[generic_code_data::table::LABEL][code_data.head] == generic_code_data::NEGATIVE)
 			semi_arc = 2*code_data.head;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -651,43 +652,6 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	
 		rotate_metapost(vcoords, (TRACK_PLACEMENT_ITERATION? 2*num_vertices: num_vertices), mp_control);
 		
-		/* we convert to radians by calculating rotation_degrees/360 * 2 pi and use 355/113 as an approximation to pi 
-
-		radians = mp_control.rotation_degrees * 355 / 180 / 113;
-		M00 = cos(radians);
-		M10 = sin(radians);
-		M01 = M10 * -1;
-		M11 = M00;
-
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-    debug << "write_metapost: cos(rotation_degrees = " << radians << ") = " << M00 << ", sin(rotation_degrees) = " << M10 << endl;
-
-		for (int i=0; i< (TRACK_PLACEMENT_ITERATION? 2*num_vertices: num_vertices); i++)
-		{
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "write_metapost: rotating z" << i << " = (" << vcoords[i][0] << "," << vcoords[i][1] << ")" << endl;
-    
-			double shift_x = vcoords[i][0] - mp_control.rotation_centre_x;
-			double shift_y = vcoords[i][1] - mp_control.rotation_centre_y;
-
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "write_metapost:   shifted to (" << shift_x << "," << shift_y << ")" << endl;
-
-			vcoords[i][0] = M00*shift_x + M01*shift_y;
-			vcoords[i][1] = M10*shift_x + M11*shift_y;
-
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "write_metapost:   rotated to (" << vcoords[i][0] << "," << vcoords[i][1] << ")" << endl;
-    
-			vcoords[i][0] += mp_control.rotation_centre_x;
-			vcoords[i][1] += mp_control.rotation_centre_y;
-
-if (debug_control::DEBUG >= debug_control::DETAIL)
-    debug << "write_metapost:   shifted back to (" << vcoords[i][0] << "," << vcoords[i][1] << ")" << endl;
-			
-		}
-*/
-
 		/* re-evaluate the min/max values after the rotation */
 		minx = vcoords[0][0];
 		maxx = vcoords[0][0];
@@ -794,7 +758,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	output.setf(ios::fixed,ios::floatfield);
 	output.precision(num_decimal_points);
 
-	os << "\nbeginfig(fignum);" << endl;
+	os << "\nbeginfig(fignum); % figure " << figure_count++ << endl;
 	os << "fignum:=fignum+1;" << endl;
 	os << "numeric u,d,theta;" << endl;
 	float unit_points = mp_control.unit_size;
@@ -913,13 +877,10 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	vector<int> num_R1_loops(num_components);
 	
 	if (mp_control.one_metapost_path)
-	{
-		/*  This approach can produce inflexion points that are difficult to remove */
+	{		
 		for (int i=0; i< num_components; i++)
 		{			
 			os << "p" << i+1 << " = ";
-			bool first_edge_Reidemeister_I_loop = false;
-			int first_edge_first_T4 = -1;
 			int cumulative_T4_vertex_count = 0;
 			
 			for (int j=first_edge_on_component[i]; j< first_edge_on_component[i]+num_component_edges[i]; j++)
@@ -934,12 +895,6 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					
 					int loop_edge_index = vptr - Reidemeister_I_loop_edges.begin();
 					first_T4 = num_type1234_vertices - 2*num_Reidemeister_I_loops + 2*loop_edge_index;
-
-					if (j == first_edge_on_component[i])
-					{
-						first_edge_Reidemeister_I_loop = true;
-						first_edge_first_T4 = first_T4;
-					}
 					
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "write_metapost:   edge " << j << " is a Reidemeister I loop, type 4 vertices " << first_T4 << ' ' << first_T4+1 << endl;
@@ -979,16 +934,6 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				else
 					os << "..";				
 			}
-
-			if (first_edge_Reidemeister_I_loop)
-				os << "z" << first_edge_first_T4;
-			else
-				os << "z" << vertex_sequence[2*first_edge_on_component[i]];
-				
-			if (mp_control.tension)
-				os << "..tension " << metapost_path_tension << "..";
-			else
-				os << "..";
 			os << "cycle;" << endl;
 			
 			num_R1_loops[i] = cumulative_T4_vertex_count/2;
@@ -996,6 +941,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	}
 	else
 	{
+		/*  This approach was originaly added to remove inflexion points that were difficult to remove but it is now not clear
+		    whether it is really necessary, so has been left as an option by setting mp_control.one_metapost_path to be false
+		*/
 		for (int i=0; i< num_components; i++)
 		{
 			os << "p" << 2*i+1 << " = ";
@@ -1451,7 +1399,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	{
 		os << "ahlength := " << mp_control.arrowhead_bp_size << "bp;" << endl;
 
-		if (code_data.immersion != generic_code_data::character::KNOTOID && code_data.immersion != generic_code_data::character::PURE_KNOTOID && code_data.immersion != generic_code_data::character::MULTI_LINKOID)
+		if (code_data.immersion_character != generic_code_data::character::KNOTOID && code_data.immersion_character != generic_code_data::character::PURE_KNOTOID && code_data.immersion_character != generic_code_data::character::MULTI_LINKOID)
 		{
 			for (int i=0; i< num_components; i++)
 			{
@@ -1468,11 +1416,34 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				os << ';' << endl;
 			}
 
+			if (mp_control.seifert_edges != 0)
+			{
+				os << "pickup pencircle scaled 1bp;" << endl;		
+				for (int i=0; i< num_components; i++)
+				{					
+					int path_number = (mp_control.one_metapost_path? i+1: 2*i+2);
+
+					for (int edge = 0; edge<code_data.num_component_edges[i]; edge++)					
+					{
+						if (edge%2 == mp_control.seifert_edges%2)
+						{
+							os << "draw subpath (";
+							int point = (2*edge-1+2*code_data.num_component_edges[i])%(2*code_data.num_component_edges[i]); 
+							os << point << ',' << point+2;
+							os << ") of p" << path_number << " withcolor red;" << endl;
+						}
+					}					
+				}
+				os << "pickup pencircle scaled 0.5bp;" << endl;		
+				
+			}								
+
 			if (mp_control.hamiltonians)
 			{
 				/* auxiliary data is the list of edges corresponding to a Hamiltonian circuit, which we hightlight in green */
 				vector<int>& circuit = *auxiliary_data;
 				
+				os << "pickup pencircle scaled 1bp;" << endl;		
 				for (size_t i=0; i< circuit.size(); i++)
 				{
 					int edge = circuit[i];
@@ -1497,13 +1468,13 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						os << "draw subpath(" << 2*num_component_edges[component]-1 << ',' << 2*num_component_edges[component] << ") of p" << path_number << " withcolor "<< mp_control.hamiltonian_colour << ";" << endl;						
 					}
 				}
-			}								
+			}			
 		}
-		else if (code_data.immersion == generic_code_data::character::KNOTOID || code_data.immersion == generic_code_data::character::PURE_KNOTOID)
+		else if (code_data.immersion_character == generic_code_data::character::KNOTOID || code_data.immersion_character == generic_code_data::character::PURE_KNOTOID)
 		{
 				
-//			int component_end_point = (code_data.immersion == generic_code_data::character::KNOTOID? 2*num_component_edges[0]: 2*semi_arc-1);
-			int component_end_point = (code_data.immersion == generic_code_data::character::KNOTOID? 2*(num_component_edges[0]+num_R1_loops[0]): 2*(semi_arc+num_R1_loops[0])-1);
+//			int component_end_point = (code_data.immersion_character == generic_code_data::character::KNOTOID? 2*num_component_edges[0]: 2*semi_arc-1);
+			int component_end_point = (code_data.immersion_character == generic_code_data::character::KNOTOID? 2*(num_component_edges[0]+num_R1_loops[0]): 2*(semi_arc+num_R1_loops[0])-1);
 			int path_number = (mp_control.one_metapost_path? 1: 2);
 
 			os << "drawarrow subpath(0.5,0.75) of p" << path_number;  
@@ -1519,7 +1490,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				os << " withcolor " << mp_control.draw_colour[0];
 			os << ';' << endl;
 			
-			if (code_data.immersion == generic_code_data::character::KNOTOID)
+			if (code_data.immersion_character == generic_code_data::character::KNOTOID)
 			{
 				os << "draw subpath(0,0.25) of p" << path_number;				
 				if (mp_control.colour && mp_control.singlecolour.length() != 0)
@@ -1531,7 +1502,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			
 			if (mp_control.draw_shortcut)
 			{
-				if (code_data.immersion == generic_code_data::character::KNOTOID)
+				if (code_data.immersion_character == generic_code_data::character::KNOTOID)
 				{
 					os << "draw subpath(0.25,0.5) of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");
 					
@@ -1587,7 +1558,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				os << ';' << endl;					
 			}
 		}
-		else if (code_data.immersion == generic_code_data::character::MULTI_LINKOID)
+		else if (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID)
 		{
 			
 			for (int i=0; i< num_components; i++)
@@ -1635,7 +1606,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;
 
 					/* this is the end of the path in the case KNOT_TYPE_END_LEG */
@@ -1643,7 +1614,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;						
 
 //					os << "draw subpath(" << main_path_start_point << ',' << component_end_point << ".5) of p" << path_number;
@@ -1651,14 +1622,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;
 
 					os << "draw subpath(" << leg_point << ',' << leg_point << ".25) of p" << path_number;					
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;
 
 					if (mp_control.draw_shortcut)
@@ -1667,22 +1638,29 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						if (mp_control.colour && mp_control.singlecolour.length() != 0)
 							os << " withcolor " << mp_control.singlecolour;
 						else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-							os << " withcolor " << mp_control.draw_colour[0];
+							os << " withcolor " << mp_control.draw_colour[i];
 						os << ';' << endl;
 					}
 
 				}
 				else if (code_data.component_type[i].type == component_character::PURE_START_LEG || code_data.component_type[i].type == component_character::PURE_END_LEG)
 				{
+/*
 					int component_head = code_data.component_type[i].head;
-					if (code_table[LABEL][component_head] == generic_code_data::POSITIVE)
-						semi_arc = code_table[OPEER][component_head];
-					else if (code_table[LABEL][component_head] == generic_code_data::NEGATIVE)
+					if (code_table[generic_code_data::table::LABEL][component_head] == generic_code_data::POSITIVE)
+						semi_arc = code_table[generic_code_data::table::OPEER][component_head];
+					else if (code_table[generic_code_data::table::LABEL][component_head] == generic_code_data::NEGATIVE)
 						semi_arc = 2*component_head;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "write_metapost:   head, " << component_head << ", lies on semi-arc " << semi_arc << endl;
-	
+*/
+
+					semi_arc = code_data.component_type[i].head_semi_arc;
+
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "write_metapost:   head lies on semi-arc " << semi_arc << endl;
+					
 //					int leg_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 0: 2*(code_data.num_component_edges[i]-1));
 					int leg_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 0: 2*(code_data.num_component_edges[i]+num_R1_loops[i]-1));
 					int main_path_start_point = (code_data.component_type[i].type == component_character::PURE_START_LEG? 2: 0);
@@ -1698,21 +1676,21 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;
 
 					os << "draw subpath(" << leg_point << ".75," << leg_point+2 << ") of p" << path_number;
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;						
 
 					os << "draw subpath(" << main_path_start_point << ',' << head_point << ".5) of p" << path_number;
 					if (mp_control.colour && mp_control.singlecolour.length() != 0)
 						os << " withcolor " << mp_control.singlecolour;
 					else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-						os << " withcolor " << mp_control.draw_colour[0];
+						os << " withcolor " << mp_control.draw_colour[i];
 					os << ';' << endl;
 					
 					if (mp_control.draw_shortcut)
@@ -1721,14 +1699,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						if (mp_control.colour && mp_control.singlecolour.length() != 0)
 							os << " withcolor " << mp_control.singlecolour;
 						else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-							os << " withcolor " << mp_control.draw_colour[0];
+							os << " withcolor " << mp_control.draw_colour[i];
 						os << ';' << endl;
 						
 						os << "draw subpath(" << head_point << ".5," << shortcut_end_point << ") of p" << path_number << " dashed " << (mp_control.dash_with_dots? "withdots" : "evenly");						   
 						if (mp_control.colour && mp_control.singlecolour.length() != 0)
 							os << " withcolor " << mp_control.singlecolour;
 						else if (mp_control.colour && 0 < static_cast<int>(mp_control.draw_colour.size()))		
-							os << " withcolor " << mp_control.draw_colour[0];
+							os << " withcolor " << mp_control.draw_colour[i];
 						os << ';' << endl;					   
 					}		
 				}
@@ -1750,14 +1728,115 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_metapost:   crossing " << i;
 			
-			if (code_table[LABEL][i] == generic_code_data::VIRTUAL)
+			if (mp_control.seifert_circles)
+			{
+				/* identify the components and corresponding paths of the even terminating and odd terminating edges */
+				int et_edge = code_table[generic_code_data::table::EVEN_TERMINATING][i];
+				int ot_edge = code_table[generic_code_data::table::ODD_TERMINATING][i];
+				int et_component = code_table[generic_code_data::table::COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
+				int ot_component = code_table[generic_code_data::table::COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
+				int et_path = (mp_control.one_metapost_path? et_component+1: 2*et_component+2);
+				int ot_path = (mp_control.one_metapost_path? ot_component+1: 2*ot_component+2);
+				int et_point = edge_path_offset[code_table[generic_code_data::table::EVEN_TERMINATING][i]]+1;
+				int ot_point = edge_path_offset[code_table[generic_code_data::table::ODD_TERMINATING][i]]+1;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
+	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
+}					
+				if (code_table[generic_code_data::table::EVEN_TERMINATING][i] == code_table[generic_code_data::table::EVEN_ORIGINATING][i])
+					et_point++; // move et_point past the second type 4 vertex
+				else if (code_table[generic_code_data::table::ODD_TERMINATING][i] == code_table[generic_code_data::table::ODD_ORIGINATING][i])
+					ot_point++; // move ot_point past the second type 4 vertex
+
+				if (mp_control.uniform_smoothed_discs)
+				{
+					os << "p" << 2*num_components+i+1 << " = fullcircle scaled " << mp_control.smoothed_state_disc_size << "d shifted z" << i << ";" << endl;
+				}
+				else
+				{
+					os << "r:= min(arclength (z" << i << "--(point " << et_point-1 << ".5 of p" << et_path << ")),";
+					os <<         "arclength (z" << i << "--(point " << ot_point-1 << ".5 of p" << ot_path << ")),";
+					os <<         "arclength (z" << i << "--(point " << et_point << ".5 of p" << et_path << ")),";
+					os <<         "arclength (z" << i << "--(point " << ot_point << ".5 of p" << ot_path << ")));" << endl;
+
+					os << "p" << 2*num_components+i+1 << " = fullcircle scaled min(2r," << mp_control.smoothed_state_disc_size << "d) shifted z" << i << ";" << endl;
+					os << "theta := angle((direction " << et_point << " of p" << et_path << ")+(direction " << ot_point << " of p" << ot_path << "))-90;" << endl;
+				}
+									
+				os << "fill p" << 2*num_components+i+1 << " withcolor 1white;" << endl;
+															
+				os << "z" << 2*num_vertices+4*i << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point-1<< "," << et_point << ") of p" << et_path << ";" << endl;
+				os << "z" << 2*num_vertices+4*i+1 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point-1 << "," << ot_point <<  ") of p" << ot_path << ";" << endl;
+				os << "z" << 2*num_vertices+4*i+2 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point << "," << et_point+1 << ") of p" << et_path << ";" << endl;
+				os << "z" << 2*num_vertices+4*i+3 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point << "," << ot_point+1 << ") of p" << ot_path << ";" << endl;
+				
+				os << "draw z" << 2*num_vertices+4*i << "--z" << 2*num_vertices+4*i+3 << ";" << endl;
+				os << "draw z" << 2*num_vertices+4*i+1 << "--z" << 2*num_vertices+4*i+2 << ";" << endl;
+			}
+			else if (code_table[generic_code_data::table::LABEL][i] == generic_code_data::VIRTUAL)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is virtual" << endl;
-		
-				os << "draw fullcircle scaled d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
+				bool draw_virtual_crossing = true;
+				
+				if (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID)
+				{
+					if (!mp_control.draw_shortcut)
+					{
+						/* don't draw the virtual crossing if either of the terminating edges are shortcut edges on their component */
+						int even_component = code_table[generic_code_data::table::COMPONENT][i];
+						
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "write_metapost:   even_component = " << even_component << ", head_semi_arc = " << code_data.component_type[even_component].head_semi_arc 
+	      << ", even peer " << code_table[generic_code_data::table::EVEN_TERMINATING][i] << endl;
+}
+
+						if(code_data.component_type[even_component].type == component_character::PURE_START_LEG || code_data.component_type[even_component].type == component_character::PURE_END_LEG)
+						{
+							if (code_table[generic_code_data::table::EVEN_TERMINATING][i] >= code_data.component_type[even_component].head_semi_arc)
+							{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   edge lies in shortcut, do not draw virtual crossing" << endl;
+								draw_virtual_crossing = false;
+							}
+						}
+						
+						int odd_component = code_table[generic_code_data::table::COMPONENT][(code_table[generic_code_data::table::ODD_TERMINATING][i]-1)/2];
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+{
+	debug << "write_metapost:   odd_component = " << odd_component << ", head_semi_arc = " << code_data.component_type[odd_component].head_semi_arc 
+	      << ", odd peer " << code_table[generic_code_data::table::ODD_TERMINATING][i] << endl;
+}
+
+						if(code_data.component_type[odd_component].type == component_character::PURE_START_LEG || code_data.component_type[odd_component].type == component_character::PURE_END_LEG)
+						{
+							if (code_table[generic_code_data::table::ODD_TERMINATING][i] >= code_data.component_type[odd_component].head_semi_arc)
+							{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   edge lies in shortcut, do not draw virtual crossing" << endl;
+								draw_virtual_crossing = false;
+							}
+						}
+						
+					}
+				}
+				
+				if (draw_virtual_crossing)
+				{					
+					if (code_data.multi_virtual && code_data.virtual_index[i] >= 2)
+					{
+//						os << "fill fullcircle scaled d shifted z" << vertex_sequence[2*first_edge[i]+1] << " withcolor 1white;" << endl;
+						os << "label(btex \\fiverm " << code_data.virtual_index[i] << " etex, z" << vertex_sequence[2*first_edge[i]+1] << "+(0.8d,0));" << endl;
+					}
+					
+					os << "draw fullcircle scaled d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
+				}
 			}
-			else if (mp_control.show_odd_parity_crossings && code_table[LABEL][i] == generic_code_data::ODD)
+			else if (mp_control.show_odd_parity_crossings && code_table[generic_code_data::table::LABEL][i] == generic_code_data::ODD)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is odd" << endl;
@@ -1765,7 +1844,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 //				os << "fill fullcircle scaled 1.2d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
 				os << "fill fullcircle scaled " << mp_control.odd_parity_disc_size << "*0.1d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
 			}
-			else if (code_table[LABEL][i] != generic_code_data::FLAT)
+			else if (code_table[generic_code_data::table::LABEL][i] != generic_code_data::FLAT)
 			{
 				bool A_crossing;
 				bool seifert_smoothed;
@@ -1776,23 +1855,23 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is smoothed" << endl;
 
 					/* identify the components and corresponding paths of the even terminating and odd terminating edges */
-					int et_edge = code_table[EVEN_TERMINATING][i];
-					int ot_edge = code_table[ODD_TERMINATING][i];
-					int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
-					int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
-					int et_path = 2 * (et_component+1);
-					int ot_path = 2 * (ot_component+1);
-					int et_point = edge_path_offset[code_table[EVEN_TERMINATING][i]]+1;
-					int ot_point = edge_path_offset[code_table[ODD_TERMINATING][i]]+1;
+					int et_edge = code_table[generic_code_data::table::EVEN_TERMINATING][i];
+					int ot_edge = code_table[generic_code_data::table::ODD_TERMINATING][i];
+					int et_component = code_table[generic_code_data::table::COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
+					int ot_component = code_table[generic_code_data::table::COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
+					int et_path = (mp_control.one_metapost_path? et_component+1: 2*et_component+2);
+					int ot_path = (mp_control.one_metapost_path? ot_component+1: 2*ot_component+2);
+					int et_point = edge_path_offset[code_table[generic_code_data::table::EVEN_TERMINATING][i]]+1;
+					int ot_point = edge_path_offset[code_table[generic_code_data::table::ODD_TERMINATING][i]]+1;
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
 	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
 }					
-					if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
+					if (code_table[generic_code_data::table::EVEN_TERMINATING][i] == code_table[generic_code_data::table::EVEN_ORIGINATING][i])
 						et_point++; // move et_point past the second type 4 vertex
-					else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
+					else if (code_table[generic_code_data::table::ODD_TERMINATING][i] == code_table[generic_code_data::table::ODD_ORIGINATING][i])
 						ot_point++; // move ot_point past the second type 4 vertex
 
 					if (mp_control.uniform_smoothed_discs)
@@ -1813,17 +1892,19 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					
 					os << "fill p" << 2*num_components+i+1 << " withcolor 1white;" << endl;
 					
-					if (   (code_table[TYPE][i] == generic_code_data::TYPE1 && code_table[LABEL][i] == generic_code_data::NEGATIVE)
-						|| (code_table[TYPE][i] == generic_code_data::TYPE2 && code_table[LABEL][i] == generic_code_data::POSITIVE)
+					if (   (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1 && code_table[generic_code_data::table::LABEL][i] == generic_code_data::NEGATIVE)
+						|| (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE2 && code_table[generic_code_data::table::LABEL][i] == generic_code_data::POSITIVE)
 					   )
 					{
 						/* positive crossing */
-						if (state[state_place] == 1 || state[state_place] == 2)
+//						if (state[state_place] == 1 || state[state_place] == 2)
+						if (state[state_place] == metapost_control::smoothed::SEIFERT_SMOOTHED || state[state_place] == metapost_control::smoothed::A_SMOOTHED)
 						{
 							A_crossing = true;
 							seifert_smoothed = true;
 						}
-						else if (state[state_place] == -1 || state[state_place] == 3)
+//						else if (state[state_place] == -1 || state[state_place] == 3)
+						else if (state[state_place] == metapost_control::smoothed::NON_SEIFERT_SMOOTHED || state[state_place] == metapost_control::smoothed::B_SMOOTHED)
 						{
 							A_crossing = false;
 							seifert_smoothed = false;
@@ -1833,17 +1914,19 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "write_metapost:   positive crossing " << i << " state_place = " << state_place << " A_crossing = " << A_crossing << " seifert_smoothed = " << seifert_smoothed << endl;
 						
 					}
-					else if (   (code_table[TYPE][i] == generic_code_data::TYPE1 && code_table[LABEL][i] == generic_code_data::POSITIVE)
-							  || (code_table[TYPE][i] == generic_code_data::TYPE2 && code_table[LABEL][i] == generic_code_data::NEGATIVE)
+					else if (   (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1 && code_table[generic_code_data::table::LABEL][i] == generic_code_data::POSITIVE)
+							  || (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE2 && code_table[generic_code_data::table::LABEL][i] == generic_code_data::NEGATIVE)
 							)
 					{
 						/* negative crossing */
-						if (state[state_place] == 1 || state[state_place] == 3)
+//						if (state[state_place] == 1 || state[state_place] == 3)
+						if (state[state_place] == metapost_control::smoothed::SEIFERT_SMOOTHED || state[state_place] == metapost_control::smoothed::B_SMOOTHED)
 						{
 							A_crossing = false;
 							seifert_smoothed = true;
 						}
-						else if (state[state_place] == -1 || state[state_place] == 2)
+//						else if (state[state_place] == -1 || state[state_place] == 2)
+						else if (state[state_place] == metapost_control::smoothed::NON_SEIFERT_SMOOTHED || state[state_place] == metapost_control::smoothed::A_SMOOTHED)
 						{
 							A_crossing = true;
 							seifert_smoothed = false;
@@ -1895,7 +1978,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 					   the beginning
 					*/
 					int edge;
-					if (code_table[LABEL][i] == generic_code_data::POSITIVE)	
+					if (code_table[generic_code_data::table::LABEL][i] == generic_code_data::POSITIVE)	
 					{
 		
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -1909,18 +1992,18 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " has negative label, ";
 				
-						edge = code_table[OPEER][i];
+						edge = code_table[generic_code_data::table::OPEER][i];
 					}
 						
 					int component;
 					if ( edge%2 )
-						component = code_table[COMPONENT][(edge-1)/2];
+						component = code_table[generic_code_data::table::COMPONENT][(edge-1)/2];
 					else
-						component = code_table[COMPONENT][edge/2];
+						component = code_table[generic_code_data::table::COMPONENT][edge/2];
 					
 					int over_arc_start = edge_path_offset[edge];
 
-					if ((edge%2 == 0 && code_table[EVEN_ORIGINATING][i] == edge) || (edge%2 == 1 && code_table[ODD_ORIGINATING][i] == edge))
+					if ((edge%2 == 0 && code_table[generic_code_data::table::EVEN_ORIGINATING][i] == edge) || (edge%2 == 1 && code_table[generic_code_data::table::ODD_ORIGINATING][i] == edge))
 						over_arc_start++; // move past the second type 4 vertex
 					
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -1947,65 +2030,102 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is flat " << endl;
-
-				if (mp_control.seifert_circles)
-				{
-					/* identify the components and corresponding paths of the even terminating and odd terminating edges */
-					int et_edge = code_table[EVEN_TERMINATING][i];
-					int ot_edge = code_table[ODD_TERMINATING][i];
-					int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
-					int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
-					int et_path = 2 * (et_component+1);
-					int ot_path = 2 * (ot_component+1);
-					int et_point = edge_path_offset[code_table[EVEN_TERMINATING][i]]+1;
-					int ot_point = edge_path_offset[code_table[ODD_TERMINATING][i]]+1;
-
-if (debug_control::DEBUG >= debug_control::DETAIL)
-{
-	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
-	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
-}					
-					if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
-						et_point++; // move et_point past the second type 4 vertex
-					else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
-						ot_point++; // move ot_point past the second type 4 vertex
-
-					if (mp_control.uniform_smoothed_discs)
-					{
-						os << "p" << 2*num_components+i+1 << " = fullcircle scaled " << mp_control.smoothed_state_disc_size << "d shifted z" << i << ";" << endl;
-					}
-					else
-					{
-						os << "r:= min(arclength (z" << i << "--(point " << et_point-1 << ".5 of p" << et_path << ")),";
-						os <<         "arclength (z" << i << "--(point " << ot_point-1 << ".5 of p" << ot_path << ")),";
-						os <<         "arclength (z" << i << "--(point " << et_point << ".5 of p" << et_path << ")),";
-						os <<         "arclength (z" << i << "--(point " << ot_point << ".5 of p" << ot_path << ")));" << endl;
-
-						os << "p" << 2*num_components+i+1 << " = fullcircle scaled min(2r," << mp_control.smoothed_state_disc_size << "d) shifted z" << i << ";" << endl;
-						os << "theta := angle((direction " << et_point << " of p" << et_path << ")+(direction " << ot_point << " of p" << ot_path << "))-90;" << endl;
-					}
-										
-					os << "fill p" << 2*num_components+i+1 << " withcolor 1white;" << endl;
-																
-					os << "z" << 2*num_vertices+4*i << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point-1<< "," << et_point << ") of p" << et_path << ";" << endl;
-					os << "z" << 2*num_vertices+4*i+1 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point-1 << "," << ot_point <<  ") of p" << ot_path << ";" << endl;
-					os << "z" << 2*num_vertices+4*i+2 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << et_point << "," << et_point+1 << ") of p" << et_path << ";" << endl;
-					os << "z" << 2*num_vertices+4*i+3 << "=p" << 2*num_components+i+1 << " intersectionpoint subpath(" << ot_point << "," << ot_point+1 << ") of p" << ot_path << ";" << endl;
-					
-					os << "draw z" << 2*num_vertices+4*i << "--z" << 2*num_vertices+4*i+3 << ";" << endl;
-					os << "draw z" << 2*num_vertices+4*i+1 << "--z" << 2*num_vertices+4*i+2 << ";" << endl;
-				}
 			}
 		}
 	}
 	
 	if (mp_control.draw_labels)
 	{
-		int edge_label = 0;
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost: drawing labels" << endl;
+		vector<bool> component_traced(num_components); // initialized to zero
 		
-		for (int i=0; i< num_edges; i++)
+		int edge_label = 0;
+		int edge = 0;
+		int start=0;
+		bool complete = false;
+		int component_count=1;
+		
+		component_traced[0] = true;
+		do
 		{
-			if (mp_control.gauss_labels && (code_table[LABEL][term_crossing[i]] == generic_code_data::VIRTUAL || (ignore_shortcut && shortcut_crossing[term_crossing[i]]))) 
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   component_start = " << start << endl;
+
+			/* label this component */
+			do
+			{
+				int next_crossing = term_crossing[edge];
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:     next_crossing = " << next_crossing << endl;
+				
+				if (!mp_control.gauss_labels || !(code_table[generic_code_data::table::LABEL][next_crossing] == generic_code_data::VIRTUAL || (ignore_shortcut && shortcut_crossing[next_crossing]))) 
+				{
+					os << "label(btex $";
+		
+					if (mp_control.scriptscript_labels)
+						os << "\\textfont0=\\fiverm ";
+					else if (mp_control.script_labels)
+						os << "\\textfont0=\\sevenrm ";
+		
+					os << (mp_control.label_edges_from_one? edge_label+1: edge_label) << "$ etex, z" << vertex_sequence[2*edge] << ");" << endl;
+					edge_label++;
+				}
+
+				if (edge%2)
+					edge = code_table[generic_code_data::table::EVEN_ORIGINATING][next_crossing];
+				else
+					edge = code_table[generic_code_data::table::ODD_ORIGINATING][next_crossing];
+
+			} while (edge != start);
+
+			/* look for the start of another component */
+			complete = true;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   look for start of next component" << endl;
+	
+			for (int i=0; i< num_components; i++)
+			{
+				if (component_traced[i] == false)
+				{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "write_metapost:   component " << i << " not traced";
+
+					if (mp_control.gauss_labels && (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID && component_count < code_data.num_open_components))
+					{
+						if (code_data.component_type[i].type == component_character::CLOSED)
+						{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", CLOSED component but component_count = " << component_count << " so skipping" << endl;
+							continue;  // conside all open components first
+						}
+					}
+					
+					component_traced[i] = true;
+					component_count++;
+					complete = false;
+
+					if (mp_control.gauss_labels && code_data.immersion_character == generic_code_data::character::MULTI_LINKOID && 
+					    (code_data.component_type[i].type == component_character::PURE_END_LEG || code_data.component_type[i].type == component_character::KNOT_TYPE_END_LEG))					
+						start = code_data.first_edge_on_component[i]+code_data.num_component_edges[i]-1;
+					else
+						start = code_data.first_edge_on_component[i];
+					edge = start;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", acceptable, component_count = " << component_count << " starting edge on component = " << start << endl;
+
+					break;
+				}
+			}
+
+		} while (!complete);
+		
+/*		for (int i=0; i< num_edges; i++)
+		{
+			if (mp_control.gauss_labels && (code_table[generic_code_data::table::LABEL][term_crossing[i]] == generic_code_data::VIRTUAL || (ignore_shortcut && shortcut_crossing[term_crossing[i]]))) 
 				continue;
 				
 			os << "label(btex $";
@@ -2018,6 +2138,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			os << (mp_control.label_edges_from_one? edge_label+1: edge_label) << "$ etex, z" << vertex_sequence[2*i] << ");" << endl;
 			edge_label++;
 		}
+*/		
 	}
 
 	if (mp_control.label_vertices)
@@ -2062,23 +2183,26 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			int crossing = gauss_crossing_map[i];
 
 			/* identify the components and corresponding paths of the even terminating and odd terminating edges */
-			int et_edge = code_table[EVEN_TERMINATING][crossing];
-			int ot_edge = code_table[ODD_TERMINATING][crossing];
-			int et_component = code_table[COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
-			int ot_component = code_table[COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
-			int et_path = 2 * (et_component+1);
-			int ot_path = 2 * (ot_component+1);
-			int et_point = edge_path_offset[code_table[EVEN_TERMINATING][crossing]]+1;
-			int ot_point = edge_path_offset[code_table[ODD_TERMINATING][crossing]]+1;
+			int et_edge = code_table[generic_code_data::table::EVEN_TERMINATING][crossing];
+			int ot_edge = code_table[generic_code_data::table::ODD_TERMINATING][crossing];
+			int et_component = code_table[generic_code_data::table::COMPONENT][(et_edge%2? (et_edge-1)/2: et_edge/2)];
+			int ot_component = code_table[generic_code_data::table::COMPONENT][(ot_edge%2? (ot_edge-1)/2: ot_edge/2)];					
+			int et_path = (mp_control.one_metapost_path? et_component+1: 2*et_component+2);
+			int ot_path = (mp_control.one_metapost_path? ot_component+1: 2*ot_component+2);
+
+//			int et_path = 2 * (et_component+1);
+//			int ot_path = 2 * (ot_component+1);
+			int et_point = edge_path_offset[code_table[generic_code_data::table::EVEN_TERMINATING][crossing]]+1;
+			int ot_point = edge_path_offset[code_table[generic_code_data::table::ODD_TERMINATING][crossing]]+1;
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 {
 	debug << "write_metapost:   et_edge = " << et_edge << " ot_edge = " << ot_edge << " et_component = " << et_component << " ot_component = " << ot_component << endl;
 	debug << "write_metapost:   et_path = " << et_path << " ot_path = " << ot_path << " et_point = " << et_point << " ot_point = " << ot_point << endl;
 }					
-			if (code_table[EVEN_TERMINATING][i] == code_table[EVEN_ORIGINATING][i])
+			if (code_table[generic_code_data::table::EVEN_TERMINATING][i] == code_table[generic_code_data::table::EVEN_ORIGINATING][i])
 				et_point++; // move et_point past the second type 4 vertex
-			else if (code_table[ODD_TERMINATING][i] == code_table[ODD_ORIGINATING][i])
+			else if (code_table[generic_code_data::table::ODD_TERMINATING][i] == code_table[generic_code_data::table::ODD_ORIGINATING][i])
 				ot_point++; // move ot_point past the second type 4 vertex
 
 			os << "theta := angle((direction " << et_point << " of p" << et_path << ")+(direction " << ot_point << " of p" << ot_path << "))-90;" << endl;
@@ -2092,6 +2216,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		    os << i+1 << "$ etex, z" << crossing << "+(" << mp_control.label_shift << "u*cosd theta, " << mp_control.label_shift << "u*sind theta));" << endl;				    
 		}
 	}
+	
 	if (mp_control.circle_packing)
 	{
 		for (int i=0; i< num_type1234_vertices; i++)
@@ -2406,19 +2531,19 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		   edges initially to aid debugging
 		*/
 		int e1, e3, v1, v2, v3, v4;
-		if (code_table[ODD_TERMINATING][i] < code_table[EVEN_TERMINATING][i])
+		if (code_table[generic_code_data::table::ODD_TERMINATING][i] < code_table[generic_code_data::table::EVEN_TERMINATING][i])
 		{
-			e1 = v1 = code_table[ODD_TERMINATING][i];
-			v2 = code_table[EVEN_ORIGINATING][i];
-			e3 = v3 = code_table[EVEN_TERMINATING][i];
-			v4 = code_table[ODD_ORIGINATING][i];
+			e1 = v1 = code_table[generic_code_data::table::ODD_TERMINATING][i];
+			v2 = code_table[generic_code_data::table::EVEN_ORIGINATING][i];
+			e3 = v3 = code_table[generic_code_data::table::EVEN_TERMINATING][i];
+			v4 = code_table[generic_code_data::table::ODD_ORIGINATING][i];
 		}
 		else
 		{
-			e1 = v1 = code_table[EVEN_TERMINATING][i];
-			v2 = code_table[ODD_ORIGINATING][i];
-			e3 = v3 = code_table[ODD_TERMINATING][i];
-			v4 = code_table[EVEN_ORIGINATING][i];
+			e1 = v1 = code_table[generic_code_data::table::EVEN_TERMINATING][i];
+			v2 = code_table[generic_code_data::table::ODD_ORIGINATING][i];
+			e3 = v3 = code_table[generic_code_data::table::ODD_TERMINATING][i];
+			v4 = code_table[generic_code_data::table::EVEN_ORIGINATING][i];
 		}
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -2433,7 +2558,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
     debug << "set_edge_directions:   v1 = " << v1 << ", v2 = " << v2 << ", v3 = " << v3 << ", v4 = " << v4 << endl;
 		
 		/* calculate the angles theta_i, there are four cases depending on the type of crossing and whether 
-		   code_table[ODD_TERMINATING][i] < code_table[EVEN_TERMINATING][i] or not:
+		   code_table[generic_code_data::table::ODD_TERMINATING][i] < code_table[generic_code_data::table::EVEN_TERMINATING][i] or not:
 		
 			         OT < ET                   OT < ET                   OT > ET                   OT > ET
 		       
@@ -2450,8 +2575,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		*/
 		double theta_1,theta_2,theta_3,theta_4;
 		
-		if (   (code_table[ODD_TERMINATING][i] < code_table[EVEN_TERMINATING][i] && code_table[TYPE][i] == generic_code_data::TYPE1)
-		    || (code_table[ODD_TERMINATING][i] > code_table[EVEN_TERMINATING][i] && code_table[TYPE][i] == generic_code_data::TYPE2)
+		if (   (code_table[generic_code_data::table::ODD_TERMINATING][i] < code_table[generic_code_data::table::EVEN_TERMINATING][i] && code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
+		    || (code_table[generic_code_data::table::ODD_TERMINATING][i] > code_table[generic_code_data::table::EVEN_TERMINATING][i] && code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE2)
 		   )
 		{
 			calculate_theta_angles(v3, v2, v4, v1, i, theta_1, theta_2, theta_3, theta_4, vcoords);
@@ -2497,8 +2622,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		/* evaluate angle phi_1 */
 		double phi_1;
 		
-		if (   (code_table[ODD_TERMINATING][i] < code_table[EVEN_TERMINATING][i] && code_table[TYPE][i] == generic_code_data::TYPE1)
-		    || (code_table[ODD_TERMINATING][i] > code_table[EVEN_TERMINATING][i] && code_table[TYPE][i] == generic_code_data::TYPE2)
+		if (   (code_table[generic_code_data::table::ODD_TERMINATING][i] < code_table[generic_code_data::table::EVEN_TERMINATING][i] && code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
+		    || (code_table[generic_code_data::table::ODD_TERMINATING][i] > code_table[generic_code_data::table::EVEN_TERMINATING][i] && code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE2)
 		   )
 		{
 			/* e3 lies adjacent to e1 anti-clockwise around u */
@@ -2829,10 +2954,12 @@ vector<int> identify_gauss_crossings(generic_code_data& code_data)
 
 	matrix<int>& code_table = code_data.code_table;
 	int num_crossings = code_data.num_crossings;
+	int num_components = code_data.num_components;
 	
 	vector<int>& term_crossing = code_data.term_crossing;
-	int num_edges = 2*num_crossings;
-	vector<int> edge_flag(num_edges); // initialized to zero
+//	int num_edges = 2*num_crossings;
+//	vector<int> edge_flag(num_edges); // initialized to zero
+	vector<bool> component_traced(num_components); // initialized to zero
 
 		
 	int num_classical_crossings = num_crossings;
@@ -2841,13 +2968,13 @@ vector<int> identify_gauss_crossings(generic_code_data& code_data)
 	
 	for (int i=0; i< num_crossings; i++)
 	{
-		if (code_table[LABEL][i] == generic_code_data::VIRTUAL)
+		if (code_table[generic_code_data::table::LABEL][i] == generic_code_data::VIRTUAL)
 			num_classical_crossings--;
 	}
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "identify_gauss_crossings: num_classical_crossings = " << num_classical_crossings << endl;
 
-	if (code_data.immersion == generic_code_data::character::PURE_KNOTOID && code_data.head != -1 && shortcut_crossing.size())
+	if (code_data.immersion_character == generic_code_data::character::PURE_KNOTOID && code_data.head != -1 && shortcut_crossing.size())
 	{
 		pure_knotoid_code_data = true;
 		for (unsigned int i=0; i< shortcut_crossing.size(); i++)
@@ -2870,9 +2997,12 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 	vector<int> gauss_crossing_map(num_classical_crossings);
 	vector<int> crossing_visited(num_crossings);
 
+	int component_count=1;
 	int start=0;
 	int edge=0;
 	bool complete = false;
+
+	component_traced[0] = true;
 		
 	do 
 	{
@@ -2881,16 +3011,16 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			
 		/*	trace this component */
 		do
-		{	
+		{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "identify_gauss_crossings: edge = " << edge;
-			edge_flag[edge] = 1;
+//			edge_flag[edge] = 1;
 			int next_crossing = term_crossing[edge];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", next_crossing = " << next_crossing;
 		
-			if (code_table[LABEL][next_crossing] == generic_code_data::VIRTUAL)
+			if (code_table[generic_code_data::table::LABEL][next_crossing] == generic_code_data::VIRTUAL)
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is virtual" << endl;
@@ -2900,8 +3030,8 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", is a shortcut crossing" << endl;
 			}
-			else if ((edge%2 != 0 && code_table[LABEL][next_crossing] == generic_code_data::POSITIVE) ||
-			    (edge%2 == 0 && code_table[LABEL][next_crossing] == generic_code_data::NEGATIVE))
+			else if ((edge%2 != 0 && code_table[generic_code_data::table::LABEL][next_crossing] == generic_code_data::POSITIVE) ||
+			    (edge%2 == 0 && code_table[generic_code_data::table::LABEL][next_crossing] == generic_code_data::NEGATIVE))
 			{
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", going under" << endl;	
@@ -2912,7 +3042,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << ", going over" << endl;
 			}
 				
-			if (code_table[LABEL][next_crossing] != generic_code_data::VIRTUAL && !(pure_knotoid_code_data && shortcut_crossing[next_crossing]))
+			if (code_table[generic_code_data::table::LABEL][next_crossing] != generic_code_data::VIRTUAL && !(pure_knotoid_code_data && shortcut_crossing[next_crossing]))
 			{
 				if(crossing_visited[next_crossing])
 				{
@@ -2938,17 +3068,17 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				}
 
 				if (edge%2)
-					edge = code_table[EVEN_ORIGINATING][next_crossing];
+					edge = code_table[generic_code_data::table::EVEN_ORIGINATING][next_crossing];
 				else
-					edge = code_table[ODD_ORIGINATING][next_crossing];					
+					edge = code_table[generic_code_data::table::ODD_ORIGINATING][next_crossing];					
 			}
 			else
 			{
 				/* just move on around the component */				
 				if (edge%2)
-					edge = code_table[EVEN_ORIGINATING][next_crossing];
+					edge = code_table[generic_code_data::table::EVEN_ORIGINATING][next_crossing];
 				else
-					edge = code_table[ODD_ORIGINATING][next_crossing];
+					edge = code_table[generic_code_data::table::ODD_ORIGINATING][next_crossing];
 
 if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << "identify_gauss_crossings:   doing nothing" << endl;
@@ -2957,6 +3087,46 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 
 		/* look for the start of another component */
 		complete = true;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings: look for start of next component" << endl;
+	
+		for (int i=0; i< num_components; i++)
+		{
+			if (component_traced[i] == false)
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << "identify_gauss_crossings:   component " << i << " not traced";
+
+				if (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID && component_count < code_data.num_open_components)
+				{
+					if (code_data.component_type[i].type == component_character::CLOSED)
+					{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", CLOSED component but component_count = " << component_count << " so skipping" << endl;
+						continue;  // conside all open components first
+					}
+				}
+					
+				component_traced[i] = true;
+				component_count++;
+				complete = false;
+
+				if (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID && 
+				    (code_data.component_type[i].type == component_character::PURE_END_LEG || code_data.component_type[i].type == component_character::KNOT_TYPE_END_LEG))					
+					start = code_data.first_edge_on_component[i]+code_data.num_component_edges[i]-1;
+				else
+					start = code_data.first_edge_on_component[i];
+				
+				edge = start;
+
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << ", acceptable, component_count = " << component_count << " starting edge on component = " << start << endl;
+
+				break;
+			}
+		}
+/*		
 		for (int i=0; i< num_edges; i++)
 		{
 			if (edge_flag[i] == 0)
@@ -2967,6 +3137,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 				break;
 			}
 		}			
+*/		
 	} while (!complete);
 	
 	return gauss_crossing_map;

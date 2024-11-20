@@ -261,7 +261,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
     
 			if (cycle[i][j] < 0)
 			{
-				if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+				if (code_table[generic_code_data::table::TYPE][crossing] == generic_code_data::TYPE1)
 				{
 					crossing_region[crossing][2] = i;
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -276,7 +276,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			}
 			else
 			{
-				if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+				if (code_table[generic_code_data::table::TYPE][crossing] == generic_code_data::TYPE1)
 				{
 					crossing_region[crossing][0] = i;
 					
@@ -317,7 +317,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
     
 			if (cycle[i][j] < 0)
 			{
-				if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+				if (code_table[generic_code_data::table::TYPE][crossing] == generic_code_data::TYPE1)
 				{
 					crossing_region[crossing][3] = i;
 if (debug_control::DEBUG >= debug_control::DETAIL)
@@ -332,7 +332,7 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 			}
 			else
 			{
-				if (code_table[TYPE][crossing] == generic_code_data::TYPE1)
+				if (code_table[generic_code_data::table::TYPE][crossing] == generic_code_data::TYPE1)
 				{
 					crossing_region[crossing][1] = i;
 					
@@ -888,10 +888,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		
 		/* following edge */
 		int edge;
-		if (code_table[TYPE][i] == generic_code_data::TYPE1)
-			edge = code_table[EVEN_TERMINATING][i];
+		if (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
+			edge = code_table[generic_code_data::table::EVEN_TERMINATING][i];
 		else
-			edge = code_table[ODD_TERMINATING][i];
+			edge = code_table[generic_code_data::table::ODD_TERMINATING][i];
 		
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     edge" << edge << endl;
@@ -950,10 +950,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		}
 		
 		/* following edge */
-		if (code_table[TYPE][i] == generic_code_data::TYPE1)
-			edge = code_table[EVEN_ORIGINATING][i];
+		if (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
+			edge = code_table[generic_code_data::table::EVEN_ORIGINATING][i];
 		else
-			edge = code_table[ODD_ORIGINATING][i];
+			edge = code_table[generic_code_data::table::ODD_ORIGINATING][i];
 		
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     edge " << edge << endl;
@@ -1011,10 +1011,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		}
 		
 		/* following edge */
-		if (code_table[TYPE][i] == generic_code_data::TYPE1)
-			edge = code_table[ODD_ORIGINATING][i];
+		if (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
+			edge = code_table[generic_code_data::table::ODD_ORIGINATING][i];
 		else
-			edge = code_table[EVEN_ORIGINATING][i];
+			edge = code_table[generic_code_data::table::EVEN_ORIGINATING][i];
 		
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     edge " << edge << endl;
@@ -1075,10 +1075,10 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		}
 		
 		/* following edge */
-		if (code_table[TYPE][i] == generic_code_data::TYPE1)
-			edge = code_table[ODD_TERMINATING][i];
+		if (code_table[generic_code_data::table::TYPE][i] == generic_code_data::TYPE1)
+			edge = code_table[generic_code_data::table::ODD_TERMINATING][i];
 		else
-			edge = code_table[EVEN_TERMINATING][i];
+			edge = code_table[generic_code_data::table::EVEN_TERMINATING][i];
 		
 if (debug_control::DEBUG >= debug_control::DETAIL)
     debug << "triangulate:     edge " << edge << endl;
@@ -1161,14 +1161,14 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		int region;
 		if (edge % 2)
 		{			
-			if (code_table[TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
+			if (code_table[generic_code_data::table::TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
 				region = crossing_region[term_crossing[edge]][3];
 			else
 				region = crossing_region[term_crossing[edge]][0];
 		}
 		else
 		{			
-			if (code_table[TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
+			if (code_table[generic_code_data::table::TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
 				region = crossing_region[term_crossing[edge]][0];
 			else
 				region = crossing_region[term_crossing[edge]][3];
@@ -1360,14 +1360,14 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 		/* finally the right hand region */
 		if (edge % 2)
 		{
-			if (code_table[TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
+			if (code_table[generic_code_data::table::TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
 				region = crossing_region[term_crossing[edge]][0];
 			else
 				region = crossing_region[term_crossing[edge]][1];
 		}
 		else
 		{			
-			if (code_table[TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
+			if (code_table[generic_code_data::table::TYPE][term_crossing[edge]] == generic_code_data::TYPE1)
 				region = crossing_region[term_crossing[edge]][1];
 			else
 				region = crossing_region[term_crossing[edge]][0];
