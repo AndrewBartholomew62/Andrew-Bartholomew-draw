@@ -1,6 +1,6 @@
 
 OBJFILES = util.o debug.o main.o drawfns.o class-control.o input.o \
-           triangulate.o circle_pack.o KS_circle_pack.o generic-code-util.o gauss-to-peer.o \
+           triangulate.o circle_pack.o KS_circle_pack.o generic-code-io.o generic-code-util.o gauss-to-peer.o \
            force_direction.o magnify.o convex.o shrink_regions.o edge_distribution.o plot.o \
            gauss-orientation.o reidemeister.o laces.o hamiltonian.o
 
@@ -24,6 +24,9 @@ input.o: ./src/input.cpp $(DEPS)
 	$(COMPILE)
 
 gauss-to-peer.o: ./src/gauss-to-peer.cpp $(DEPS)
+	$(COMPILE)
+
+generic-code-io.o: ./src/generic-code-io.cpp $(DEPS)
 	$(COMPILE)
 
 generic-code-util.o: ./src/generic-code-util.cpp $(DEPS)
