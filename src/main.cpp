@@ -1608,10 +1608,19 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: mp_control.hamiltonians read from " << source << endl;
 
+		mp_control.draw_crossing_features = false;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_short_option: set draw_crossing_features false" << endl;
+
 	}
 	else if (!strcmp(loc_buf,"hamiltonian-circuit"))
 	{
 		mp_control.hamiltonians = true;
+
+		mp_control.draw_crossing_features = false;
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_short_option: set draw_crossing_features false" << endl;
+
 		if (*c1 == '=')
 		{			
 			istringstream iss(++c1);
