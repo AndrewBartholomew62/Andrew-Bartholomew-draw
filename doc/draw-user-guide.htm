@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="description" content="Drawing metapost diagrams for knots, links, knotoids, multi-linkoids and doodles"> 
-<meta name="keywords" content="metapost, drawing, knots, diagrams, virtual, knotoids, multi-linkoids"> 
+<meta name="keywords" content="metapost, draw, drawing, knots, diagrams, virtual, flat, knotoids, multi-linkoids, gauss code"> 
 <title>draw programme</title>
   <style>
      p{font-size: 1.2em}
@@ -17,14 +17,14 @@
 
 <body>
 
-<h2 align="center"> <a name="_top"> Draw programme version 22 </a> </h2>
-<p align="center">Last modified 19<sup>th</sup> November, 2024.</p>
+<h2 align="center"> <a name="_top"> Draw programme version 23 </a> </h2>
+<p align="center">Last modified 12<sup>th</sup> December, 2024.</p>
 
 <p align="center"><IMG SRC="images/bigelow.jpg" height="400"></p>
 
-<h2><a NAME="Software"></a><a href="http://www.layer8.co.uk/maths/download/draw-22-src.tar">Programme software</a></h2>
+<h2><a NAME="Software"></a><a href="../download/draw-23-src.tar">Programme software</a></h2>
 
-<p>The file <a href="http://www.layer8.co.uk/maths/download/draw-22-src.tar">draw-21-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
+<p>The file <a href="../download/draw-23-src.tar">draw-23-src.tar</a> contains the C++ source for the draw programme, together with a Makefile and a test input file.</p>
 
 <p>See the section <a href="#Version-history">Version history</a> for a summary of what's new in this version.</p>
 
@@ -32,17 +32,35 @@
 <h2>1. Introduction</h2>
 
 <p>The draw programme generates metapost code to draw diagrams from labelled peer codes, Gauss codes or planar diagrams.  It is currently able to 
-draw a variety of knots and links:</p> 
+draw a variety of knots links and associated constructions:</p> 
+
 <ul style="font-size: 1.25em">
-<li>Classical, virtual, flat, welded crossings in any combination</li>
+<li>Classical, virtual, flat, or welded crossings in any combination</li>
 <li>Knots, links, knotoids, multi-linkoids, doodles</li>
+<li>Smoothed states, parity states, Seifert circles</li>
+<li>Hamiltonian circuits</li>
+<li>Arbitrary immersion diagrams</li>
 </ul>
 
-<p>described by a range of <a href="#Input-codes">input codes</a>.  The programme can 
-also draw smoothed states for a given diagram, as used by various invariants based on state sums, including those based on Gaussian parity ([2]).</p>
+from a range of <a href="#Input-codes">input codes:</a>
 
-<p>Individual diagrams may be produced by specifying an input code in response to a prompt, or multiple codes may be presented to the programme in an input file.  If required,
-each entry in an input file may include additional, code-specific parameters.</p>
+<ul style="font-size: 1.25em">
+<li>Gauss codes</li>
+<li>Planar diagram codes</li>
+<li>Doodle codes</li>
+<li>Labelled peer codes</li>
+</ul>
+
+<p>Individual diagrams may be produced by specifying an input code in response to a prompt, or multiple codes may be presented to the programme in an 
+<a href="#Input-file">input file</a>.  
+
+<ul style="font-size: 1.25em">
+<li>Batch mode</li>
+<li>Unlimited input file size</li>
+<li>Automatic scaling for document and web-page display</li>
+<li>Global drawing options in input file</li>
+<li>Per-input-code drawing options</li>
+</ul>
 
 <p>Tasks such as changing the size of the diagram, choosing the line thickness, adding edge or crossing labels and adding colour are all supported using simple command
 line switches or by adding per-code instructions in an input file.
@@ -176,7 +194,7 @@ included in an input file, or added to individual input codes, as required.  The
 
 <h3><a NAME="Labelled-peer-code"></a>Labelled peer codes</h3>
 
-<p>Full details of labelled peer codes are provided in the paper <a href="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</a>.  Here we provide only a brief description.</p>
+<p>Full details of labelled peer codes are provided in the paper <A HREF="../download/labelled-peer-code.pdf">labelled-peer-code.pdf</A>.  Here we provide only a brief description.</p>
 
 <p>A labelled peer code for a virtual (or classical) link (knot) diagram is obtained from the underlying immersion by choosing an arbitary starting component and semi-arc and numbering each semi-arc of that component consecutively from zero as we trace around the component.  When we return to the starting semi-arc we move onto another component and continue the numbering.  
 
@@ -206,7 +224,7 @@ component of the link.</p>
 
 <p>The second part of a labelled peer code provides information about the crossings in the diagram.  A variety of crossing types may be indicated in any combination.
 For classical crossings we assign the label <kbd>+</kbd> if the naming edge forms part of the over-arc of the crossing and the label <kbd>-</kbd>
-if it forms part of the under-arc.  For virtual or welded crossings we assign the label <kbd>*</kbd> and for flat crossings we assign the label <kbd>#</kbd>.</p>
+if it forms part of the under-arc.  For virtual or welded crossings we assign the label <kbd>*</kbd>, for flat crossings we assign the label <kbd>#</kbd> and for singular crossings we assign the label <kbd>@</kbd>.</p>
 </p>  
 
 <ul style="font-size: 1.25em">
@@ -214,9 +232,10 @@ if it forms part of the under-arc.  For virtual or welded crossings we assign th
 <li><kbd>-</kbd> classical crossing naming edge forms part of the under-arc of the crossing </li>
 <li><kbd>*</kbd> virtual crossing</li>
 <li><kbd>#</kbd> flat crossing</li>
+<li><kbd>@</kbd> singular crossing</li>
 </ul>
 
-<p>These labels are writen after the list of odd peers separated by a <kbd>/</kbd> character.  They are written in the order determined by the vertex numbering.  Thus continuing the above example if the original link diagram is as 
+<p>These labels are written after the list of odd peers separated by a <kbd>/</kbd> character.  They are written in the order determined by the vertex numbering.  Thus continuing the above example if the original link diagram is as 
 follows:</p> 
 
 <p STYLE="margin-left: 2cm"><IMG SRC="images/link-diagram.png"></p>
@@ -244,20 +263,24 @@ follows:</p>
 <h4><a NAME="Multi-linkoid-peer-codes"></a>Labelled peer codes for multi-linkoids</h4>
 
 <p>A knotoid having multiple open (segment) components, also referred to as a multi-linkoid, is similarly represented with shortcuts comprised of under-crossings but requires the additional syntax 
-defined by an <a href="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">extended labelled peer code</a>.</p>
+defined by an <a href="../download/labelled-peer-code.pdf">extended labelled peer code</a>.</p>
 
 <ul>
-  <li>A '^' symbol placed after an odd peer indicates that the corresponding component is open and the first edge of the component (an even edge) is the leg.</li>
-  <li>A '$' symbol placed after an odd peer indicates that the corresponding component is open and the last edge of the component (an odd edge) is the leg.</li>
-  <li>A '@' symbol placed before the first odd peer of a component indicates that the component is knot-like open and that the leg and head occur within the first (even) edge of the component.</li>
-  <li>A '@' symbol placed after the last odd peer of a component indicates that the component is knot-like open and that the leg and head occur within the last (odd) edge of the component.</li>
+  <li>A '^' symbol placed before an odd peer indicates that the odd peer terminates at the first crossing of its component's virtual closure, and the first edge of that component (an even edge) is the leg.</li>
+  <li>A '^' symbol placed after an odd peer indicates that the corresponding even peer terminates at the first crossing of its component's virtual closure, and the first edge of that component (an even edge) is the leg.</li>
+  <li>A '$' symbol placed before an odd peer indicates that the odd peer terminates at the first crossing of its component's virtual closure, and the last edge of that component (an odd edge) is the leg.</li>
+  <li>A '$' symbol placed after an odd peer indicates that the corresponding even peer terminates at the first crossing of its component's virtual closure, and the last edge of that component (an odd edge) is the leg.</li>
+  <li>A '%' symbol placed at the start of a component indicates that the component is knot-like open and that the leg and head occur within the first (even) edge of the component.</li>
+  <li>A '%' symbol placed at the end of a component indicates that the component is knot-like open and that the leg and head occur within the last (odd) edge of the component.</li>
 </ul>
+
    
 <p>Note that the above syntax requires that the peer labels assigned to a multi-knotoid diagram with shortcuts added are such that, if the the leg of an open component lies on an even edge then it is the
 first edge of the component and if it lies on an odd edge, then it is the last edge of the component.  The component of a multi-knotoid containing label zero must be an open component (as in the case of knotoids)
 but the other components may be numbered in any order that allows the odd and even terminating edge numbering to be extended across the diagram.</p>
    
-<p>The following multi-linkoid diagram is described by the labelled peer code <kbd>[9 -15^, -11 13$, @3 17 -19 21 -1 5 -7]/+ - - - + - - + + - -</kbd>.</p>
+<p>The following multi-linkoid diagram is described by the labelled peer code <kbd>[9 -15^, -11 13$, 3 17 -19 21 -1 5 -7%]/+ * - * * - - + * - -</kbd>.</p>
+
 
 <p style="margin-left: 2cm"><IMG SRC="images/multi-linkoid-peer.png"></p>
 
@@ -700,7 +723,7 @@ boundary of the regions making up the diagram's complement.  An example of this 
 % infinite turning cycle = 4
 </kbd></p>
 
-<p>See <a href="http://www.layer8.co.uk/maths/download/labelled-peer-code.pdf">labelled-peer-code.pdf</a> for an explanation of 
+<p>See <A HREF="../download/labelled-peer-code.pdf">labelled-peer-code.pdf</A> for an explanation of 
 the minus signs in this output.</p>
 
 From this information it is possible to select a particular turning cycle if required.  For example, the peer code
@@ -952,11 +975,14 @@ having two edges in the infinite turning cycle. </p>
                  
 <p>Version 22: (November 2024) added support for the Gauss code format used by J. Chen's <a href="https://www.flatknotinfo.com/">FlatKnotInfo</a></p>
 
+<p>Version 23: (December 2024) changed the syntax for multi-linkoids to use '%' for knot-type components.  Introuduced support for singular crossings using the label '@'</p>
+
 <h2><a NAME="References"></a>11. References</h2>
 
 <P>[1] Knotoids, Vladimir Turaev, arXiv:1002.4133v4.</P>
 <p>[2] Parity in knot theory, (Russian), V. O. Manturov.  Mat. Sb., 201, (2010), no.5, 65-110; translation in Sb. Math., 201, (2010), no. 5, 693-733</p>
 <p>[3] A. Bartholomew, R. Fenn, N. Kamada, S. Kamada, On Gauss codes of virtual doodles (Journal of Knot Theory and Its Ramifications Vol. 27, No. 11, 1843013 (2018), arXiv:1806.05885).</p>
+
 
 </body>
 </html>
