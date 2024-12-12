@@ -1,5 +1,5 @@
 # draw-programme
-The draw programme generates metapost code to draw diagrams from labelled peer codes or Gauss codes. It is currently able to draw a variety of knots and links: classical, virtual, welded, flat, doodles, (multi-)knotoids and multi-linkoids.
+The draw programme generates metapost code to draw diagrams from labelled peer codes or Gauss codes. It is currently able to draw a variety of knots and links: classical, virtual, welded, flat, singular, doodles, (multi-)knotoids and multi-linkoids.
 
 The programme can also draw diagrams that are related to knot diagrams:
 
