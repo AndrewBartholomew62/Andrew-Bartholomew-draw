@@ -100,6 +100,7 @@ public:
 		LEFT = 3, // LEFT and RIGHT used for labelling flat crossings in Gauss codes
 		RIGHT = 4,
 		ODD = 5,
+		SINGULAR = 6,
 		VOID = 9 // used as a marker when removing virtual Reidemeister II detours and as a generic void value
 	};
 
