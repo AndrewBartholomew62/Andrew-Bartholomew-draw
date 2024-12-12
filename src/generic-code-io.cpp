@@ -494,7 +494,7 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 	}
 	else if (input_string.find("L:") != string::npos)
 		code_data.immersion_character = generic_code_data::character::LONG_KNOT;
-	else if (input_string.find("$") != string::npos || input_string.find("@") != string::npos ||
+	else if (input_string.find("$") != string::npos || input_string.find("%") != string::npos ||
 	         count(input_string.begin(),input_string.end(),'^') > 1)
 	{
 		int num_components = count(input_string.begin(),input_string.end(),',')+1;
@@ -503,9 +503,9 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 		code_data.component_type = vector<component_character>(num_components);
 
 		code_data.num_open_components = count(input_string.begin(),input_string.end(),'^') + count(input_string.begin(),input_string.end(),'$')
-		                                + count(input_string.begin(),input_string.end(),'@');
+		                                + count(input_string.begin(),input_string.end(),'%');
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "read_peer_code: multi-linkoid inialization determined " << num_components << " components" << code_data.num_open_components << " open components"  << endl;
+	debug << "read_peer_code: multi-linkoid inialization determined " << num_components << " components " << code_data.num_open_components << " open components"  << endl;
 	
 	}
 	else
@@ -516,9 +516,10 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	int num_crossings = 0;
 	char* cptr = strchr(inbuf,'/');
 	cptr++;
+
 	while (*cptr != '\0')
 	{
-		if (*cptr == '+' || *cptr == '-' || *cptr == '*' || *cptr == '#' )
+		if (*cptr == '+' || *cptr == '-' || *cptr == '*' || *cptr == '#' || *cptr == '@' )
 			num_crossings++;
 
 		cptr++;
@@ -634,11 +635,11 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 					code_data.component_type[component].head_semi_arc = 2*i; // the even peer terminating at this crossing
 					cptr++;
 				}			
-				else if (*cptr == '@' && code_data.immersion_character == generic_code_data::character::MULTI_LINKOID) // @ sign after peer
+				else if (*cptr == '%' && code_data.immersion_character == generic_code_data::character::MULTI_LINKOID) // % sign after peer
 				{
 
 if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
-	debug << "read_peer_code:     KNOT_TYPE_END_LEG odd head indicator " << "\'@\'" << endl;
+	debug << "read_peer_code:     KNOT_TYPE_END_LEG odd head indicator " << "\'%\'" << endl;
 
 					code_data.component_type[component].type = component_character::KNOT_TYPE_END_LEG;
 					cptr++;
@@ -664,10 +665,10 @@ if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
 				record_odd_head_semi_arc = component_character::PURE_END_LEG;
 				cptr++;
 			}			
-			else if (*cptr == '@' && code_data.immersion_character == generic_code_data::character::MULTI_LINKOID) // @ before peer
+			else if (*cptr == '%' && code_data.immersion_character == generic_code_data::character::MULTI_LINKOID) // % before peer
 			{
 if (debug_control::DEBUG >= debug_control::EXHAUSTIVE)
-	debug << "read_peer_code:     KNOT_TYPE_START_LEG even head indicator " << "\'@\'" << endl;
+	debug << "read_peer_code:     KNOT_TYPE_START_LEG even head indicator " << "\'%\'" << endl;
 	
 				code_data.component_type[component].type = component_character::KNOT_TYPE_START_LEG;
 				cptr++;
@@ -753,6 +754,8 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 		else if (*cptr == '#')
 			code_table[generic_code_data::table::LABEL][count++] = generic_code_data::FLAT;
+		else if (*cptr == '@')
+			code_table[generic_code_data::table::LABEL][count++] = generic_code_data::SINGULAR;
 		cptr++;	
 	}
 
@@ -865,7 +868,7 @@ void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_za
 				s << ", ";
 			
 			if (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID && code_data.component_type[i].type == component_character::KNOT_TYPE_START_LEG)
-				s << '@';
+				s << '%';
 			
 			for (int j = 0; j< code_data.num_component_edges[i]/2; j++)
 			{
@@ -901,7 +904,7 @@ void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_za
 			}
 	
 			if (code_data.immersion_character == generic_code_data::character::MULTI_LINKOID && code_data.component_type[i].type == component_character::KNOT_TYPE_END_LEG)
-				s << '@';
+				s << '%';
 		}
 	}
 	
@@ -949,8 +952,10 @@ void write_peer_code(ostream& s, const generic_code_data& code_data, bool zig_za
 				if (code_data.multi_virtual && code_data.virtual_index[i] != 0 && code_data.virtual_index[i] != 1)
 					s << code_data.virtual_index[i];
 			}
-			else // (code_table[generic_code_data::table::LABEL][i] == generic_code_data::FLAT)
+			else if (code_table[generic_code_data::table::LABEL][i] == generic_code_data::FLAT)
 				s << "#";
+			else // if (code_table[generic_code_data::table::LABEL][i] == generic_code_data::NEGATIVE)
+				s << "@";
 			
 			if (i< num_crossings-1)
 				s << " ";

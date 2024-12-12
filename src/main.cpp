@@ -99,6 +99,8 @@ to vertices joined by an edge of the triangulation.
    Version 21:   improved the drawing of multi-linkoids, updated and made default the use of a single metapost path per component 
                  added seifert-edges option (November 2023)
    Version 22:   added support for the Gauss code format used by J. Chen's https://www.flatknotinfo.com (November 2024)
+   Version 23:   Changed the syntax for multi-linkoids to use '%' for knot-type components.  Introuduced support for singular crossings
+                 using the label '@' (December 2024)
 
 **************************************************************************/
 using namespace std;
@@ -118,7 +120,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "22";
+string 		version  = "23";
    
 
 extern ofstream    debug;
@@ -2010,6 +2012,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	}
 	else if (!strcmp(loc_buf,"script-labels"))
 	{
+    	mp_control.draw_labels = true;
     	mp_control.script_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: script_labels read from " << source << endl;
@@ -2037,6 +2040,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	}	
 	else if (!strcmp(loc_buf,"scriptscript-labels"))
 	{
+    	mp_control.draw_labels = true;
     	mp_control.scriptscript_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: scriptscript_labels read from " << source << endl;

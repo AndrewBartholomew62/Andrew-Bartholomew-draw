@@ -1842,7 +1842,14 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug << " is odd" << endl;
 		
 //				os << "fill fullcircle scaled 1.2d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
-				os << "fill fullcircle scaled " << mp_control.odd_parity_disc_size << "*0.1d shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
+				os << "fill fullcircle scaled (" << mp_control.odd_parity_disc_size << "*0.1d) shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
+			}
+			else if (code_table[generic_code_data::table::LABEL][i] == generic_code_data::SINGULAR)
+			{
+if (debug_control::DEBUG >= debug_control::DETAIL)
+	debug << " is singular" << endl;
+		
+				os << "fill fullcircle scaled (" << mp_control.odd_parity_disc_size << "*0.1d) shifted z" << vertex_sequence[2*first_edge[i]+1] << ";" << endl;
 			}
 			else if (code_table[generic_code_data::table::LABEL][i] != generic_code_data::FLAT)
 			{
