@@ -1825,7 +1825,9 @@ if (debug_control::DEBUG >= debug_control::DETAIL)
 	debug_control::DEBUG = debug_save;
 }
 
-/* read_planar_diagram converts the PD data in input_string to a Gauss code and reads the resultant Gauss code into code_data */
+/* read_planar_diagram converts PD data in input_string of the form X[3,1,4,2] X[4,2,5,3] X[7,6,8,5] X[6,1,7,8] to a Gauss code and reads the resultant 
+   Gauss code into code_data.  If the PD data includes a zero as an edge label we increment all elements to produce a code that is numbered from 1.
+*/
 void read_planar_diagram (generic_code_data& code_data, string input_string)
 {
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1837,6 +1839,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 	istringstream iss(input_string);
 	char c = 0;
+	bool zero_label_detected = false;
 
 	for (int i=0; i< num_crossings; i++)
 	{
@@ -1846,10 +1849,22 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		for (int j=0; j< 4; j++)
 		{
 			iss >> PD_data[i][j];
-			iss >> c;
+			iss >> c; // the comma
+			
+			if (PD_data[i][j] == 0)
+				zero_label_detected = true;
 		}
 	}
-
+	
+	if (zero_label_detected)
+	{
+		for (int i=0; i< num_crossings; i++)
+		{	
+			for (int j=0; j< 4; j++)
+				PD_data[i][j]++;
+		}	
+	}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "read_planar_diagram: PD_data: " << endl;

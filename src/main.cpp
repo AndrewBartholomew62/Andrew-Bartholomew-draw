@@ -101,6 +101,7 @@ to vertices joined by an edge of the triangulation.
    Version 22:   added support for the Gauss code format used by J. Chen's https://www.flatknotinfo.com (November 2024)
    Version 23:   Changed the syntax for multi-linkoids to use '%' for knot-type components.  Introuduced support for singular crossings
                  using the label '@' (December 2024)
+   Version 23.1  Code update and bug-fixes
 
 **************************************************************************/
 using namespace std;
@@ -120,7 +121,7 @@ using namespace std;
 #include <vector>
 
 /******************** Global Variables **********************/
-string 		version  = "23";
+string 		version  = "23.1";
    
 
 extern ofstream    debug;
@@ -214,10 +215,10 @@ bool get_next_input_string(string input_file,string& input_string, string& title
 bool connected_code_data(generic_code_data& code_data);
 void help_info(bool exit_after_help);
 void debug_help();
-void set_programme_long_option(string option, string source, metapost_control& mp_control);
-void set_programme_short_option(char* cptr, metapost_control& mp_control);
-bool debug_setup(char* argv_ptr);
-void check_debug_option_parameters(char* pptr, string option);
+void set_programme_long_option(string argument, string source, metapost_control& mp_control);
+void set_programme_short_option(string argument,metapost_control& mp_control);
+bool debug_setup(string argument);
+void check_debug_option_parameters(size_t pos, string option);
 void read_code_data (generic_code_data& code_data, string input_string);
 void triangulate (generic_code_data& code_data, matrix<int>& cycle, int num_cycles, int num_left_cycles, int infinite_region);
 double badness(string vertex_file, generic_code_data& code_data);
@@ -287,6 +288,10 @@ int main (int argc, char* argv[])
     bool    input_file_provided = false;
     bool    output_file_provided = false;
 
+	vector<string> original_programme_arguments(argc); 
+	for (int i = 0; i< argc; i++)
+		original_programme_arguments[i] = string(argv[i]);
+
 	/* default_metapost_control is initialized with the default settings */
     metapost_control default_metapost_control;
 
@@ -302,13 +307,15 @@ int main (int argc, char* argv[])
     {
 		for (int i=1; i < argc; i++)
 		{
-			if (*(argv[i]) == '-')
+
+			string& argument = original_programme_arguments[i];
+			
+			if (argument[0] == '-')
 			{
-				string test(argv[i]);
-				if (*(argv[i]+1) == '-')
-					set_programme_long_option(argv[i], "command line",default_metapost_control);
+				if (argument[1] == '-')
+					set_programme_long_option(argument, "command line",default_metapost_control);
 				else 
-					set_programme_short_option(argv[i], default_metapost_control);
+					set_programme_short_option(argument, default_metapost_control);
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
@@ -319,7 +326,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			}
 			else if (!input_file.length()) 
 			{
-				input_file = argv[i];
+				input_file = argument;
 	    		input_file_provided = true;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -327,7 +334,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			}
 			else if (!output_file.length()) 
 			{
-				output_file = argv[i];
+				output_file = argument;
 		    	output_file_provided = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "draw::main: ouput_file " << output_file << " provided" << endl;
@@ -344,7 +351,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "draw::main: command line =  ";
 	for (int i = 0; i< argc; i++)
-		debug << argv[i] << ' ';
+		debug << original_programme_arguments[i] << ' ';
 	debug << endl;		
 }
 //	print_prog_params(debug, "detail");
@@ -1254,34 +1261,25 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	return 0;
 } /* End of main */
 
-void set_programme_long_option(string option, string source, metapost_control& mp_control)
+void set_programme_long_option(string argument, string source, metapost_control& mp_control)
 {
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_long_option: provided with option " << option << " by " << source << endl;
+	debug << "set_programme_long_option: provided with option " << argument << " by " << source << endl;
 	
-	char* cptr = c_string(option); 
-
-	char  loc_buf[40];
+	int start=0;
 	
-	char* c1;
-	char* c2;
-
-	c1 = cptr;
-
 	/* take out any leading space */
-	while (*c1 == ' ')
-		c1++;
+	while (argument[start] == ' ')
+		start++;
 	
 	/* take out any leading -- */
-	while (*c1 == '-')
-		c1++;
-	
-	c2 = loc_buf;
-	while (isalpha(*c1) || isdigit(*c1) || *c1 == '-' || *c1 == '_')
-		*c2++ = *c1++;
-    *c2 = '\0';
+	while (argument[start] == '-')
+		start++;
 
-	if (!strcmp(loc_buf,"centre"))
+	string option = argument.substr(start);
+		
+
+	if (option.find("centre") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1289,13 +1287,13 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		bool error = false;
 		
-		if (*c1 == '=')
-		{
-			c1++;
-			
-			if (*c1 == 'z')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
+		{		
+			pos++;	
+			if (argument[pos] == 'z')
 			{				
-				get_number(mp_control.rotation_centre_z,++c1);
+				get_number(mp_control.rotation_centre_z,argument,++pos);
 				mp_control.implicit_rotation_centre = true;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1304,40 +1302,37 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << ", rotation_centre_z = " << mp_control.rotation_centre_z << endl;
 }	    
 			}
-			else
+			else if (argument[pos] == '(')
 			{
-				if (*c1 == '(')
+				get_number(mp_control.rotation_centre_x,argument,++pos);
+				while (isdigit(argument[pos]))
+					pos++;
+					
+				if (argument[pos] == ',')
 				{
-					get_number(mp_control.rotation_centre_x,++c1);
-					while (isdigit(*c1))
-						c1++;
-						
-					if (*c1 == ',')
+					get_number(mp_control.rotation_centre_y,argument,++pos);
+					
+					while (isdigit(argument[pos]))
+						pos++;
+					
+					if (argument[pos] == ')')
 					{
-						get_number(mp_control.rotation_centre_y,++c1);
-						
-						while (isdigit(*c1))
-							c1++;
-						
-						if (*c1 == ')')
-						{
-							mp_control.explicit_rotation_centre = true;
+						mp_control.explicit_rotation_centre = true;
 			
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "set_programme_long_option: explicit rotation centre (" << mp_control.rotation_centre_x 
 	      << "," << mp_control.rotation_centre_y << ")" << endl;
 }	    
-						}
-						else
-							error=true;
 					}
 					else
 						error=true;
 				}
 				else
-					error=true;				
+					error=true;
 			}
+			else
+				error=true;				
 		}
 		else
 			error = true;
@@ -1347,33 +1342,27 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			cout << "\nYou must specify the required rotation centre if you use the centre option." << endl;
 			cout << "Specify the coordinates of the centre explicitly, e.g. centre=(123.45,67.89), or implicitly, e.g. centre=z21." << endl;
 			exit(0);
-		}
-				
+		}				
 	}
-	else if (!strcmp(loc_buf,"colour"))
+	else if (option.find("colour") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting mp_control.colour true as a result of " << source << " option" << endl;
 
 		mp_control.colour = true;
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			mp_control.singlecolour = ++c1;
+			mp_control.singlecolour = argument.substr(++pos);
 		}
 	}
-	else if (!strcmp(loc_buf,"colour-map"))
+	else if (option.find("colour-map") != string::npos)
 	{
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			/* move over = sign and copy the filename to the start of loc_buf 
-			++c1; 
-			c2 = loc_buf;
-			while (*c1 != '\0')
-				*c2++ = *c1++;
-		    *c2 = '\0';
-			mp_control.colourmap = loc_buf;*/
-			mp_control.colourmap = ++c1;
+			mp_control.colourmap = argument.substr(++pos);
 		}
 		else
 		{
@@ -1387,7 +1376,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.colourmap << endl;
 }	
 	}	
-	else if (!strcmp(loc_buf,"convex-disc"))
+	else if (option == "convex-disc")
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1395,11 +1384,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		CONVEX_DISC = true;
 	}
-	else if (!strcmp(loc_buf,"cudgel-space"))
+	else if (option.find("cudgel-space") != string::npos)
 	{
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.cudgel_space,++c1);
+			get_number(mp_control.cudgel_space,argument,++pos);
 		}
 		else
 		{
@@ -1413,15 +1403,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.cudgel_space << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"cusp-disc-size"))
+	else if (option.find("cusp-disc-size") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting cusp_disc_size as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.cusp_disc_size,++c1);
+			get_number(mp_control.cusp_disc_size,argument,++pos);
 		}
 		else
 		{
@@ -1435,15 +1426,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.cusp_disc_size << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"cycle"))
+	else if (option.find("cycle") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting infinite region turning cycle as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.infinite_cycle,++c1);
+			get_number(mp_control.infinite_cycle,argument,++pos);
 		}
 		else
 		{
@@ -1457,21 +1449,22 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.infinite_cycle << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"dots"))
+	else if (option == "dots")
 	{
     	mp_control.dash_with_dots = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: dash_with_dots read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"disc-size"))
+	else if (option.find("disc-size") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting disc_size as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.disc_size,++c1);
+			get_number(mp_control.disc_size,argument,++pos);
 		}
 		else
 		{
@@ -1485,33 +1478,35 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.disc_size << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"draw-lace-frame"))
+	else if (option == "draw-lace-frame")
 	{
 		mp_control.draw_lace_frame = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set draw_lace_frame true" << endl;
 	}
-	else if (!strcmp(loc_buf,"edge"))
+	else if (option.find("edge") != string::npos)
 	{ 
 		USE_EDGE_DISTRIBUTION_PLACEMENT = true;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: use edge distribution placement of triangulation vertices" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(max_placement_iterations,++c1);
+			get_number(max_placement_iterations,argument,++pos);
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set max_placement_iterations = " << max_placement_iterations << endl;
 
 	    }	
 	}
-	else if (!strcmp(loc_buf,"edge-factor"))
+	else if (option.find("edge-factor") != string::npos)
 	{
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(edge_distribution_shift_factor,++c1);
+			get_number(edge_distribution_shift_factor,argument,++pos);
 	    }
 		else
 		{
@@ -1522,7 +1517,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: region_shrinking_factor = " << region_shrinking_factor << endl;
 	}
-	else if (!strcmp(loc_buf,"first-gap"))
+	else if (option == "first-gap")
 	{ 
 		USE_FIRST_GAP_AS_ACTIVE = true;
 
@@ -1530,36 +1525,37 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: USE_FIRST_GAP_AS_ACTIVE read from " << source << endl;
 
 	}
-	else if (!strcmp(loc_buf,"force"))
+	else if (option.find("force") != string::npos)
 	{ 
 		USE_FORCE_DIRECTED_PLACEMENT = true;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: use force directed placement of triangulation vertices" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(max_placement_iterations,++c1);
+			get_number(max_placement_iterations,argument,++pos);
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set max_placement_iterations = " << max_placement_iterations << endl;
 
 	    }	
 	}
-	else if (!strcmp(loc_buf,"frame-corners"))
+	else if (option == "frame-corners")
 	{
     	mp_control.draw_frame_corners = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: frame-corners read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"gauss-crossings"))
+	else if (option == "gauss-crossings")
 	{
     	mp_control.gauss_crossings = true;
     	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: gauss_crossings read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"gauss-labels"))
+	else if (option == "gauss-labels")
 	{
     	mp_control.gauss_labels = true;
     	mp_control.draw_labels = true;
@@ -1572,37 +1568,39 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting label_edges_from_one as a result of draw_labels read from " << source << endl;
 }
 	}
-	else if (!strcmp(loc_buf,"gravity"))
+	else if (option.find("gravity") != string::npos)
 	{ 
 		USE_CENTRE_OF_GRAVITY_PLACEMENT = true;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: use centre of gravity placement of triangulation vertices" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(max_placement_iterations,++c1);
+			get_number(max_placement_iterations,argument,++pos);
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set max_placement_iterations = " << max_placement_iterations << endl;
 
 	    }	
 	}
-	else if (!strcmp(loc_buf,"grid"))
+	else if (option.find("grid") != string::npos)
 	{
 
 		mp_control.draw_grid = true;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.grid_size,++c1);
+			get_number(mp_control.grid_size,argument,++pos);
 		}
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: mp_control.draw_grid read from " << source << ", grid size = " << mp_control.grid_size << endl;
 
 	}
-	else if (!strcmp(loc_buf,"hamiltonians"))
+	else if (option == "hamiltonians")
 	{
 
 		mp_control.hamiltonians = true;
@@ -1612,36 +1610,36 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		mp_control.draw_crossing_features = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set draw_crossing_features false" << endl;
+	debug << "set_programme_long_option: set draw_crossing_features false" << endl;
 
 	}
-	else if (!strcmp(loc_buf,"hamiltonian-circuit"))
+	else if (option.find("hamiltonian-circuit") != string::npos)
 	{
+		// expect a sequence of colon separated integers 1:2:10:7
 		mp_control.hamiltonians = true;
 
 		mp_control.draw_crossing_features = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set draw_crossing_features false" << endl;
+	debug << "set_programme_long_option: set draw_crossing_features false" << endl;
 
-		if (*c1 == '=')
-		{			
-			istringstream iss(++c1);
-			int edge;
-			while (iss >> edge)
-				mp_control.hamiltonian_circuit.push_back(edge);
 
-/*			
-			char ch = ' ';
-			iss >> ch; // the '{'
-			do 
+
+		size_t pos = option.find('=');
+		if (pos != string::npos)
+	    {
+			istringstream ss(argument.substr(++pos));
+			bool done = false;
+			do
 			{
 				int edge;
-				iss >> edge;
+				ss >> edge;
 				mp_control.hamiltonian_circuit.push_back(edge);
-				iss >> ch;
-			} while (ch != '}');
-*/
-		}
+				char c = 0;
+				ss >> c;
+				if (c != ':')
+					done=true;
+			} while (!done);
+	    }
 		else
 		{
 			mp_control.hamiltonian_circuit = vector<int>(1);
@@ -1661,11 +1659,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set programme long_option: mp_control.hamiltonians set as a result of receiving hamiltonian_circuit option from " << source << endl;
 }
 	}
-	else if (!strcmp(loc_buf,"hamiltonian-colour"))
+	else if (option.find("hamiltonian-colour") != string::npos)
 	{
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			mp_control.hamiltonian_colour = ++c1;
+			mp_control.hamiltonian_colour = argument.substr(++pos);
 		}
 		else
 		{
@@ -1677,11 +1676,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set hamiltonian-colour = " << mp_control.hamiltonian_colour << endl;
 
 	}
-	else if (!strcmp(loc_buf,"HC-include-edge"))
+	else if (option.find("HC-include-edge") != string::npos)
 	{
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.HC_include_edge,++c1);
+			get_number(mp_control.HC_include_edge,argument,++pos);
 		}
 		else
 		{
@@ -1691,11 +1691,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: read HC-include-edge read from " << source << ", HC-include-edge = " << mp_control.HC_include_edge << endl;
 	}
-	else if (!strcmp(loc_buf,"h-units"))
+	else if (option.find("h-units") != string::npos)
 	{
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.horizontal_units,++c1);
+			get_number(mp_control.horizontal_units,argument,++pos);
 		}
 		else
 		{
@@ -1707,7 +1708,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set horizontal_units = " << mp_control.horizontal_units << endl;
 
 	}
-	else if (!strcmp(loc_buf,"hyperbolic"))
+	else if (option == "hyperbolic")
 	{
 		DRAW_IN_HYPERBOLIC_DISC = true;
 		
@@ -1715,27 +1716,28 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: drawing diagram in the hyperbolic plane" << endl;
 	
 	}	
-	else if (!strcmp(loc_buf,"knotoid-leg-unbounded"))
+	else if (option == "knotoid-leg-unbounded")
 	{
     	mp_control.knotoid_leg_unbounded = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: knotoid_leg_unbonded read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"labels"))
+	else if (option == "labels")
 	{
     	mp_control.draw_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: draw_labels read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"label-shift"))
+	else if (option.find("label-shift") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting label_shift as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.label_shift,++c1);
+			get_number(mp_control.label_shift,argument,++pos);
 		}
 		else
 		{
@@ -1749,7 +1751,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.label_shift << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"laces"))
+	else if (option == "laces")
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1757,7 +1759,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		LACES = true;
 	}
-	else if (!strcmp(loc_buf,"left-term-tail-points"))
+	else if (option == "left-term-tail-points")
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1765,15 +1767,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		mp_control.left_terminating_tail_points = true;
 	}
-	else if (!strcmp(loc_buf,"long"))   // temporary - remove after testing
+	else if (option == "long")   // temporary - remove after testing
 	{
     	USE_ALL_LONG_GAPS = true;
 	}
-	else if (!strcmp(loc_buf,"magnify"))
+	else if (option.find("magnify") != string::npos)
 	{
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(magnification_factor,++c1);
+			get_number(magnification_factor,argument,++pos);
 	    }
 		else
 		{
@@ -1790,21 +1793,21 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: magnification_factor = " << magnification_factor << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"midpoint"))
+	else if (option.find("midpoint") != string::npos)
 	{
 		// expect midpoint=1-2:3-4
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			c1++;
-			istringstream ss(c1);
+			istringstream ss(argument.substr(++pos));
 			bool done = false;
 			do
 			{
 				pair<int,int> edge;
-				char c = '\0';
 				int n;
 				ss >> n;
 				edge.first = n;
+				char c = 0;
 				ss >> c;
 				if (c == '-')
 				{
@@ -1812,6 +1815,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 					edge.second = n;
 					mp_control.lace_midpoints.push_back(edge);
 					
+					c = 0;
 					ss >> c;
 					if (c != ':')
 						done = true;
@@ -1827,7 +1831,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		}
 
 	}
-	else if (!strcmp(loc_buf,"midpoints-not-tail-points"))
+	else if (option == "midpoints-not-tail-points")
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1835,11 +1839,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		mp_control.midpoints_not_tail_points = true;
 	}
-	else if (!strcmp(loc_buf,"midpoint-tension"))
+	else if (option.find("midpoint-tension") != string::npos)
 	{
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(mp_control.midpoint_tension,++c1);
+			get_number(mp_control.midpoint_tension,argument,++pos);
 	    }
 		else
 		{
@@ -1850,7 +1855,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: tension read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"no-adjacent-cudgel-midpoints"))
+	else if (option == "no-adjacent-cudgel-midpoints")
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1858,7 +1863,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		mp_control.adjacent_cudgel_midpoints = false;
 	}
-	else if (!strcmp(loc_buf,"no-right-orig-tail-points"))
+	else if (option == "no-right-orig-tail-points")
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -1866,39 +1871,40 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 		mp_control.right_originating_tail_points = false;
 	}
-	else if (!strcmp(loc_buf,"no-vertex-axes"))
+	else if (option == "no-vertex-axes")
 	{
     	mp_control.show_vertex_axes = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: no-axes read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"no-immersion"))
+	else if (option == "no-immersion")
 	{
     	mp_control.draw_immersion = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: no-immersion read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"no-crossings"))
+	else if (option == "no-crossings")
 	{
     	mp_control.draw_crossing_features = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: no-crossings read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"no-show-displacement"))
+	else if (option == "no-show-displacement")
 	{
     	mp_control.draw_triangulation_displacement = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: no-show-displacement read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"odd-parity-disc-size"))
+	else if (option.find("odd-parity-disc-size") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting odd_parity_disc_size as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.odd_parity_disc_size,++c1);
+			get_number(mp_control.odd_parity_disc_size,argument,++pos);
 		}
 		else
 		{
@@ -1912,33 +1918,34 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.odd_parity_disc_size << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"oriented"))
+	else if (option == "oriented")
 	{
     	mp_control.draw_oriented = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: draw_oriented read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"packing"))
+	else if (option == "packing")
 	{
     	mp_control.circle_packing = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: circle_packing read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"parity"))
+	else if (option == "parity")
 	{
     	mp_control.show_odd_parity_crossings = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: SHOW_ODD_PARITY read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"pen-size"))
+	else if (option.find("pen-size") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting pen_size as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.pen_size,++c1);
+			get_number(mp_control.pen_size,argument,++pos);
 		}
 		else
 		{
@@ -1952,15 +1959,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.pen_size << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"plot"))
+	else if (option.find("plot") != string::npos)
 	{
     	PLOT_TRIANGULATION_EDGES = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: PLOT_TRIANGULATION_EDGES read from " << source << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(plot_steps,++c1);
+			get_number(plot_steps,argument,++pos);
 		}
 		else
 		{
@@ -1968,16 +1976,17 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			exit(0);
 		}
 	}
-	else if (!strcmp(loc_buf,"rotate"))
+	else if (option.find("rotate") != string::npos)
 	{
 
 		mp_control.rotate = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: rotate read from " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.rotation_degrees,++c1);
+			get_number(mp_control.rotation_degrees,argument,++pos);
 		}
 		else
 		{
@@ -1991,15 +2000,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.rotation_degrees << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"scale"))
+	else if (option.find("scale") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting odd_parity_disc_size as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.scale,++c1);
+			get_number(mp_control.scale,argument,++pos);
 		}
 		else
 		{
@@ -2010,14 +2020,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: scale read from " << source << ", scale = " << mp_control.scale << endl;
 	}
-	else if (!strcmp(loc_buf,"script-labels"))
+	else if (option == "script-labels")
 	{
     	mp_control.draw_labels = true;
     	mp_control.script_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: script_labels read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"seifert-circles"))
+	else if (option == "seifert-circles")
 	{
     	mp_control.seifert_circles = true;
     	mp_control.state_smoothed = true;
@@ -2025,11 +2035,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: seifert_circles read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"seifert-edges"))
+	else if (option.find("seifert-edges") != string::npos)
 	{
     	mp_control.seifert_edges = 2;
     	
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
 			/* it can be anything, "odd", "reversed", etc. */
 			mp_control.seifert_edges = 1;
@@ -2038,40 +2049,42 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: seifert-edges read from " << source << endl;
 	}	
-	else if (!strcmp(loc_buf,"scriptscript-labels"))
+	else if (option == "scriptscript-labels")
 	{
     	mp_control.draw_labels = true;
     	mp_control.scriptscript_labels = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: scriptscript_labels read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"shortcut"))
+	else if (option == "shortcut")
 	{
     	mp_control.draw_shortcut = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: draw_shortcut read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"shrink"))
+	else if (option.find("shrink") != string::npos)
 	{ 
 		USE_REGION_SHRINKING_PLACEMENT = true;
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: use region shrinking placement of triangulation vertices following circle packing" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(max_placement_iterations,++c1);
+			get_number(max_placement_iterations,argument,++pos);
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set max_placement_iterations = " << max_placement_iterations << endl;
 
 	    }	
 	}
-	else if (!strcmp(loc_buf,"shrink-factor"))
+	else if (option.find("shrink-factor") != string::npos)
 	{
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(region_shrinking_factor,++c1);
+			get_number(region_shrinking_factor,argument,++pos);
 	    }
 		else
 		{
@@ -2082,11 +2095,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: region_shrinking_factor = " << region_shrinking_factor << endl;
 	}
-	else if (!strcmp(loc_buf,"shrink-area-factor"))
+	else if (option.find("shrink-area-factor") != string::npos)
 	{
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(region_shrinking_area_factor,++c1);
+			get_number(region_shrinking_area_factor,argument,++pos);
 	    }
 		else
 		{
@@ -2097,19 +2111,19 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: region_shrinking_factor = " << region_shrinking_factor << endl;
 	}
-	else if (!strcmp(loc_buf,"show-shrink"))
+	else if (option == "show-shrink")
 	{
 		mp_control.draw_shrink_effect = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: draw_shrink_effect read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"show-small"))
+	else if (option == "show-small")
 	{
 		mp_control.highlight_small_edges = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: highlight_small_edges read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"small-shrink"))
+	else if (option.find("small-shrink") != string::npos)
 	{ 
 		USE_REGION_SHRINKING_PLACEMENT = true;
 		USE_SMALL_REGION_SHRINKING_PLACEMENT = true;
@@ -2117,37 +2131,39 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: use small region shrinking placement of triangulation vertices following circle packing" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(max_placement_iterations,++c1);
+			get_number(max_placement_iterations,argument,++pos);
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set max_placement_iterations = " << max_placement_iterations << endl;
 
 	    }		
 	}
-	else if (!strcmp(loc_buf,"smallarrowheads"))
+	else if (option == "smallarrowheads")
 	{
     	mp_control.smallarrowheads = true;
     	mp_control.arrowhead_bp_size = 3;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: smallarrowheads read from " << source << endl;
 	}	
-	else if (!strcmp(loc_buf,"smoothed"))
+	else if (option == "smoothed")
 	{
 		mp_control.state_smoothed = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set programme long_option: option mp_control.state_smoothed read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"smoothed-disc-threshold"))
+	else if (option.find("smoothed-disc-threshold") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting smoothed_state_disc_threshold as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.smoothed_disc_threshold,++c1);
+			get_number(mp_control.smoothed_disc_threshold,argument,++pos);
 		}
 		else
 		{
@@ -2161,15 +2177,16 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.smoothed_disc_threshold << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"smoothed-disc-size"))
+	else if (option.find("smoothed-disc-size") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting smoothed_state_disc_size as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.smoothed_state_disc_size,++c1);
+			get_number(mp_control.smoothed_state_disc_size,argument,++pos);
 		}
 		else
 		{
@@ -2183,12 +2200,13 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.smoothed_state_disc_size << endl;
 }	
 	}
-	else if (!strcmp(loc_buf,"state"))
+	else if (option.find("state") != string::npos)
 	{
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
 			mp_control.state_smoothed = true;
-			mp_control.state = ++c1;
+			mp_control.state = argument.substr(++pos);
 		}
 		else
 		{
@@ -2202,13 +2220,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set programme long_option: mp_control.state_smoothed set as a result of receiving state option " << source << endl;
 }
 	}
-	else if (!strcmp(loc_buf,"tension"))
+	else if (option.find("tension") != string::npos)
 	{
     	mp_control.tension = true;
 
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(metapost_path_tension,++c1);
+			get_number(metapost_path_tension,argument,++pos);
 	    }
 		else
 		{
@@ -2219,31 +2238,32 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: tension read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"triangulation"))
+	else if (option == "triangulation")
 	{
     	mp_control.draw_triangulation = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: triangulation read from " << source << endl;
 	}	
-	else if (!strcmp(loc_buf,"translate"))
+	else if (option.find("translate") != string::npos)
 	{
 		// expect translate=<vertex>x<x-shift>y<y-shift>:<vertex>x<x-shift>y<y-shift>:...
-	    if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			c1++;
-			istringstream ss(c1);
+			istringstream ss(argument.substr(++pos));
 			bool done = false;
 			do
 			{				
-				char c = '\0';
 				int v;
 				int x;
 				int y;
 				ss >> v;
+				char c = 0;
 				ss >> c;
 				if (c == 'x')
 				{
 					ss >> x;
+					c = 0;
 					ss >> c;
 					if (c == 'y')
 					{
@@ -2260,13 +2280,14 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 				{
 					done=true;
 				}
+				c = 0;
 				ss >> c;
 				if (c != ':')
 					done = true;				
 			} while (!done);
 			
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_long_option: added vertex translations" << c1 << " read from " << source << endl;
+	debug << "set_programme_long_option: added vertex translations" << argument << " read from " << source << endl;
 			
 	    }
 		else
@@ -2275,21 +2296,22 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 			exit(0);
 		}
 	}
-	else if (!strcmp(loc_buf,"uniform-smoothed-discs"))
+	else if (option == "uniform-smoothed-discs")
 	{
     	mp_control.uniform_smoothed_discs = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: uniform_smoothed_discs read from " << source << endl;
 	}
-	else if (!strcmp(loc_buf,"unit"))
+	else if (option.find("unit") != string::npos)
 	{
 
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: setting unit as a result of " << source << " option" << endl;
 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 		{
-			get_number(mp_control.unit_size,++c1);
+			get_number(mp_control.unit_size,argument,++pos);
 		}
 		else
 		{
@@ -2303,11 +2325,12 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	      << mp_control.unit_size << endl;
 }	      
 	}	
-	else if (!strcmp(loc_buf,"v-units"))
+	else if (option.find("v-units") != string::npos)
 	{ 
-		if (*c1 == '=')
+		size_t pos = option.find('=');
+		if (pos != string::npos)
 	    {
-			get_number(mp_control.vertical_units,++c1);
+			get_number(mp_control.vertical_units,argument,++pos);
 	    }
 		else
 		{
@@ -2319,7 +2342,7 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_long_option: set vertical_units = " << mp_control.vertical_units << endl;
 
 	}
-	else if (!strcmp(loc_buf,"vertices"))
+	else if (option == "vertices")
 	{
     	mp_control.label_vertices = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
@@ -2328,40 +2351,34 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
     else
     {
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-        debug << "set_programme_long_option: invalid long option " << loc_buf << " read from " << source << endl;
+        debug << "set_programme_long_option: invalid long option " << argument << " read from " << source << endl;
 
-        cout << "Invalid long option " << loc_buf << endl;
+        cout << "Invalid long option " << argument << endl;
         exit(0);
     }
-
-	delete[] cptr;
 }
 
-void set_programme_short_option(char* cptr, metapost_control& mp_control)
+void set_programme_short_option(string argument, metapost_control& mp_control)
 {
-
+	size_t pos;
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: provided with argument: " << cptr << endl;
+	debug << "set_programme_short_option: provided with argument: " << argument << endl;
 
-	char* c1;
-
-	if (strchr(cptr, 'H') && strchr(cptr, '!'))
+	if (argument.find('H') != string::npos && argument.find('!') != string::npos)
 	{
-		if (strchr(cptr,'#'))
+		if (argument.find('#') != string::npos)
 		{
 			debug_help();
 		}
 		else
 		{
-
 			help_info(true);
-
-//	    	exit(0);
+	    	exit(0);
 		}
 	}
 
-	char* dptr = strchr(cptr, '#');
-	if (dptr)
+	if (argument.find('#') != string::npos)
 	{
 
     	/* establish a debug file */
@@ -2375,76 +2392,74 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 		else
 			debug << boolalpha << "Debug information from draw version " << version << "\n\n";
 
-if (!debug_setup(cptr))  // could probably be dptr, but the original code used cptr
-{
-	debug_control::DEBUG = debug_control::SUMMARY;
-	debug << "set_programme_short_option: default debug options set" << endl;
-}
-
-	}
-
-    c1 = strchr(cptr, 'a');
-	if (c1)
-	{
-	    if (*++c1 == '=')
-	    {
-			get_number(average_triangulation_length_factor,++c1);
-	    }
-		else
+		if (!debug_setup(argument))  // could probably be dptr, but the original code used cptr
 		{
-			cout << "\nYou must specify an average_triangulation_length_factor if you use the a option, e.g. '-a=0.5'" << endl;
-			exit(0);
-		}
-
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: average_triangulation_length_factor = " << average_triangulation_length_factor << endl;
+			debug_control::DEBUG = debug_control::SUMMARY;
+			debug << "set_programme_short_option: default debug options set" << endl;
+		}	
 	}
-
-	if (strchr(cptr, 'A'))
-		IMMERSION_CROSSINGS_AT_RIGHT_ANGLES = true;
-
-	if (strchr(cptr, 'b'))
-		USE_BADNESS_OPTIMZATION = false;
-
-	if (strchr(cptr, 'B'))
-		INCLUDE_BOUNDARY_VERTICES = true;
-
-	c1=strchr(cptr, 'c');
-	if (c1)
+	else
 	{
-		bool error = false;
-		
-		if (*++c1 == '=')
+		pos = argument.find('a');
+		if (pos != string::npos)
 		{
-			c1++;
-			
-			if (*c1 == 'z')
-			{				
-				get_number(mp_control.rotation_centre_z,++c1);
-				mp_control.implicit_rotation_centre = true;
-
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: implicit rotation centre z" << mp_control.rotation_centre_z << endl;
-	
-			}
+		    if (argument[++pos] == '=')
+		    {
+				get_number(average_triangulation_length_factor,argument,++pos);
+		    }
 			else
 			{
-				if (*c1 == '(')
+				cout << "\nYou must specify an average_triangulation_length_factor if you use the a option, e.g. '-a=0.5'" << endl;
+				exit(0);
+			}
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_short_option: average_triangulation_length_factor = " << average_triangulation_length_factor << endl;
+		}
+	
+		if (argument.find('A') != string::npos)
+			IMMERSION_CROSSINGS_AT_RIGHT_ANGLES = true;
+	
+		if (argument.find('b') != string::npos)
+			USE_BADNESS_OPTIMZATION = false;
+	
+		if (argument.find('B') != string::npos)
+			INCLUDE_BOUNDARY_VERTICES = true;
+	
+		pos = argument.find('c');
+		if (pos != string::npos)
+		{
+			bool error = false;
+			
+		    if (argument[++pos] == '=')
+			{
+				pos++;
+				
+				if (argument[pos] == 'z')
+				{				
+					get_number(mp_control.rotation_centre_z,argument,++pos);
+					mp_control.implicit_rotation_centre = true;
+	
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_short_option: implicit rotation centre z" << mp_control.rotation_centre_z << endl;
+		
+				}
+				else if (argument[pos]  == '(')
 				{
-					get_number(mp_control.rotation_centre_x,++c1);
-					while (isdigit(*c1))
-						c1++;
-					if (*c1 == ',')
+					get_number(mp_control.rotation_centre_x,argument,++pos);
+					while (isdigit(argument[pos]))
+						pos++;
+					if (argument[pos] == ',')
 					{
-						get_number(mp_control.rotation_centre_y,++c1);
+						get_number(mp_control.rotation_centre_y,argument,++pos);
 						
-						while (isdigit(*c1))
-							c1++;
+						while (isdigit(argument[pos]))
+							pos++;
 						
-						if (*c1 == ')')
+						if (argument[pos] == ')')
 						{
 							mp_control.explicit_rotation_centre = true;
-			
+				
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "set_programme_short_option: explicit rotation centre (" << mp_control.rotation_centre_x 
@@ -2453,310 +2468,308 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 						}
 						else
 							error = true;
-
-				}
+					}
 					else
 						error=true;
 				}
 				else
 					error=true;				
 			}
-		}
-		else
-			error = true;
-			
-		if (error)
-		{
-			cout << "\nYou must specify the required rotation centre if you use the c option." << endl;
-			cout << "Specify the coordinates of the centre explicitly, e.g. -c=(123.45,67.89), or implicitly, e.g. -c=z21." << endl;
-			exit(0);
-		}
-	}
-
-	c1 = strchr(cptr, 'C');
-	if (c1)
-	{ 
-		if (*++c1 == '=')
-	    {
-			get_number(mp_control.infinite_cycle,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify a turning cycle if you use the I option, e.g. '-I=2'" << endl;
-			exit(0);
+			else
+				error = true;
+				
+			if (error)
+			{
+				cout << "\nYou must specify the required rotation centre if you use the c option." << endl;
+				cout << "Specify the coordinates of the centre explicitly, e.g. -c=(123.45,67.89), or implicitly, e.g. -c=z21." << endl;
+				exit(0);
+			}
 		}
 	
-if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: set infinite_cycle = " << mp_control.infinite_cycle << endl;
-
-	}
-
-	c1=strchr(cptr, 'D');
-	if (c1)
-	{
-		if (*++c1 == '=')
-		{
-			get_number(mp_control.smoothed_state_disc_size,++c1);
-		}
-		else
-		{
-			cout << "\nYou must specify a disc size multiplier if you use the D option, e.g. '-D=5'" << endl;
-			exit(0);
-		}
+		pos = argument.find('C');
+		if (pos != string::npos)
+		{ 
+			if (argument[++pos] == '=')
+		    {
+				get_number(mp_control.infinite_cycle,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify a turning cycle if you use the I option, e.g. '-I=2'" << endl;
+				exit(0);
+			}
 		
 if (debug_control::DEBUG >= debug_control::SUMMARY)
-	debug << "set_programme_short_option: smoothed_state_disc_size = " << mp_control.smoothed_state_disc_size << endl;
-	}
-
-	c1 = strchr(cptr, 'd');
-	if (c1)
-	{ 
-		if (*++c1 == '=')
-	    {
-			get_number(mp_control.disc_size,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify a unit size if you use the d option, e.g. '-d=20'" << endl;
-			exit(0);
+	debug << "set_programme_short_option: set infinite_cycle = " << mp_control.infinite_cycle << endl;
+	
 		}
-
+	
+		pos = argument.find('D');
+		if (pos != string::npos)
+		{
+			if (argument[++pos] == '=')
+			{
+				get_number(mp_control.smoothed_state_disc_size,argument,++pos);
+			}
+			else
+			{
+				cout << "\nYou must specify a disc size multiplier if you use the D option, e.g. '-D=5'" << endl;
+				exit(0);
+			}
+			
+if (debug_control::DEBUG >= debug_control::SUMMARY)
+	debug << "set_programme_short_option: smoothed_state_disc_size = " << mp_control.smoothed_state_disc_size << endl;
+		}
+	
+		pos = argument.find('d');
+		if (pos != string::npos)
+		{ 
+			if (argument[++pos] == '=')
+		    {
+				get_number(mp_control.disc_size,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify a unit size if you use the d option, e.g. '-d=20'" << endl;
+				exit(0);
+			}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set disc_size = " << mp_control.disc_size << endl;
-
-	}
-
-	if (strchr(cptr, 'f'))
-	{
-		mp_control.draw_lace_frame = true;
+	
+		}
+	
+		if (argument.find('f') != string::npos)
+		{
+			mp_control.draw_lace_frame = true;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set draw_lace_frame true" << endl;
-	}
-
-	if (strchr(cptr, 'F'))
-	{
-		mp_control.draw_crossing_features = false;
+		}
+	
+		if (argument.find('F') != string::npos)
+		{
+			mp_control.draw_crossing_features = false;
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set draw_crossing_features false" << endl;
-	}
-
-	c1 = strchr(cptr, 'i');
-	if (c1)
-	{ 
-		if (*++c1 == '=')
-	    {
-			get_number(max_circle_packing_iterations,++c1);
-
+		}
+	
+		pos = argument.find('i');
+		if (pos != string::npos)
+		{ 
+			if (argument[++pos] == '=')
+		    {
+				get_number(max_circle_packing_iterations,argument,++pos);
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set max_circle_packing_iterations = " << max_circle_packing_iterations << endl;
-
-	    }	
-	}
-
-	if (strchr(cptr, 'h'))
-		help_info(true);
-
-	if (strchr(cptr, 'I'))
-		mp_control.draw_immersion = false;
-
-
-	if (strchr(cptr, 'E'))
-	{
-		/* use edge repulsion rather than Plastenjak force directed placement */
-		PLESTENJAK_FORCE_DIRECTION = false; 
-
+	
+		    }	
+		}
+	
+		if (argument.find('h') != string::npos)
+			help_info(true);
+	
+		if (argument.find('I') != string::npos)
+			mp_control.draw_immersion = false;
+	
+	
+		if (argument.find('E') != string::npos)
+		{
+			/* use edge repulsion rather than Plastenjak force directed placement */
+			PLESTENJAK_FORCE_DIRECTION = false; 
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 {
 	debug << "set_programme_short_option: using edge repulsion, PLESTENJAK_FORCE_DIRECTION = false, ";
 	debug << "APPLY_FORCES_TO_TYPE_12_ONLY = " << (APPLY_FORCES_TO_TYPE_12_ONLY? "true": "false") << endl;
 }
-	}
-
-	if (strchr(cptr, 'k'))
-		mp_control.knotoid_leg_unbounded = true;
-
-	if (strchr(cptr, 'K'))
-	{
-		USE_KEN_STEPHENSON_CIRCLE_PACKING = false;
-
+		}
+	
+		if (argument.find('k') != string::npos)
+			mp_control.knotoid_leg_unbounded = true;
+	
+		if (argument.find('K') != string::npos)
+		{
+			USE_KEN_STEPHENSON_CIRCLE_PACKING = false;
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 //	debug << "set_programme_short_option: using Ken Stephenson's circlepacking algorithm" << endl;
 	debug << "set_programme_short_option: using the Fenn circlepacking algorithm, not Ken Stephenson's" << endl;
-	}
-
-	if (strchr(cptr, 'l'))
-		mp_control.draw_labels = true;
-
-	if (strchr(cptr, 'L'))
-	{
-		mp_control.draw_labels = true;
-		mp_control.label_edges_from_one = true;
-	}
-
-    c1 = strchr(cptr, 'M');
-	if (c1)
-	{
-	    if (*++c1 == '=')
-	    {
-			get_number(metapost_coordinate_scale_factor,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify a metapost_coordinate_scale_factor if you use the M option, e.g. '-M=50'" << endl;
-			exit(0);
 		}
-
+	
+		if (argument.find('l') != string::npos)
+			mp_control.draw_labels = true;
+	
+		if (argument.find('L') != string::npos)
+		{
+			mp_control.draw_labels = true;
+			mp_control.label_edges_from_one = true;
+		}
+	
+		pos = argument.find('M');
+		if (pos != string::npos)
+		{
+			if (argument[++pos] == '=')
+		    {
+				get_number(metapost_coordinate_scale_factor,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify a metapost_coordinate_scale_factor if you use the M option, e.g. '-M=50'" << endl;
+				exit(0);
+			}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: metapost_coordinate_scale_factor = " << metapost_coordinate_scale_factor << endl;
-	}
-
-
-	if (strchr(cptr, 'o'))
-		mp_control.draw_oriented = true;
-
-	if (strchr(cptr, 'O'))
-		mp_control.one_metapost_path = false;
-
-	if (strchr(cptr, 'P'))
-		mp_control.circle_packing = true;
-
-    c1 = strchr(cptr, 'p');
-	if (c1)
-	{
-	    if (*++c1 == '=')
-	    {
-			get_number(mp_control.pen_size,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify a unit size if you use the p option, e.g. '-p=4'" << endl;
-			exit(0);
 		}
-
+	
+	
+		if (argument.find('o') != string::npos)
+			mp_control.draw_oriented = true;
+	
+		if (argument.find('O') != string::npos)
+			mp_control.one_metapost_path = false;
+	
+		if (argument.find('P') != string::npos)
+			mp_control.circle_packing = true;
+	
+		pos = argument.find('p');
+		if (pos != string::npos)
+		{
+			if (argument[++pos] == '=')
+		    {
+				get_number(mp_control.pen_size,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify a unit size if you use the p option, e.g. '-p=4'" << endl;
+				exit(0);
+			}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set pen_size = " << mp_control.pen_size << endl;
-	}
-
-    c1 = strchr(cptr, 'R');
-	if (c1)
-	{
-		RETRACT_BOUNDARY_VERTICES = true;
-		
-	    if (*++c1 == '=')
-	    {
-			get_number(boundary_vertex_retraction_factor,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify a boundary_vertex_retraction_factor if you use the R option, e.g. '-R=0.6'" << endl;
-			exit(0);
 		}
-
+	
+		pos = argument.find('R');
+		if (pos != string::npos)
+		{
+			RETRACT_BOUNDARY_VERTICES = true;
+			
+			if (argument[++pos] == '=')
+		    {
+				get_number(boundary_vertex_retraction_factor,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify a boundary_vertex_retraction_factor if you use the R option, e.g. '-R=0.6'" << endl;
+				exit(0);
+			}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: boundary_vertex_retraction_factor = " << boundary_vertex_retraction_factor << endl;
-	}
-
-	c1=strchr(cptr, 'r');
-	if (c1)
-	{
-		mp_control.rotate = true;
-	    if (*++c1 == '=')
-	    {
-			get_number(mp_control.rotation_degrees,++c1);
-
+		}
+	
+		pos = argument.find('r');
+		if (pos != string::npos)
+		{
+			mp_control.rotate = true;
+			if (argument[++pos] == '=')
+		    {
+				get_number(mp_control.rotation_degrees,argument,++pos);
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: rotation of " << mp_control.rotation_degrees << " degrees" << endl;
-
-	    }
-		else
-		{
-			cout << "\nYou must specify the required rotation in degrees if you use the r option, e.g. '-r=15'" << endl;
-			exit(0);
+	
+		    }
+			else
+			{
+				cout << "\nYou must specify the required rotation in degrees if you use the r option, e.g. '-r=15'" << endl;
+				exit(0);
+			}
 		}
-	}
-
-	if (strchr(cptr, 'S'))
-		mp_control.draw_shortcut = true;
-
-	if (strchr(cptr, 't'))
-    	mp_control.draw_triangulation = true;
-
-	c1 = strchr(cptr, 'T');
-	if (c1)
-	{ 
-    	TRACK_PLACEMENT_ITERATION = true;
-
-		if (*++c1 == '=')
-	    {
-			get_number(placement_iteration_tracking_step,++c1);
-
+	
+		if (argument.find('S') != string::npos)
+			mp_control.draw_shortcut = true;
+	
+		if (argument.find('t') != string::npos)
+	    	mp_control.draw_triangulation = true;
+	
+		pos = argument.find('T');
+		if (pos != string::npos)
+		{ 
+	    	TRACK_PLACEMENT_ITERATION = true;
+	
+			if (argument[++pos] == '=')
+		    {
+				get_number(placement_iteration_tracking_step,argument,++pos);
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set placement_iteration_tracking_step = " << placement_iteration_tracking_step << endl;
-
-	    }	
-	}
-
-    c1 = strchr(cptr, 'u'); 
-	if (c1)
-	{
-	    if (*++c1 == '=')
-	    {
-			get_number(mp_control.unit_size,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify a unit size if you use the u option, e.g. '-u=12'" << endl;
-			exit(0);
+	
+		    }	
 		}
-
+	
+		pos = argument.find('u');
+		if (pos != string::npos)
+		{
+			if (argument[++pos] == '=')
+		    {
+				get_number(mp_control.unit_size,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify a unit size if you use the u option, e.g. '-u=12'" << endl;
+				exit(0);
+			}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set unit_size = " << mp_control.unit_size << endl;
-
-	}
 	
-	if (strchr(cptr, 'v'))
-		mp_control.label_vertices = true;
-
-	c1 = strchr(cptr, 'V');
-	if (c1)
-	{ 
-    	CHECK_INNER_HULL_CALCULATION = true;
-    	mp_control.draw_triangulation = true;
-
+		}
+		
+		if (argument.find('v') != string::npos)
+			mp_control.label_vertices = true;
+	
+		pos = argument.find('V');
+		if (pos != string::npos)
+		{ 
+	    	CHECK_INNER_HULL_CALCULATION = true;
+	    	mp_control.draw_triangulation = true;
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: check inner hull calculation" << endl;
-
-		if (*++c1 == '=')
-	    {
-			get_number(check_inner_hull_vertex,++c1);
-
+	
+			if (argument[++pos] == '=')
+		    {
+				get_number(check_inner_hull_vertex,argument,++pos);
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set check_inner_hull_vertex = " << check_inner_hull_vertex << endl;
-
-	    }	
-	    	
+	
+		    }	
+		    	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set max_placement_iterations = 1" << endl;
-	
-	}
-
-    c1 = strchr(cptr, 'x');
-	if (c1)
-	{
-	    if (*++c1 == '=')
-	    {
-			get_number(printf_bool,++c1);
-	    }
-		else
-		{
-			cout << "\nYou must specify the circle packing debug level if you use the x option, e.g. '-x=3'" << endl;
-			exit(0);
+		
 		}
-
+	
+		pos = argument.find('x');
+		if (pos != string::npos)
+		{
+			if (argument[++pos] == '=')
+		    {
+				get_number(printf_bool,argument,++pos);
+		    }
+			else
+			{
+				cout << "\nYou must specify the circle packing debug level if you use the x option, e.g. '-x=3'" << endl;
+				exit(0);
+			}
+	
 if (debug_control::DEBUG >= debug_control::SUMMARY)
 	debug << "set_programme_short_option: set printf_bool = " << printf_bool << endl;
+		}
 	}
-
 }
 
 bool get_next_input_string(string input_file,string& input_string, string& title)
@@ -2952,49 +2965,30 @@ void help_info(bool exit_after_help)
 
 /***************  Functions required for setting up draw specific debug **************/
 
-void set_main_debug_option_parameter(char* pptr, string option);
-void set_main_debug_option(char* start, char* end)
+void set_main_debug_option_parameter(string parameter, string option);
+void set_main_debug_option(string option)
 {
-	char  loc_buf[end-start+2];
-	char* c1 = start;
-	char* c2 = loc_buf;
+	size_t pos = option.find('{');
+	
+//cout << "set_main_debug_option isolated option string " << option << endl;
 
-	/* if both start and end are zero, display debug help information.
-	   this has been included here in this manner so that each time a debug option
-	   is added, the help will be updated (hopefully!)
-	*/
-	if (start == 0 && end == 0)
+	/* if we've been given the empty string display main debug help information */
+	if (option == "")
 	{
-		set_main_debug_option_parameter(0,"draw");
-//		cout << "\t\tvogel, boolean" << endl;
+		set_main_debug_option_parameter("","draw");
 		return;
 	}
 
-	do
-	{
-		*c2++ = *c1++;
-	} while (c1 <= end);
 	
-	*c2 = '\0';
-
-	char* pptr = strchr(loc_buf,'{');
-	if (pptr)
-	{
-		*pptr++ = '\0';
-	}
-
-	/* now, even if there are parameters, the first part of loc_buf 
-	   is a C-string that identifies the option */
-	
-	if (!strcmp(loc_buf,"draw"))
+	if (option.find("draw") != string::npos)
 	{
 		debug_control::DEBUG = debug_control::SUMMARY;
 		debug << "main::set_main_debug_option: setting debug option debug_control::DEBUG = debug_control::SUMMARY\n";		
 		
-		if (pptr)
+		if (pos != string::npos)
 		{
 			/* check for any parameters */
-			check_debug_option_parameters(pptr, "draw");
+			check_debug_option_parameters(pos,option);
 		}
 	}
 
@@ -3002,37 +2996,37 @@ void set_main_debug_option(char* start, char* end)
 
 }
 
-void set_main_debug_option_parameter(char* pptr, string option)
+void set_main_debug_option_parameter(string parameter, string option)
 {
 	if (option == "draw")
 	{
-		if (!pptr)
+		if (parameter == "")
 		{
 			cout << "\t\tdraw{summary|1:basic|2:intermediate|3:detail|4}, integer: default 0=off, no parameters sets summary" << endl;
 		}
 		else
 		{
-			if (!strcmp(pptr,"summary") || !strcmp(pptr,"1") )
+			if (parameter == "summary" || parameter == "1")
 			{
 				debug_control::DEBUG = debug_control::SUMMARY;
 				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::SUMMARY\n";		
 			}
-			if (!strcmp(pptr,"basic") || !strcmp(pptr,"2") )
+			if (parameter == "basic" || parameter == "2")
 			{
 				debug_control::DEBUG = debug_control::BASIC;
 				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::BASIC\n";		
 			}
-			else if (!strcmp(pptr,"intermediate") || !strcmp(pptr,"3"))
+			else if (parameter == "intermediate" || parameter == "3")
 			{
 				debug_control::DEBUG = debug_control::INTERMEDIATE;
 				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::INTERMEDIATE\n";		
 			}
-			else if (!strcmp(pptr,"detail") || !strcmp(pptr,"4"))
+			else if (parameter == "detail" || parameter == "4")
 			{
 				debug_control::DEBUG = debug_control::DETAIL;
 				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::DETAIL\n";		
 			}
-			else if (!strcmp(pptr,"exhaustive") || !strcmp(pptr,"5"))
+			else if (parameter == "exhaustive" || parameter == "5")
 			{
 				debug_control::DEBUG = debug_control::EXHAUSTIVE;
 				debug << "main::set_main_debug_option_parameter: setting debug option debug_control::DEBUG = debug_control::EXHAUSTIVE\n";		
