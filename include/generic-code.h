@@ -162,7 +162,7 @@ public:
 	   functions, it it more natural to include the indication of long status in the generic code data.
     */
    	
-	int immersion_character;
+	int immersion_character;  // a character enum value
 	int num_crossings;
 	int num_components;
 
