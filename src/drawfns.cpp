@@ -2303,79 +2303,81 @@ if (debug_control::DEBUG >= debug_control::SUMMARY)
 
 void print (metapost_control& mp_control, ostream& os, string prefix)
 {
-	os << prefix << "frame_minx = " << mp_control.frame_minx << endl;
-	os << prefix << "frame_maxx = " << mp_control.frame_maxx << endl;
-	os << prefix << "frame_miny = " << mp_control.frame_miny << endl;
-	os << prefix << "frame_maxy = " << mp_control.frame_maxy << endl;
-	os << prefix << "rotate = " << (mp_control.rotate? "true": "false") << endl;
-	os << prefix << "explicit_rotation_centre = " << (mp_control.explicit_rotation_centre? "true": "false") << endl;
-	os << prefix << "implicit_rotation_centre = " << (mp_control.implicit_rotation_centre? "true": "false") << endl;
-	os << prefix << "rotation_degrees = " << mp_control.rotation_degrees << endl;
-	os << prefix << "rotation_centre_x = " << mp_control.rotation_centre_x << endl;
-	os << prefix << "rotation_centre_y = " << mp_control.rotation_centre_y << endl;
-	os << prefix << "rotation_centre_z = " << mp_control.rotation_centre_z << endl;
-	os << prefix << "unit_size = " << mp_control.unit_size << endl;
-	os << prefix << "disc_size = " << mp_control.disc_size << endl;
-	os << prefix << "pen_size = " << mp_control.pen_size << endl;
-	os << prefix << "horizontal_units = " << mp_control.horizontal_units << endl;
-	os << prefix << "vertical_units = " << mp_control.vertical_units << endl;
-	os << prefix << "infinite_cycle = " << mp_control.infinite_cycle << endl;
-	os << prefix << "cudgel_space = " << mp_control.cudgel_space << endl;
-	os << prefix << "dash_with_dots = " << (mp_control.dash_with_dots? "true": "false") << endl;
-	os << prefix << "knotoid_leg_unbounded = " << (mp_control.knotoid_leg_unbounded? "true": "false") << endl;
-	os << prefix << "one_metapost_path = " << (mp_control.one_metapost_path? "true": "false") << endl;
-	os << prefix << "colour = " << (mp_control.colour? "true": "false") << endl;
-	os << prefix << "draw_lace_frame = " << (mp_control.draw_lace_frame? "true": "false") << endl;
-	os << prefix << "draw_immersion = " << (mp_control.draw_immersion? "true": "false") << endl;
-	os << prefix << "draw_crossing_features = " << (mp_control.draw_crossing_features? "true": "false") << endl;
-	os << prefix << "draw_frame_corners = " << (mp_control.draw_frame_corners? "true": "false") << endl;
-	os << prefix << "draw_triangulation = " << (mp_control.draw_triangulation? "true": "false") << endl;
-	os << prefix << "draw_triangulation_displacement = " << (mp_control.draw_triangulation_displacement? "true": "false") << endl;
-	os << prefix << "draw_labels = " << (mp_control.draw_labels? "true": "false") << endl;
-	os << prefix << "label_edges_from_one = " << (mp_control.label_edges_from_one? "true": "false") << endl;
-	os << prefix << "draw_oriented = " << (mp_control.draw_oriented? "true": "false") << endl;
-	os << prefix << "draw_shortcut = " << (mp_control.draw_shortcut? "true": "false") << endl;
-	os << prefix << "hamiltonians = " << (mp_control.hamiltonians? "true": "false") << endl;
-	os << prefix << "label_vertices = " << (mp_control.label_vertices? "true": "false") << endl;
-	os << prefix << "script_labels = " << (mp_control.script_labels? "true": "false") << endl;
-	os << prefix << "scriptscript_labels = " << (mp_control.scriptscript_labels? "true": "false") << endl;
-	os << prefix << "seifert_circles = " << (mp_control.seifert_circles? "true": "false") << endl;
-	os << prefix << "show_vertex_axes = " << (mp_control.show_vertex_axes? "true": "false") << endl;
-	os << prefix << "state = " << mp_control.state << endl;
-	os << prefix << "state_smoothed = " << (mp_control.state_smoothed? "true": "false") << endl;
 	os << prefix << "circle_packing = " << (mp_control.circle_packing? "true": "false") << endl;
-	os << prefix << "draw_shrink_effect = " << (mp_control.draw_shrink_effect? "true": "false") << endl;
-	os << prefix << "highlight_small_edges = " << (mp_control.highlight_small_edges? "true": "false") << endl;
-	if (mp_control.tension)
-		os << prefix << "tension = true, matapost_path_tension = " << metapost_path_tension << endl;
-	else
-		os << prefix << "tension = false" << endl;
+	os << prefix << "colour = " << (mp_control.colour? "true": "false") << endl;
 	if (mp_control.colourmap.length())
 		os << prefix << "colourmap = " << mp_control.colourmap << endl;
 	else
 		os << prefix << "colourmap = default" << endl;
-
+	os << prefix << "cudgel_space = " << mp_control.cudgel_space << endl;
+	os << prefix << "dash_with_dots = " << (mp_control.dash_with_dots? "true": "false") << endl;
+	os << prefix << "disc_size = " << mp_control.disc_size << endl;
+	os << prefix << "draw_colour = ";
+	for (unsigned int i=0; i< mp_control.draw_colour.size(); i++)
+		os << mp_control.draw_colour[i] << ' ';
+	os << endl;	
+	os << prefix << "draw_crossing_features = " << (mp_control.draw_crossing_features? "true": "false") << endl;
+	os << prefix << "draw_frame_corners = " << (mp_control.draw_frame_corners? "true": "false") << endl;
+	os << prefix << "draw_immersion = " << (mp_control.draw_immersion? "true": "false") << endl;
+	os << prefix << "draw_labels = " << (mp_control.draw_labels? "true": "false") << endl;
+	os << prefix << "draw_lace_frame = " << (mp_control.draw_lace_frame? "true": "false") << endl;
+	os << prefix << "draw_oriented = " << (mp_control.draw_oriented? "true": "false") << endl;
+	os << prefix << "draw_shortcut = " << (mp_control.draw_shortcut? "true": "false") << endl;
+	os << prefix << "draw_shrink_effect = " << (mp_control.draw_shrink_effect? "true": "false") << endl;
+	os << prefix << "draw_triangulation = " << (mp_control.draw_triangulation? "true": "false") << endl;
+	os << prefix << "draw_triangulation_displacement = " << (mp_control.draw_triangulation_displacement? "true": "false") << endl;
+	os << prefix << "explicit_rotation_centre = " << (mp_control.explicit_rotation_centre? "true": "false") << endl;
+	os << prefix << "frame_maxx = " << mp_control.frame_maxx << endl;
+	os << prefix << "frame_maxy = " << mp_control.frame_maxy << endl;
+	os << prefix << "frame_minx = " << mp_control.frame_minx << endl;
+	os << prefix << "frame_miny = " << mp_control.frame_miny << endl;
+	os << prefix << "gauss_crossings = " << mp_control.gauss_crossings << endl;
+	os << prefix << "gauss_labels = " << mp_control.gauss_labels << endl;
+	os << prefix << "hamiltonians = " << (mp_control.hamiltonians? "true": "false") << endl;
+	os << prefix << "hamiltonian-circuit = ";
+	for (unsigned int i=0; i< mp_control.hamiltonian_circuit.size(); i++)
+		os << mp_control.hamiltonian_circuit[i] << ' ' ;
+	os << endl;
+	os << prefix << "highlight_small_edges = " << (mp_control.highlight_small_edges? "true": "false") << endl;
+	os << prefix << "horizontal_units = " << mp_control.horizontal_units << endl;
+	os << prefix << "implicit_rotation_centre = " << (mp_control.implicit_rotation_centre? "true": "false") << endl;
+	os << prefix << "infinite_cycle = " << mp_control.infinite_cycle << endl;
+	os << prefix << "knotoid_leg_unbounded = " << (mp_control.knotoid_leg_unbounded? "true": "false") << endl;
+	os << prefix << "label_edges_from_one = " << (mp_control.label_edges_from_one? "true": "false") << endl;
+	os << prefix << "lace_midpoints = ";
+	for (unsigned int i=0; i< mp_control.lace_midpoints.size(); i++)
+		os << mp_control.lace_midpoints[i].first << '-' << mp_control.lace_midpoints[i].second << ' ';
+	os << endl;
+	os << prefix << "label_vertices = " << (mp_control.label_vertices? "true": "false") << endl;
+	os << prefix << "one_metapost_path = " << (mp_control.one_metapost_path? "true": "false") << endl;
+	os << prefix << "pen_size = " << mp_control.pen_size << endl;
 	if (mp_control.singlecolour.length())
 		os << prefix << "singlecolour = " << mp_control.singlecolour << endl;
 	else
 		os << prefix << "singlecolour = not specified" << endl;
 
-	os << prefix << "draw_colour = ";
-	for (unsigned int i=0; i< mp_control.draw_colour.size(); i++)
-		os << mp_control.draw_colour[i] << ' ';
-	os << endl;	
-	os << prefix << "lace_midpoints = ";
-	for (unsigned int i=0; i< mp_control.lace_midpoints.size(); i++)
-		os << mp_control.lace_midpoints[i].first << '-' << mp_control.lace_midpoints[i].second << ' ';
-	os << endl;
+	os << prefix << "rotate = " << (mp_control.rotate? "true": "false") << endl;
+	os << prefix << "rotation_centre_x = " << mp_control.rotation_centre_x << endl;
+	os << prefix << "rotation_centre_y = " << mp_control.rotation_centre_y << endl;
+	os << prefix << "rotation_centre_z = " << mp_control.rotation_centre_z << endl;
+	os << prefix << "rotation_degrees = " << mp_control.rotation_degrees << endl;
+	os << prefix << "script_labels = " << (mp_control.script_labels? "true": "false") << endl;
+	os << prefix << "scriptscript_labels = " << (mp_control.scriptscript_labels? "true": "false") << endl;
+	os << prefix << "seifert_circles = " << (mp_control.seifert_circles? "true": "false") << endl;
+	os << prefix << "show_vertex_axes = " << (mp_control.show_vertex_axes? "true": "false") << endl;
+	os << prefix << "singlecolour = " << mp_control.singlecolour << endl;
+	os << prefix << "state = " << mp_control.state << endl;
+	os << prefix << "state_smoothed = " << (mp_control.state_smoothed? "true": "false") << endl;
+	if (mp_control.tension)
+		os << prefix << "tension = true, matapost_path_tension = " << metapost_path_tension << endl;
+	else
+		os << prefix << "tension = false" << endl;
 	os << prefix << "translations = ";
 	for (unsigned int i=0; i< mp_control.translations.size(); i++)
 		os << get<0>(mp_control.translations[i]) << '(' << get<1>(mp_control.translations[i]) << ',' << get<1>(mp_control.translations[i]) << ") ";
 	os << endl;
-	os << prefix << "hamiltonian-circuit = ";
-	for (unsigned int i=0; i< mp_control.hamiltonian_circuit.size(); i++)
-		os << mp_control.hamiltonian_circuit[i] << ' ' ;
-	os << endl;
+	os << prefix << "unit_size = " << mp_control.unit_size << endl;
+	os << prefix << "vertical_units = " << mp_control.vertical_units << endl;
 }
 
 	

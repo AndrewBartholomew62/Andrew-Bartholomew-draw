@@ -101,7 +101,7 @@ to vertices joined by an edge of the triangulation.
    Version 22:   added support for the Gauss code format used by J. Chen's https://www.flatknotinfo.com (November 2024)
    Version 23:   Changed the syntax for multi-linkoids to use '%' for knot-type components.  Introuduced support for singular crossings
                  using the label '@' (December 2024)
-   Version 23.1  Code update and bug-fixes
+   Version 23.1  Code update and bug-fixes (February 2026)
 
 **************************************************************************/
 using namespace std;
