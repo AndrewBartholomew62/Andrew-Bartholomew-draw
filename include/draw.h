@@ -49,94 +49,106 @@ public:
 	};
 
 
-	double frame_minx;
-	double frame_maxx;
-	double frame_miny;
-	double frame_maxy;
-	bool rotate;
-	bool explicit_rotation_centre;
-	bool implicit_rotation_centre;
-	double rotation_degrees;
-	double rotation_centre_x;
-	double rotation_centre_y;
-	int arrowhead_bp_size;	
-	int cusp_disc_size;
-	int disc_size;
-	int grid_size;
-	int HC_include_edge;
-	int horizontal_units;
-	int infinite_cycle;
-	int label_shift;
-	int pen_size;
-	int rotation_centre_z;	
-	int seifert_edges;
-	int smoothed_disc_threshold;
-	int smoothed_state_disc_size;
-	int odd_parity_disc_size;
-	int unit_size;
-	int vertical_units;
-	float cudgel_space;
-	float scale; 
-	bool dash_with_dots;
-	bool knotoid_leg_unbounded;
-	bool one_metapost_path;
-	bool colour;
-	bool draw_lace_frame;
-	bool draw_immersion;
-	bool draw_crossing_features;
-	bool draw_frame_corners;
-	bool draw_grid;
-	bool draw_triangulation;
-	bool draw_triangulation_displacement;
-	bool draw_labels;
-	bool label_edges_from_one;
-	bool draw_oriented;
-	bool draw_shortcut;
-	bool gauss_crossings;
-	bool gauss_labels;
-	bool hamiltonians;
-	bool label_vertices;
-	bool script_labels;
-	bool scriptscript_labels;
-	bool seifert_circles;
-	bool show_odd_parity_crossings;
-	bool show_vertex_axes;
-	bool smallarrowheads;
-	bool state_smoothed;
-	bool circle_packing;
-	bool draw_shrink_effect;
-	bool highlight_small_edges;
-	bool tension;
-	bool adjacent_cudgel_midpoints;
-	bool right_originating_tail_points;
-	bool left_terminating_tail_points;
-	bool magnify_small_circles;
-	bool midpoints_not_tail_points;
-	bool uniform_smoothed_discs;
-	float midpoint_tension;
-	string colourmap;
-	string singlecolour;
-	string hamiltonian_colour;
-	string state;
+	bool 	adjacent_cudgel_midpoints;
+	int 	arrowhead_bp_size;	
+	bool 	circle_packing;
+	bool 	colour;
+	string 	colourmap;
+	float 	cudgel_space;
+	int 	cusp_disc_size;
+	bool 	dash_with_dots;
+	int 	disc_size;
+	bool 	draw_crossing_features;
+	bool 	draw_frame_corners;
+	bool 	draw_grid;
+	bool 	draw_immersion;
+	bool 	draw_labels;
+	bool 	draw_lace_frame;
+	bool 	draw_oriented;
+	bool 	draw_shortcut;
+	bool 	draw_shrink_effect;
+	bool 	draw_triangulation;
+	bool 	draw_triangulation_displacement;
+	bool 	explicit_rotation_centre;
+	double 	frame_maxx;
+	double 	frame_maxy;
+	double 	frame_minx;
+	double 	frame_miny;
+	bool 	gauss_crossings;
+	bool 	gauss_labels;
+	int 	grid_size;
+	int 	HC_include_edge;
+	bool 	hamiltonians;
+	string 	hamiltonian_colour;
+	bool 	highlight_small_edges;
+	int 	horizontal_units;
+	bool 	implicit_rotation_centre;
+	int 	infinite_cycle;
+	bool 	knotoid_leg_unbounded;
+	bool 	label_edges_from_one;
+	int 	label_shift;
+	bool 	label_vertices;
+	bool 	left_terminating_tail_points;
+	bool 	magnify_small_circles;
+	bool 	midpoints_not_tail_points;
+	float 	midpoint_tension;
+	int 	odd_parity_disc_size;
+	bool 	one_metapost_path;
+	int 	pen_size;
+	bool 	right_originating_tail_points;
+	bool 	rotate;
+	double 	rotation_centre_x;
+	double 	rotation_centre_y;
+	int 	rotation_centre_z;		
+	double 	rotation_degrees;
+	float 	scale; 
+	bool 	script_labels;
+	bool 	scriptscript_labels;
+	bool 	seifert_circles;
+	int 	seifert_edges;
+	bool 	show_odd_parity_crossings;
+	bool 	show_vertex_axes;
+	string 	singlecolour;
+	bool 	smallarrowheads;
+	int 	smoothed_disc_threshold;
+	int 	smoothed_state_disc_size;
+	string 	state;
+	bool 	state_smoothed;
+	bool 	tension;
+	bool 	uniform_smoothed_discs;
+	int 	unit_size;
+	int 	vertical_units;
+
 	vector<string> draw_colour;
+	vector<int> hamiltonian_circuit;
 	vector<pair<int,int> > lace_midpoints;
 	vector<tuple<int,int,int> > translations;
-	vector<int> hamiltonian_circuit;
 	
-	metapost_control(): frame_minx(0), frame_maxx(0), frame_miny(0),frame_maxy(0),rotate(false), explicit_rotation_centre(false), implicit_rotation_centre(false),
-	                    rotation_degrees(0), rotation_centre_x(0) , rotation_centre_y(0), 
-	                    arrowhead_bp_size(6),cusp_disc_size(7),disc_size(30),grid_size(10), HC_include_edge(-1), horizontal_units(5), infinite_cycle(-1),
-	                    label_shift(50),pen_size(1),rotation_centre_z(0),seifert_edges(0),
-	                    smoothed_disc_threshold(30),smoothed_state_disc_size(6),odd_parity_disc_size(12),unit_size(20), vertical_units(5),
-						cudgel_space(1.0), scale(0), dash_with_dots(false), knotoid_leg_unbounded(false), one_metapost_path(true),
-						colour(false), draw_lace_frame(false), draw_immersion(true), draw_crossing_features(true), draw_frame_corners(false), draw_grid(false),
-						draw_triangulation(false), draw_triangulation_displacement(true), draw_labels(false), label_edges_from_one(false), draw_oriented(false), 
-						draw_shortcut(false), gauss_crossings(false), gauss_labels(false), hamiltonians(false), label_vertices(false), script_labels(false), scriptscript_labels(false), 
-						seifert_circles(false), show_odd_parity_crossings(false), show_vertex_axes(true), smallarrowheads(false),state_smoothed(false),circle_packing(false), 
-						draw_shrink_effect(false), highlight_small_edges(false),tension(false),adjacent_cudgel_midpoints(true), right_originating_tail_points(true),
-						left_terminating_tail_points(false), magnify_small_circles(false),midpoints_not_tail_points(false),uniform_smoothed_discs(false),
-						midpoint_tension(1.0),colourmap(""),singlecolour(""),
-	                    hamiltonian_colour("green"),state(""),draw_colour({"red","blue","ForestGreen","Brown","DarkViolet","Orange"}){}	
+	metapost_control(): 	
+		adjacent_cudgel_midpoints(true),arrowhead_bp_size(6),
+		circle_packing(false),colour(false),colourmap(""),cudgel_space(1.0),cusp_disc_size(7),	
+		dash_with_dots(false),disc_size(30),draw_crossing_features(true),
+		draw_frame_corners(false),draw_grid(false),draw_immersion(true),
+		draw_labels(false),draw_lace_frame(false),draw_oriented(false), 
+		draw_shortcut(false),draw_shrink_effect(false),draw_triangulation(false),draw_triangulation_displacement(true),
+		explicit_rotation_centre(false), 
+		frame_maxx(0),frame_maxy(0),frame_minx(0),frame_miny(0),
+		gauss_crossings(false),gauss_labels(false),grid_size(10), 
+		HC_include_edge(-1), 
+		hamiltonians(false),hamiltonian_colour("green"),highlight_small_edges(false),horizontal_units(5), 
+		implicit_rotation_centre(false),infinite_cycle(-1),
+		knotoid_leg_unbounded(false),
+		label_edges_from_one(false),label_shift(50),label_vertices(false),left_terminating_tail_points(false),
+		magnify_small_circles(false),midpoints_not_tail_points(false),midpoint_tension(1.0),
+		odd_parity_disc_size(12),one_metapost_path(true),
+		pen_size(1),
+		right_originating_tail_points(true),rotate(false),rotation_centre_x(0),rotation_centre_y(0),rotation_centre_z(0),rotation_degrees(0),
+		scale(0),script_labels(false), scriptscript_labels(false),seifert_circles(false),seifert_edges(0),show_odd_parity_crossings(false),show_vertex_axes(true),
+		singlecolour(""),smallarrowheads(false),smoothed_disc_threshold(30),smoothed_state_disc_size(6),state(""),state_smoothed(false), 
+		tension(false),
+		uniform_smoothed_discs(false),unit_size(20),
+		vertical_units(5),
+		draw_colour({"red","blue","ForestGreen","Brown","DarkViolet","Orange"}){}	
 
 };
 
